@@ -4,7 +4,7 @@ export const VERSION = "0.2.0";
 
 // ID de cliente de Google (es público por diseño: no es una contraseña).
 // Se crea en Google Cloud con el origen https://sirathrion18.github.io
-export const GOOGLE_CLIENT_ID = "";
+export const GOOGLE_CLIENT_ID = "775947921311-t5edjab9rq99eng3fd3dh1bs5c1jd8e7.apps.googleusercontent.com";
 
 export const UNIVERSOS = [
   { id: "agus", nombre: "Agus", corto: "Agus", color: "#E46A7E",
