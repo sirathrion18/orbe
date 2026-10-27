@@ -47,10 +47,17 @@ function elegirSaludo(datos, ctx, clima) {
   else if (semilla % 2 === 0) cat = ["", "lunes", "martes", "miercoles", "jueves", "viernes", ""][ctx.dia] || "";
   if (!cat || !SALUDOS[cat]) cat = hora < 13 ? "manana" : "tarde";
   const lista = SALUDOS[cat];
-  const plantilla = lista[(semilla * 7 + 3) % lista.length];
+  // Cambia a lo largo del día: un saludo distinto cada dos horas, sin repetir el de ayer a la misma hora.
+  const tramo = Math.floor(ctx.min / 120);
+  const plantilla = lista[(semilla * 7 + tramo * 13 + 3) % lista.length];
   const nombre = plantilla.includes("{f}") ? datos.usuario.formal : datos.usuario.nombre;
-  const [antes, despues] = plantilla.replace("{f}", "{n}").split("{n}");
-  return esc(antes) + "<em>" + esc(nombre) + "</em>" + esc(despues ?? "");
+  const conNombre = (t) => {
+    const [a, b] = t.replace("{f}", "{n}").split("{n}");
+    return b === undefined ? esc(a) : esc(a) + "<em>" + esc(nombre) + "</em>" + esc(b);
+  };
+  // Una oración por renglón: "Buen día." arriba y "Café y a la cancha, Nacho." abajo, sin cortes en el medio.
+  const m = plantilla.match(/^(.+?[.!?])\s+(.+)$/);
+  return m ? `<span class="ls">${conNombre(m[1])}</span><span class="ls">${conNombre(m[2])}</span>` : `<span class="ls">${conNombre(plantilla)}</span>`;
 }
 
 // ---------- Bajada ----------
@@ -320,6 +327,15 @@ export function renderInicio(datos, ctx, clima, tema) {
 
 // Después de pintar: animar el anillo y ubicar la banda de River en el centro del círculo.
 export function despuesInicio(app, animar = true) {
+  // El saludo nunca se corta: si un renglón no entra, se achica la letra hasta que entre.
+  const h1 = app.querySelector(".saludo h1");
+  if (h1) {
+    h1.style.fontSize = "";
+    const ancho = h1.clientWidth;
+    const base = parseFloat(getComputedStyle(h1).fontSize);
+    const mayor = Math.max(...[...h1.querySelectorAll(".ls")].map((l) => l.scrollWidth));
+    if (mayor > ancho && ancho > 0) h1.style.fontSize = Math.max(20, Math.floor(base * ancho / mayor * 0.98)) + "px";
+  }
   const segs = app.querySelectorAll(".anillo .seg");
   const dibujar = () => segs.forEach((s) => s.setAttribute("stroke-dasharray", s.dataset.largo + " " + (s.dataset.circ || C)));
   if (animar) requestAnimationFrame(() => requestAnimationFrame(dibujar));

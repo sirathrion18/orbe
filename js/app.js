@@ -423,9 +423,9 @@ async function refrescarAgenda() {
 // ---------- Sincronización y finanzas ----------
 // Todo se actualiza solo: al abrir, al volver a Orbe y cada 5 minutos. El botón ↻ fuerza todo junto.
 // El estado de cada parte queda guardado para que Ajustes diga exactamente qué anda y qué no.
-const estadoParte = (parte, error) => {
+const estadoParte = (parte, error, nota) => {
   const e = leer("estadoAct", {});
-  e[parte] = error ? { msj: error, cuando: Date.now() } : { ok: Date.now() };
+  e[parte] = error ? { msj: error, cuando: Date.now() } : { ok: Date.now(), nota: nota || "" };
   guardar("estadoAct", e, true);
 };
 
@@ -435,7 +435,10 @@ async function refrescarTodo(forzar = false) {
   try { const cambio = await sincronizar(); estadoParte("sincro"); if (cambio) pintar(true); }
   catch (e) { estadoParte("sincro", e.message); fallas.push(["sincro", e.message]); }
   if (!fallas.length) {
-    try { await actualizarFinanzas(forzar); estadoParte("mails"); }
+    try {
+      const r = await actualizarFinanzas(forzar);
+      estadoParte("mails", null, r && (r.frenado || r.quedan) ? "trayendo el historial de a poco" : "");
+    }
     catch (e) { estadoParte("mails", e.message); fallas.push(["mails", e.message]); }
     if (idEconomia()) {
       const eco = datosEconomia();
@@ -486,7 +489,8 @@ async function actualizarFinanzas(forzar) {
   if (!forzar && fin && Date.now() - fin.cuando < 10 * 60000) return;
   finEnCurso = true;
   try {
-    if (G.permisos().gmail) await traerMails(); else await leerPlanilla();
+    if (G.permisos().gmail) return await traerMails();
+    await leerPlanilla();
   } finally { finEnCurso = false; }
 }
 

@@ -280,7 +280,7 @@ function estadoPartes(est) {
   const hace = (t) => { const m = Math.round((Date.now() - t) / 60000); return m < 1 ? "recién" : m < 60 ? "hace " + m + " min" : "hace " + Math.round(m / 60) + " h"; };
   const filas = PARTES.filter(([k]) => est[k]).map(([k, n]) => {
     const e = est[k];
-    if (e.ok) return `<li><span>${n}</span><span class="estado ok">✓ ${hace(e.ok)}</span></li>`;
+    if (e.ok) return `<li><span>${n}${e.nota ? `<br><small class="vacio">${esc(e.nota)}</small>` : ""}</span><span class="estado ok">✓ ${hace(e.ok)}</span></li>`;
     const apagada = /api-apagada:(sheets|gmail)/.exec(e.msj || "");
     const sinPermiso = /insufficient|scope|permiso/i.test(e.msj || "");
     const arreglo = sinPermiso && !apagada ? `<button class="btn" style="margin-top:8px" data-accion="activar-todo">Volver a dar permiso</button><span class="vacio" style="font-size:12px">En la pantalla de Google, tildá todas las casillas (sobre todo la de Gmail).</span>`

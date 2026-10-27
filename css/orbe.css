@@ -344,3 +344,4 @@ input[type="time"]::-webkit-date-and-time-value { text-align: left; }
 @keyframes girar { to { transform: rotate(360deg); } }
 .girando svg { animation: girar .9s linear infinite; }
 .top .der { gap: 8px; }
+.saludo h1 .ls { display: block; white-space: nowrap; width: max-content; max-width: none; }

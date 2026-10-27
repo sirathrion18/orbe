@@ -56,24 +56,26 @@ export function clasificar(m, reglas) {
 
 // ---------- Traer mails nuevos ----------
 const SEIS_MESES = 182 * 86400000;
-export async function traerMails(alAvanzar) {
-  if (!permisos().gmail) return 0;
+// De a tandas chicas, guardando lo avanzado después de cada una: si Gmail pide pausa, se sigue la próxima vez desde ahí.
+const espera = (ms) => new Promise((r) => setTimeout(r, ms));
+export async function traerMails() {
+  if (!permisos().gmail) return { nuevos: 0 };
   let fin = await leerPlanilla();
   let desde = fin.ultimoMail || Date.now() - SEIS_MESES;
-  const nuevos = [];
-  for (let vuelta = 0; vuelta < 12; vuelta++) {
+  let total = 0, frenado = false, quedan = 0;
+  for (let vuelta = 0; vuelta < 6; vuelta++) {
+    if (vuelta) await espera(2500);
     const r = await servidor("/api/finanzas", { desde });
-    nuevos.push(...r.movimientos);
-    if (alAvanzar) alAvanzar(nuevos.length, r.quedan);
-    if (!r.quedan || r.ultimo <= desde) { desde = Math.max(desde, r.ultimo); break; }
-    desde = r.ultimo;
+    const aceptados = fusionar(fin.movs, r.movimientos).map((m) => clasificar({ ...m, mitad: false, nota: m.nota || "", grupo: m.grupo || "" }, fin.reglas));
+    if (aceptados.length) { await agregar("MOVIMIENTOS!A:P", aceptados.map(aFila)); fin.movs.push(...aceptados); total += aceptados.length; }
+    if (r.ultimo > desde) { desde = r.ultimo; fin.ultimoMail = desde; guardar("finanzas", fin, true); }
+    frenado = !!r.frenado; quedan = r.quedan || 0;
+    if (frenado || !quedan) break;
   }
-  const aceptados = fusionar(fin.movs, nuevos).map((m) => clasificar({ ...m, mitad: false, nota: m.nota || "", grupo: m.grupo || "" }, fin.reglas));
-  if (aceptados.length) await agregar("MOVIMIENTOS!A:P", aceptados.map(aFila));
   fin = await leerPlanilla();
-  fin.ultimoMail = desde;
+  fin.ultimoMail = desde; fin.mailsPendientes = frenado || quedan > 0;
   guardar("finanzas", fin, true);
-  return aceptados.length;
+  return { nuevos: total, frenado, quedan };
 }
 
 // ---------- Corregir un movimiento (y aprender la regla) ----------

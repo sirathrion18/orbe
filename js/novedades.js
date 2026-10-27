@@ -1,6 +1,16 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.9.2",
+    fecha: "27/10/2026",
+    titulo: "Mails sin trabas y saludos con mate.",
+    cambios: [
+      "Arreglado el error de cuota de Gmail: Orbe lee los mails de a 15 y de a uno, guarda lo avanzado en cada tanda y, si Google pide una pausa, sigue solo la próxima vez desde ahí.",
+      "El saludo va una oración por renglón («Buen día.» arriba, «Mate y a la cancha, Nacho.» abajo) y nunca se corta: si un renglón no entra, la letra se achica.",
+      "108 saludos nuevos, muchos con mate, y el saludo cambia cada dos horas a lo largo del día."
+    ]
+  },
+  {
     version: "0.9.1",
     fecha: "27/10/2026",
     titulo: "Un botón para actualizar todo.",

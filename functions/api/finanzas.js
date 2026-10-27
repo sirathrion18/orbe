@@ -5,7 +5,7 @@
 import { configurado, descifrar, leerCookie, COOKIE, mismoOrigen, json, paseDe, GMAIL } from "../../servidor/sesion.js";
 import { leerMail } from "../../servidor/mails.js";
 
-const POR_VEZ = 40;
+const POR_VEZ = 15; // pocos por vez y de a uno: Gmail limita cuántas lecturas por minuto acepta
 const REMITENTES = "{from:bnanet.bna.com.ar from:bnainfo.bna.com.ar from:mercadopago.com from:mercadopago.com.ar} -category:promotions";
 
 const b64 = (d) => { try { return decodeURIComponent(escape(atob(d.replace(/-/g, "+").replace(/_/g, "/")))); } catch (e) { return ""; } };
@@ -44,10 +44,11 @@ export async function onRequestPost({ request, env }) {
   const ids = [];
   let pagina = "";
   for (let i = 0; i < 2; i++) {
-    const q = encodeURIComponent(REMITENTES + (desde ? " after:" + desde : ""));
+    const q = encodeURIComponent(REMITENTES + (desde ? " after:" + (desde - 1) : ""));
     const r = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=500&q=" + q + (pagina ? "&pageToken=" + pagina : ""), auth);
     if (!r.ok) {
       const txt = await r.text().catch(() => "");
+      if (limite(r.status, txt)) return json({ movimientos: [], ultimo: desde * 1000, leidos: 0, quedan: 1, frenado: true });
       const apagada = r.status === 403 && /has not been used|is disabled|SERVICE_DISABLED|accessNotConfigured/i.test(txt);
       let detalle = "";
       try { detalle = String(JSON.parse(txt).error?.message || "").slice(0, 160); } catch (e) { /* sin detalle */ }
@@ -62,15 +63,25 @@ export async function onRequestPost({ request, env }) {
   const lote = ids.slice(0, POR_VEZ);
 
   const movimientos = [];
-  let ultimo = desde * 1000;
-  await Promise.all(lote.map(async (id) => {
+  let ultimo = desde * 1000, leidos = 0, frenado = false;
+  for (const id of lote) {
     const r = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/" + id + "?format=full", auth);
-    if (!r.ok) return;
+    if (!r.ok) {
+      const txt = await r.text().catch(() => "");
+      if (limite(r.status, txt)) { frenado = true; break; } // se sigue en la próxima vuelta, desde acá
+      leidos++; continue;
+    }
     const m = await r.json();
     const h = Object.fromEntries((m.payload?.headers || []).map((x) => [x.name.toLowerCase(), x.value]));
     ultimo = Math.max(ultimo, Number(m.internalDate));
+    leidos++;
     const mov = leerMail({ id: m.id, internalDate: m.internalDate, subject: h.subject || "", from: h.from || "", text: textoDe(m.payload) });
     if (mov) movimientos.push(mov);
-  }));
-  return json({ movimientos, ultimo, leidos: lote.length, quedan: Math.max(0, ids.length - lote.length) });
+  }
+  return json({ movimientos, ultimo, leidos, frenado, quedan: Math.max(0, ids.length - leidos) });
+}
+
+// Límite de Google (cuota por minuto): no es un error, es "esperá un poco".
+function limite(status, txt) {
+  return status === 429 || (status === 403 && /quota|rate ?limit|userRateLimitExceeded|RATE_LIMIT/i.test(txt));
 }
