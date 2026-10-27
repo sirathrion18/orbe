@@ -1,6 +1,12 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.8.1",
+    fecha: "27/10/2026",
+    titulo: "Huella.",
+    cambios: ["Finanzas y Bienestar se abren con tu huella: usa el lector del celu y la huella nunca sale del teléfono. El PIN queda como respaldo para la compu."]
+  },
+  {
     version: "0.8.0",
     fecha: "27/10/2026",
     titulo: "Finanzas conectada.",

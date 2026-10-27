@@ -175,10 +175,11 @@ export function renderUniverso(id, datos, ctx, tema) {
   return `<div class="pagina">${cabecera(u, datos, tema)}${PAGINAS[id](datos, ctx)}</div>`;
 }
 
-export function renderBloqueo(id) {
+export function renderBloqueo(id, conHuella, conPin) {
   const u = UNIVERSOS.find((x) => x.id === id);
-  return `<div class="pagina">${volver}<h1>${esc(u.nombre)}</h1><p class="bajada">Este universo tiene PIN.</p>
-    <form class="form" data-form="pin" data-id="${id}"><input name="pin" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN" aria-label="PIN" required><button class="btn">Entrar</button></form></div>`;
+  return `<div class="pagina">${volver}<h1>${esc(u.nombre)}</h1><p class="bajada">Este universo está bloqueado.</p>
+    ${conHuella ? `<button class="btn ancho-completo" data-accion="huella-abrir" data-id="${id}" style="height:56px;font-size:16px">Abrir con huella</button>` : ""}
+    ${conPin ? `<form class="form" data-form="pin" data-id="${id}" style="margin-top:${conHuella ? 18 : 12}px"><input name="pin" type="password" inputmode="numeric" autocomplete="off" placeholder="${conHuella ? "o con el PIN" : "PIN"}" aria-label="PIN" required><button class="btn">Entrar</button></form>` : ""}</div>`;
 }
 
 // ---------- Secciones ----------
@@ -277,9 +278,12 @@ export function renderAjustes(estadoTema, demo, hayPin, google) {
       <p class="vacio" style="margin-top:12px;font-size:13px">Automático: claro de día y oscuro desde la puesta del sol en Buenos Aires. El botón de Inicio lo cambia hasta la próxima salida o puesta.</p></section>
     <section class="bloque"><h2>Probar modos del día</h2><div class="chips"><button class="chip ${!demo ? "on" : ""}" data-accion="demo" data-modo="">Real</button>${MODOS.map((m) => `<button class="chip ${demo === m ? "on" : ""}" data-accion="demo" data-modo="${m}">${m === "normal" ? "Normal" : m === "libre" ? "Día libre" : m === "river" ? "River" : m === "marvel" ? "Guiño Marvel" : "Noche"}</button>`).join("")}</div>
       <p class="vacio" style="margin-top:12px;font-size:13px">Simula el día y la hora de cada modo. Se apaga al cerrar Orbe.</p></section>
-    <section class="bloque"><h2>PIN para Finanzas y Bienestar</h2>
-      ${hayPin ? '<button class="btn sec" data-accion="pin-sacar">Sacar el PIN</button>' : '<form class="form" data-form="pin-nuevo"><input name="pin" type="password" inputmode="numeric" minlength="4" placeholder="4 dígitos o más" aria-label="Nuevo PIN" required><button class="btn">Poner PIN</button></form>'}
-      <p class="vacio" style="margin-top:12px;font-size:13px">Es una cortina para miradas ajenas, no un cofre. Con la sincronización activa, el mismo PIN vale en el celu y en la compu.</p></section>
+    <section class="bloque"><h2>Bloqueo de Finanzas y Bienestar</h2>
+      <p style="margin-bottom:12px">Huella en este dispositivo: <b>${google.huella ? "activada" : "apagada"}</b></p>
+      <div class="chips">${google.huella ? '<button class="btn sec" data-accion="huella-sacar">Apagar la huella</button>' : '<button class="btn" data-accion="huella-activar">Activar huella</button>'}</div>
+      <p class="vacio" style="margin:16px 0 0;font-size:13px">PIN de respaldo (para la compu sin lector, o si la huella falla):</p>
+      ${hayPin ? '<button class="btn sec" data-accion="pin-sacar" style="margin-top:10px">Sacar el PIN</button>' : '<form class="form" data-form="pin-nuevo"><input name="pin" type="password" inputmode="numeric" minlength="4" placeholder="4 dígitos o más" aria-label="Nuevo PIN" required><button class="btn">Poner PIN</button></form>'}
+      <p class="vacio" style="margin-top:12px;font-size:13px">Usa el lector del celu: la huella nunca sale del teléfono. Se pide una vez cada vez que abrís Orbe. Es una cortina para miradas ajenas, no un cofre.</p></section>
     <section class="bloque"><h2>Más</h2><div class="chips"><a class="chip" href="#/datos">Mis datos</a><a class="chip" href="#/respiro">Respiro</a><a class="chip" href="#/novedades">Novedades</a></div></section></div>`;
 }
 

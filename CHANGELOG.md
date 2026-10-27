@@ -1,5 +1,11 @@
 # Novedades de Orbe
 
+## v0.8.1 · 27/10/2026
+
+Huella.
+
+- Finanzas y Bienestar se abren con tu huella: usa el lector del celu y la huella nunca sale del teléfono. El PIN queda como respaldo para la compu.
+
 ## v0.8.0 · 27/10/2026
 
 Finanzas conectada.

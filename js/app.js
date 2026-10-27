@@ -7,6 +7,7 @@ import { renderUniverso, renderBloqueo, renderIdeas, renderAgenda, renderRespiro
 import { sincronizar, activa as sincroActiva } from "./sincro.js";
 import { leerPlanilla, traerMails, corregir, datosFinanzas } from "./finanzas.js";
 import { fijarHoja, idHoja } from "./hoja.js";
+import { huellaActiva, huellaDisponible, registrarHuella, verificarHuella, sacarHuella } from "./huella.js";
 import { UNIVERSOS, SECCIONES } from "./config.js";
 import { leer, guardar, borrar, todo, borrarTodo, sesion } from "./almacen.js";
 import { sol } from "./sol.js";
@@ -67,7 +68,8 @@ function pintar(refresco = false) {
   else if (r.startsWith("/u/")) {
     const id = r.slice(3);
     const u = UNIVERSOS.find((x) => x.id === id);
-    html = u && u.bloqueo && leer("pin") && !sesion("abierto-" + id) ? renderBloqueo(id) : renderUniverso(id, estado.datos, estado.ctx, tema);
+    const bloqueado = u && u.bloqueo && (leer("pin") || huellaActiva()) && !sesion("abierto-" + id);
+    html = bloqueado ? renderBloqueo(id, huellaActiva(), !!leer("pin")) : renderUniverso(id, estado.datos, estado.ctx, tema);
   }
   else if (r === "/ideas") html = renderIdeas();
   else if (r === "/agenda") html = renderAgenda(estado.datos, estado.ctx, tema);
@@ -76,7 +78,7 @@ function pintar(refresco = false) {
   else if (r === "/ajustes") {
     const ag = leer("agenda");
     html = renderAjustes(estadoTema(), demo, !!leer("pin"), {
-      configurado: G.configurado(), cuenta: G.cuenta(), estado: G.estadoSesion, permisos: G.permisos(), hoja: idHoja(),
+      configurado: G.configurado(), cuenta: G.cuenta(), estado: G.estadoSesion, permisos: G.permisos(), hoja: idHoja(), huella: huellaActiva(),
       aviso: AVISOS_GOOGLE[new URLSearchParams(location.hash.split("?")[1] || "").get("google")] || null,
       agenda: ag ? new Date(ag.cuando).toLocaleString("es-AR", { weekday: "long", hour: "2-digit", minute: "2-digit" }) : null
     });
@@ -287,6 +289,17 @@ document.addEventListener("click", (e) => {
     avisar("Marcado como hecho"); pintar(true);
   }
   else if (a === "deshacer-hechos") { guardar("hechos", []); pintar(true); }
+  else if (a === "huella-activar") {
+    huellaDisponible().then(async (ok) => {
+      if (!ok) { avisar("Este dispositivo no tiene lector de huella disponible"); return; }
+      try { await registrarHuella(); avisar("Huella activada"); pintar(); } catch (err) { avisar("No se activó la huella"); }
+    });
+  }
+  else if (a === "huella-sacar") { sacarHuella(); avisar("Huella apagada"); pintar(); }
+  else if (a === "huella-abrir") {
+    const id = el.dataset.id;
+    verificarHuella().then((ok) => { if (ok) { sesion("abierto-" + id, true); vibrar(); pintar(); } else avisar("No se reconoció la huella"); });
+  }
   else if (a === "pin-sacar") { borrar("pin"); avisar("PIN sacado"); pintar(); }
   else if (a === "exportar") {
     const blob = new Blob([JSON.stringify(todo(), null, 2)], { type: "application/json" });
