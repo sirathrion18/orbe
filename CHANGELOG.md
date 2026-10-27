@@ -1,5 +1,14 @@
 # Novedades de Orbe
 
+## v0.5.0 · 27/10/2026
+
+Alarmas.
+
+- De noche y de madrugada, el centro del anillo muestra tu próxima alarma y cuánto dormís si te acostás ya.
+- Una rayita roja marca en el anillo la hora en que suena.
+- Si mañana arrancás antes de las 10 y no hay alarma, Orbe te avisa y podés anotarla ahí mismo.
+- Lee las alarmas que lleguen al calendario «Alarmas» (aunque esté oculto) o eventos titulados «Alarma». Con varias seguidas, muestra siempre la que viene.
+
 ## v0.4.0 · 27/10/2026
 
 El día correcto, y lo urgente más claro.

@@ -280,6 +280,11 @@ document.addEventListener("submit", async (e) => {
   else if (tipo === "gasto") {
     const monto = Number(String(d.monto).replace(/\./g, "").replace(",", "."));
     if (monto > 0) { ejecutarComando({ tipo: "gasto", monto, desc: d.desc.trim() || "varios" }); pintar(); }
+  } else if (tipo === "alarma") {
+    const [h, m] = String(d.hora).split(":").map(Number);
+    const t = new Date(); t.setHours(h, m, 0, 0);
+    if (t.getTime() <= Date.now()) t.setDate(t.getDate() + 1);
+    guardar("alarmaManual", { ts: t.getTime() }); avisar("Alarma anotada"); pintar(true);
   } else if (tipo === "horario") {
     const h = {};
     [1, 2, 3, 4, 5].forEach((dd) => { if (d["i" + dd] && d["f" + dd]) h[dd] = { inicio: d["i" + dd], fin: d["f" + dd] }; });

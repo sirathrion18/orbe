@@ -1,6 +1,17 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.5.0",
+    fecha: "27/10/2026",
+    titulo: "Alarmas.",
+    cambios: [
+      "De noche y de madrugada, el centro del anillo muestra tu próxima alarma y cuánto dormís si te acostás ya.",
+      "Una rayita roja marca en el anillo la hora en que suena.",
+      "Si mañana arrancás antes de las 10 y no hay alarma, Orbe te avisa y podés anotarla ahí mismo.",
+      "Lee las alarmas que lleguen al calendario «Alarmas» (aunque esté oculto) o eventos titulados «Alarma». Con varias seguidas, muestra siempre la que viene."
+    ]
+  },
+  {
     version: "0.4.0",
     fecha: "27/10/2026",
     titulo: "El día correcto, y lo urgente más claro.",

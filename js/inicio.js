@@ -104,10 +104,27 @@ function anillo(datos, ctx, tema) {
   }).join("");
   const a = ctx.min / 1440 * 2 * Math.PI;
   const punto = noche ? "" : `<circle cx="${130 + 100 * Math.sin(a)}" cy="${130 + -100 * Math.cos(a)}" r="7" style="fill:var(--text);stroke:var(--bg)" stroke-width="4"/>`;
+  // Marca de la alarma: una rayita roja por fuera del anillo, a la hora en que suena.
+  const alarma = noche ? ctx.alarmaManana : ctx.alarmaHoy;
+  let marcaAlarma = "";
+  if (alarma) {
+    const d = new Date(alarma);
+    const aa = (d.getHours() * 60 + d.getMinutes()) / 1440 * 2 * Math.PI;
+    const p1 = [130 + 108 * Math.sin(aa), 130 - 108 * Math.cos(aa)], p2 = [130 + 121 * Math.sin(aa), 130 - 121 * Math.cos(aa)];
+    marcaAlarma = `<line x1="${p1[0]}" y1="${p1[1]}" x2="${p2[0]}" y2="${p2[1]}" style="stroke:var(--accent)" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="${p2[0]}" cy="${p2[1]}" r="3.5" style="fill:var(--accent)"/>`;
+  }
 
   // Centro
   let lbl, big, sub;
-  if (noche) {
+  const alarmaCentro = (noche && ctx.alarmaManana) || (ctx.modo === "madrugada" && ctx.alarmaHoy);
+  if (alarmaCentro) {
+    const d = new Date(alarmaCentro);
+    const dormis = Math.max(0, Math.round((alarmaCentro - ctx.fecha.getTime()) / 60000));
+    lbl = "Alarma" + (ctx.alarmaManual ? " · a mano" : "");
+    big = hhmm(d.getHours() * 60 + d.getMinutes());
+    sub = "dormís " + duracion(dormis) + " si te acostás ya";
+  } else if (noche) {
     const p = ctx.manana[0];
     lbl = "Mañana"; big = p ? p.inicio : "Libre"; sub = p ? p.titulo : "sin nada fijo";
   } else if (ctx.modo === "river" && ctx.partido) {
@@ -130,6 +147,7 @@ function anillo(datos, ctx, tema) {
       <circle cx="130" cy="130" r="100" style="fill:var(--bg);stroke:var(--track)" stroke-width="3"/>
       ${marcas}
       <g transform="rotate(-90 130 130)">${segs}</g>
+      ${marcaAlarma}
       ${punto}
     </svg>
     <span class="centro"><span class="lbl">${lbl}</span><span class="big">${big}</span><span class="sub">${sub}</span></span>
@@ -145,6 +163,15 @@ function leyenda(datos, ctx, tema) {
 
 // ---------- Tira de modo ----------
 function tira(ctx) {
+  // Sin alarma para mañana y arrancás temprano: aviso, con opción de cargarla a mano.
+  const primero = ctx.manana[0];
+  if (ctx.modo === "noche" && !ctx.alarmaManana && primero && primero.ini < 10 * 60) {
+    return `<form class="tira" data-form="alarma" style="flex-wrap:wrap"><div style="flex:1;min-width:150px"><div class="k">Sin alarma para mañana</div>
+      <div class="t">${esc(primero.titulo)} a las ${primero.inicio}</div></div>
+      <label style="display:flex;gap:8px;align-items:center"><span class="sr">Hora de la alarma</span>
+        <input type="time" name="hora" required style="height:42px;padding:0 10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);font-size:16px">
+        <button class="btn" style="height:42px;padding:0 14px">Listo</button></label></form>`;
+  }
   if (ctx.cumpleManana && ctx.cumpleManana.length && ctx.modo !== "river") {
     return `<div class="tira"><div><div class="k">Mañana cumple</div><div class="t">${esc(unir(ctx.cumpleManana))}</div></div><div class="n">mañana</div></div>`;
   }

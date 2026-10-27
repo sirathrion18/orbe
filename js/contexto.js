@@ -106,9 +106,23 @@ export function construirContexto(datos, demo) {
   else if ((estreno && estreno.dias <= 14) || diaDeGuino) modo = "marvel";
   else if (!hayObligaciones) modo = "libre";
 
+  // Alarmas: las del calendario "Alarmas" (puente desde el celu) más la cargada a mano en Orbe.
+  const ahora = fecha.getTime();
+  const manual = leer("alarmaManual");
+  const todas = [...(ag?.alarmas || [])];
+  if (manual && manual.ts > ahora - 3600000) todas.push(manual.ts);
+  const alarmasFuturas = todas.filter((t) => t > ahora).sort((a, b) => a - b);
+  const proximaAlarma = alarmasFuturas[0] || null;
+  const alarmaManual = !!(manual && proximaAlarma === manual.ts && !(ag?.alarmas || []).includes(manual.ts));
+  const finManana = new Date(fecha); finManana.setHours(0, 0, 0, 0); finManana.setDate(finManana.getDate() + 2);
+  const iniManana = new Date(fecha); iniManana.setHours(0, 0, 0, 0); iniManana.setDate(iniManana.getDate() + 1);
+  const alarmaManana = alarmasFuturas.find((t) => t >= iniManana.getTime() && t < finManana.getTime()) || null;
+  const finHoy = iniManana.getTime();
+  const alarmaHoy = alarmasFuturas.find((t) => t < finHoy) || null;
+
   const s = sol(fecha, datos.ciudad.lat, datos.ciudad.lon);
   return { fecha, dia, min, hoy, manana, partido, estreno, viaje, cumple, modo, sol: s, demo: !!demo,
-    feriado, diaLibre, cumpleHoy, cumpleManana, avisos, corte };
+    feriado, diaLibre, cumpleHoy, cumpleManana, avisos, corte, proximaAlarma, alarmaManual, alarmaManana, alarmaHoy };
 }
 
 export function urgentes(datos, ctx) {

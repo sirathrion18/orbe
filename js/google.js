@@ -97,10 +97,11 @@ export async function leerAgenda() {
   const desde = new Date(hoy.getTime() - 30 * 86400000).toISOString();
   const hasta = new Date(hoy.getTime() + 15 * 86400000).toISOString();
   const lista = await api("https://www.googleapis.com/calendar/v3/users/me/calendarList?minAccessRole=reader");
-  const cals = (lista.items || []).filter((c) => c.selected !== false);
+  // El calendario "Alarmas" se lee aunque esté oculto en Google Calendar.
+  const cals = (lista.items || []).filter((c) => c.selected !== false || /alarma/i.test(c.summary || ""));
   if (!cals.some((c) => c.id === FERIADOS_AR)) cals.push({ id: FERIADOS_AR, summary: "Feriados" });
   if (!cals.some((c) => c.id.includes("#contacts@"))) cals.push({ id: "addressbook#contacts@group.v.calendar.google.com", summary: "Cumpleaños" });
-  const porDia = {}, avisos = {}, feriados = {}, libres = {}, cumples = {}, pendientes = new Map();
+  const porDia = {}, avisos = {}, feriados = {}, libres = {}, cumples = {}, pendientes = new Map(), alarmas = new Set();
   await Promise.all(cals.map(async (c) => {
     const url = "https://www.googleapis.com/calendar/v3/calendars/" + encodeURIComponent(c.id) +
       "/events?singleEvents=true&orderBy=startTime&maxResults=500&timeMin=" + encodeURIComponent(desde) + "&timeMax=" + encodeURIComponent(hasta);
@@ -108,6 +109,7 @@ export async function leerAgenda() {
     try { ev = await api(url); } catch (e) { return; }
     const esFeriados = c.id.includes("#holiday@");
     const esCumples = c.id.includes("#contacts@");
+    const esAlarmas = /alarma/i.test(c.summary || "");
     (ev.items || []).forEach((e) => {
       if (e.status === "cancelled") return;
       const titulo = (e.summary || "(sin título)").trim();
@@ -135,6 +137,7 @@ export async function leerAgenda() {
         return;
       }
       const ini = new Date(e.start.dateTime), fin = new Date(e.end.dateTime);
+      if (esAlarmas || /^\s*(⏰\s*)?alarma\b/i.test(titulo)) { alarmas.add(ini.getTime()); return; }
       if (fin < hoy) return;
       const dia = iso(ini);
       const minutos = (fin - ini) / 60000;
@@ -144,7 +147,8 @@ export async function leerAgenda() {
       (porDia[dia] = porDia[dia] || []).push({ inicio: hhmm(ini), fin: finTxt, titulo: NOMBRES[tipo] || titulo, original: titulo, tipo });
     });
   }));
-  const agenda = { cuando: Date.now(), porDia, avisos, feriados, libres, cumples, pendientes: [...pendientes.values()] };
+  const agenda = { cuando: Date.now(), porDia, avisos, feriados, libres, cumples, pendientes: [...pendientes.values()],
+    alarmas: [...alarmas].sort((a, b) => a - b) };
   guardar("agenda", agenda);
   return agenda;
 }
