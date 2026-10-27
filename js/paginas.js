@@ -9,6 +9,7 @@ import { datosFinanzas, resumenMes, topesSugeridos } from "./finanzas.js";
 import { linkHoja } from "./hoja.js";
 import { ultimaSincro, activa as sincroActiva } from "./sincro.js";
 import { RUBROS } from "./rubros.js";
+import { datosFacu, promedio } from "./facu.js";
 import { datosEconomia, linkEconomia, idEconomia } from "./economia.js";
 
 const MESES_LARGOS = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
@@ -104,13 +105,37 @@ const PAGINAS = {
   },
 
   ufasta(datos, ctx) {
-    const entregas = pendientesCon(datos, ctx.fecha).filter((p) => p.tipo === "facu");
-    const cursada = [1, 2, 3, 4, 5, 6, 0].flatMap((d) => bloquesDe(datos, d).filter((x) => x.tipo === "ufasta").map((x) => ({ d, x })));
-    return `<section class="bloque"><h2>Entregas y TPs <span class="ejemplo">Ejemplo</span></h2><ul class="lista">${entregas.map((p) => `<li><span>${esc(p.titulo)}</span><span class="der ${p.dias < 3 ? "rojo" : ""}">${cuandoTexto(p.dias)}</span></li>`).join("") || '<li class="vacio">Nada pendiente.</li>'}</ul></section>
-      <section class="bloque"><h2>Cursada</h2><ul class="lista">${cursada.map(({ d, x }) => `<li><span>${DIAS[d][0].toUpperCase() + DIAS[d].slice(1)}</span><span class="der">${x.inicio}–${hhmm(x.fin)}</span></li>`).join("") || '<li class="vacio">Sin horarios.</li>'}</ul></section>
-      ${pronto("Notas", "Las traigo del campus cuando aparezcan.")}
-      ${pronto("Materiales y links", "Apuntes y links de cada materia, ordenados.")}
-      <section class="bloque"><h2>Accesos</h2><div class="chips"><a class="chip" href="https://www.ufasta.edu.ar" target="_blank" rel="noopener">Sitio de UFASTA ${""}</a></div></section>`;
+    const f = datosFacu();
+    const entregas = pendientesCon(datos, ctx.fecha).filter((p) => p.tipo === "facu" && p.dias >= -3);
+    const proximas = `<section class="bloque"><h2>Próximas entregas</h2><ul class="lista">${entregas.map((p) => `<li><span>${esc(p.titulo)}${p.nota ? `<br><small class="vacio">${esc(p.nota)}</small>` : ""}</span><span class="der ${p.dias <= 3 ? "rojo" : ""}">${cuandoTexto(p.dias)}</span></li>`).join("") || '<li class="vacio">Nada con fecha. Cuando cargues la fecha de un TP, aparece acá y en Inicio 3 días antes.</li>'}</ul></section>`;
+    if (!f) return proximas + '<section class="bloque"><h2>Materias</h2><p class="vacio">Se arman en cuanto actives la sincronización en Ajustes.</p></section>';
+    const hace = (ts) => { const d = Math.round((Date.now() - ts) / 86400000); return d <= 0 ? "hoy" : d === 1 ? "ayer" : "hace " + d + " días"; };
+    const ICON = { entrega: "✓", devolucion: "💬", recordatorio: "⏰", clase: "📘", mensaje: "✉", examen: "🎓", aviso: "•", general: "•" };
+    const notasTodas = f.materias.flatMap((m) => m.notas);
+    const tarjetas = f.materias.map((m) => {
+      const tps = f.tps.filter((t) => t.materia === m.materia);
+      const hechos = tps.filter((t) => t.hecho).length;
+      const pend = tps.filter((t) => !t.hecho).sort((a, b) => (a.fecha || "9") .localeCompare(b.fecha || "9"));
+      const prox = pend.find((t) => t.fecha);
+      const diasProx = prox ? Math.round((new Date(prox.fecha + "T12:00") - ctx.fecha) / 86400000) : null;
+      const ult = f.feed.find((x) => x.materia === m.materia);
+      const prom = promedio(m.notas);
+      return `<section class="bloque materia"><h2>${esc(m.materia)}${prom !== null ? ` <span class="tag">promedio ${prom.toFixed(1).replace(".", ",")}</span>` : ""}</h2>
+        ${prox ? `<p><b>${esc(prox.titulo)}</b> <span class="${diasProx <= 3 ? "rojo-txt" : "vacio"}">· ${cuandoTexto(diasProx)}</span></p>` : pend.length ? `<p>${pend.length} pendiente${pend.length === 1 ? "" : "s"} sin fecha</p>` : '<p class="vacio">Nada pendiente.</p>'}
+        ${tps.length ? `<div class="barra" style="margin:10px 0 4px"><i style="width:${Math.round(hechos / tps.length * 100)}%;background:var(--text);opacity:.55"></i></div><p class="fuente-dato" style="margin-top:2px">${hechos} de ${tps.length} TPs hechos</p>` : ""}
+        ${ult ? `<p class="fuente-dato">${ICON[ult.tipo] || "•"} ${esc(ult.titulo)} · ${hace(ult.ts)}</p>` : ""}
+        ${tps.length ? `<details class="mas"><summary>Ver TPs</summary><ul class="lista tps">${tps.map((t) => `<li><label><input type="checkbox" data-accion="tp-tilde" data-id="${esc(t.id)}" ${t.hecho ? "checked" : ""}><span style="${t.hecho ? "text-decoration:line-through;color:var(--muted)" : ""}">${esc(t.titulo)}</span></label>${t.fecha ? `<span class="tag">${esc(t.fecha.slice(8, 10) + "/" + t.fecha.slice(5, 7))}</span>` : ""}</li>`).join("")}</ul></details>` : ""}
+        <div class="chips" style="margin-top:12px"><button class="chip" data-accion="tp-nuevo" data-materia="${esc(m.materia)}">+ TP</button><button class="chip" data-accion="materia-editar" data-materia="${esc(m.materia)}">Notas y links</button>
+          ${m.aula ? `<a class="chip" href="${esc(m.aula)}" target="_blank" rel="noopener">Aula</a>` : ""}${m.links.map((l) => `<a class="chip" href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.titulo)}</a>`).join("")}</div></section>`;
+    }).join("");
+    const sueltos = f.tps.filter((t) => !t.materia && !t.hecho);
+    const feed = f.feed.slice(0, 8);
+    return `${notasTodas.length ? `<section class="bloque"><h2>Promedio general</h2><p class="cifra">${promedio(notasTodas).toFixed(2).replace(".", ",")}</p><p class="fuente-dato">${notasTodas.length} notas cargadas.</p></section>` : ""}
+      ${proximas}${tarjetas}
+      ${sueltos.length ? `<section class="bloque"><h2>Sin materia asignada</h2><ul class="lista">${sueltos.map((t) => `<li><span>${esc(t.titulo)}</span><button class="chip" data-accion="tp-materia" data-id="${esc(t.id)}">Asignar</button></li>`).join("")}</ul></section>` : ""}
+      <section class="bloque"><h2>Novedades del campus</h2>${feed.length ? `<ul class="lista">${feed.map((x) => `<li><span>${ICON[x.tipo] || "•"} ${esc(x.titulo)}${x.materia ? `<br><small class="vacio">${esc(x.materia)}</small>` : ""}</span><span class="tag">${hace(x.ts)}</span></li>`).join("")}</ul>` : '<p class="vacio">Llegan de los mails del aula virtual.</p>'}
+        <p class="fuente-dato">Orbe lee solo el asunto de los mails del aula: si dice que entregaste, tilda el TP solo; si es un recordatorio, lo agrega.</p></section>
+      <section class="bloque"><h2>Accesos</h2><div class="chips"><a class="chip" href="https://ead01.ufasta.edu.ar" target="_blank" rel="noopener">Aula virtual</a><a class="chip" href="https://www.ufasta.edu.ar" target="_blank" rel="noopener">Sitio de UFASTA</a></div></section>`;
   },
 
   bienestar(datos) {
@@ -293,7 +318,7 @@ const FAMILIA = { logo: "var(--sans);font-weight:600;letter-spacing:-.045em", re
   cursiva: "var(--serif);font-style:italic" };
 
 // Qué anda y qué no, parte por parte, con el motivo y el arreglo cuando lo hay.
-const PARTES = [["agenda", "Agenda"], ["sincro", "Celu y compu"], ["economia", "Planilla ECONOMÍA"], ["mails", "Mails del BNA y Mercado Pago"], ["recibos", "Recibos de sueldo (Drive)"]];
+const PARTES = [["agenda", "Agenda"], ["sincro", "Celu y compu"], ["economia", "Planilla ECONOMÍA"], ["mails", "Mails del BNA y Mercado Pago"], ["recibos", "Recibos de sueldo (Drive)"], ["facu", "Campus de UFASTA"]];
 function estadoPartes(est) {
   const hace = (t) => { const m = Math.round((Date.now() - t) / 60000); return m < 1 ? "recién" : m < 60 ? "hace " + m + " min" : "hace " + Math.round(m / 60) + " h"; };
   const filas = PARTES.filter(([k]) => est[k]).map(([k, n]) => {
@@ -393,3 +418,29 @@ export function renderNoEncontrado() {
 }
 
 export { duracion };
+
+// Hojas de UFASTA: nuevo TP, notas y links de una materia, asignar materia.
+export function hojaTp(materia, materias) {
+  return `<h2>Nuevo TP</h2><form data-form="tp-nuevo">
+    <div class="grupo"><span>Materia</span><div class="chips">${materias.map((m) => `<label class="chip ${m.materia === materia ? "on" : ""}"><input type="radio" class="sr" name="materia" value="${esc(m.materia)}" ${m.materia === materia ? "checked" : ""}>${esc(m.materia)}</label>`).join("")}</div></div>
+    <div class="grupo"><span>Qué hay que entregar</span><input class="campo-hora" name="titulo" required placeholder="TP 2: análisis de un spot" style="text-align:left"></div>
+    <div class="grupo"><span>Fecha de entrega (opcional)</span><input class="campo-hora" type="date" name="fecha"></div>
+    <div class="grupo" style="display:flex;gap:10px"><button type="button" class="btn sec" data-accion="cerrar-hoja" style="flex:1">Cancelar</button><button class="btn" style="flex:2">Agregar</button></div></form>`;
+}
+
+export function hojaMateria(m) {
+  return `<h2>${esc(m.materia)}</h2><form data-form="materia" data-materia="${esc(m.materia)}">
+    <div class="grupo"><span>Notas (separadas por ;)</span><input class="campo-hora" name="notas" value="${esc(m.notas.join("; ").replace(/\./g, ","))}" placeholder="8; 7,5" style="text-align:left"></div>
+    <div class="grupo"><span>Profe</span><input class="campo-hora" name="profe" value="${esc(m.profe)}" style="text-align:left"></div>
+    <div class="grupo"><span>Link del aula</span><input class="campo-hora" name="aula" value="${esc(m.aula)}" placeholder="https://…" style="text-align:left"></div>
+    <div class="grupo"><span>Links (uno por renglón: Título | link)</span><textarea class="campo-texto" name="links" style="height:96px">${esc(m.links.map((l) => l.titulo + " | " + l.url).join("\n"))}</textarea></div>
+    <div class="grupo"><span>Pistas para reconocer sus mails (código, profe, palabras; separadas por ;)</span><input class="campo-hora" name="pistas" value="${esc(m.pistas.join("; "))}" style="text-align:left"></div>
+    <div class="grupo" style="display:flex;gap:10px"><button type="button" class="btn sec" data-accion="cerrar-hoja" style="flex:1">Cancelar</button><button class="btn" style="flex:2">Guardar</button></div></form>`;
+}
+
+export function hojaAsignar(tp, materias) {
+  return `<h2>${esc(tp.titulo)}</h2><form data-form="tp-materia" data-id="${esc(tp.id)}">
+    <div class="grupo"><span>¿De qué materia es?</span><div class="chips">${materias.map((m) => `<label class="chip"><input type="radio" class="sr" name="materia" value="${esc(m.materia)}" required>${esc(m.materia)}</label>`).join("")}</div></div>
+    <div class="grupo"><span>Fecha de entrega (opcional)</span><input class="campo-hora" type="date" name="fecha" value="${esc(tp.fecha)}"></div>
+    <div class="grupo" style="display:flex;gap:10px"><button type="button" class="btn sec" data-accion="cerrar-hoja" style="flex:1">Cancelar</button><button class="btn" style="flex:2">Guardar</button></div></form>`;
+}

@@ -1,6 +1,18 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.12.0",
+    fecha: "27/10/2026",
+    titulo: "UFASTA al día (adiós, Facu al día).",
+    cambios: [
+      "UFASTA renovado: una tarjeta por materia con la próxima entrega, el avance de TPs con tildes, la última novedad del campus, notas con promedio y links.",
+      "Novedades del campus: Orbe lee el asunto de los mails del aula virtual. Si dice que entregaste, tilda el TP solo; si es un recordatorio, lo agrega.",
+      "TPs nuevos y notas desde Orbe; todo queda en tu planilla (hojas MATERIAS y TPS) y se ve igual en el celu y en la compu.",
+      "Rato para estudiar: si hoy tenés un hueco libre y una entrega en los próximos 7 días, Inicio te lo sugiere, con botón para agendarlo si querés.",
+      "Las entregas avisan 3 días antes en Inicio y el día en rojo."
+    ]
+  },
+  {
     version: "0.11.0",
     fecha: "27/10/2026",
     titulo: "Finanzas que se cargan solas.",

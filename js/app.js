@@ -4,10 +4,12 @@ import * as G from "./google.js";
 import { construirContexto } from "./contexto.js";
 import { renderInicio, despuesInicio, esc, colorUniverso } from "./inicio.js";
 import { ICONOS } from "./iconos.js";
-import { renderUniverso, renderBloqueo, renderIdeas, renderAgenda, renderRespiro, renderDatos, renderAjustes, renderNovedades, renderNoEncontrado, hojaMovimiento } from "./paginas.js";
+import { renderUniverso, renderBloqueo, renderIdeas, renderAgenda, renderRespiro, renderDatos, renderAjustes, renderNovedades, renderNoEncontrado, hojaMovimiento, hojaTp, hojaMateria, hojaAsignar } from "./paginas.js";
 import { sincronizar, activa as sincroActiva } from "./sincro.js";
 import { leerPlanilla, traerMails, corregir, datosFinanzas, pendientesDeTarjetas, guardarTope } from "./finanzas.js";
 import { leerRecibos } from "./recibos.js";
+import { datosFacu, traerCampus, leerFacu, tildarTp, nuevoTp, guardarMateria, asignarTp, pendientesDeTps, HOJAS_FACU } from "./facu.js";
+import { asegurarHojas } from "./hoja.js";
 import { fijarHoja, idHoja } from "./hoja.js";
 import { traerDolar, traerRiver } from "./extras.js";
 import { responder } from "./preguntas.js";
@@ -67,7 +69,7 @@ function pintar(refresco = false) {
   const demo = sesion("demo");
   // Lo que se deriva de Finanzas (pagar las tarjetas) se suma a los pendientes del calendario.
   if (!estado.datos.pendientesBase) estado.datos.pendientesBase = estado.datos.pendientes || [];
-  estado.datos.pendientes = [...estado.datos.pendientesBase, ...pendientesDeTarjetas(datosFinanzas())];
+  estado.datos.pendientes = [...estado.datos.pendientesBase, ...pendientesDeTarjetas(datosFinanzas()), ...pendientesDeTps(datosFacu())];
   estado.ctx = construirContexto(estado.datos, demo);
   const r = ruta();
   let html;
@@ -298,6 +300,18 @@ document.addEventListener("click", (e) => {
     avisar("Guardando tope…");
     guardarTope(el.dataset.rubro, Number(el.dataset.tope)).then(() => { avisar("Tope de " + el.dataset.rubro + " guardado"); pintar(true); }).catch((e) => avisar("No se pudo: " + textoError(e.message)));
   }
+  else if (a === "tp-tilde") {
+    tildarTp(el.dataset.id, el.checked).then(() => { vibrar(); pintar(true); }).catch((e) => avisar("No se pudo: " + textoError(e.message)));
+  }
+  else if (a === "tp-nuevo") abrirHoja(hojaTp(el.dataset.materia, datosFacu().materias), "Nuevo TP");
+  else if (a === "materia-editar") abrirHoja(hojaMateria(datosFacu().materias.find((m) => m.materia === el.dataset.materia)), "Editar materia");
+  else if (a === "tp-materia") abrirHoja(hojaAsignar(datosFacu().tps.find((t) => t.id === el.dataset.id), datosFacu().materias), "Asignar materia");
+  else if (a === "agendar-estudio") {
+    const ini = new Date(Number(el.dataset.ini)), fin = new Date(Number(el.dataset.fin));
+    G.crearEvento({ titulo: "Estudiar: " + el.dataset.titulo, inicio: ini, fin, descripcion: "Rato de estudio sugerido por Orbe" })
+      .then(() => { avisar("Agendado en tu calendario"); actualizarTodo(false); })
+      .catch((e) => avisar(e.message === "permiso" ? "Falta el permiso de calendario: Ajustes → Dar permiso" : "No se pudo agendar"));
+  }
   else if (a === "copiar") {
     navigator.clipboard?.writeText(el.dataset.texto).then(() => avisar("Copiado: " + el.dataset.texto), () => avisar(el.dataset.texto));
   }
@@ -388,6 +402,18 @@ document.addEventListener("submit", async (e) => {
   } else if (tipo === "economia") {
     if (!fijarEconomia(d.link)) { avisar("Ese link no parece de una planilla de Google"); return; }
     avisar("Leyendo ECONOMÍA…"); await refrescarTodo(true); pintar();
+  } else if (tipo === "tp-nuevo") {
+    cerrarHoja(); avisar("Guardando…");
+    nuevoTp(d.materia || "", d.titulo.trim(), d.fecha).then(() => { avisar("TP agregado"); pintar(true); }).catch((err) => avisar("No se pudo: " + textoError(err.message)));
+  } else if (tipo === "materia") {
+    cerrarHoja(); avisar("Guardando…");
+    const links = String(d.links || "").split("\n").map((l) => l.split("|").map((x) => x.trim())).filter((x) => x[0]).map(([t, u]) => ({ titulo: u ? t : "Link", url: u || t }));
+    const notas = String(d.notas || "").split(/[;\s]+/).map((n) => Number(n.replace(",", "."))).filter((n) => Number.isFinite(n) && n > 0);
+    guardarMateria(f.dataset.materia, { notas, links, aula: d.aula.trim(), profe: d.profe.trim(), pistas: String(d.pistas || "").split(";").map((x) => x.trim()).filter(Boolean) })
+      .then(() => { avisar("Guardado"); pintar(true); }).catch((err) => avisar("No se pudo: " + textoError(err.message)));
+  } else if (tipo === "tp-materia") {
+    cerrarHoja();
+    asignarTp(f.dataset.id, d.materia, d.fecha).then(() => { avisar("Listo"); pintar(true); }).catch((err) => avisar("No se pudo: " + textoError(err.message)));
   } else if (tipo === "fin-mov") {
     const id = f.dataset.id;
     cerrarHoja(); avisar("Guardando…");
@@ -466,6 +492,13 @@ async function refrescarTodo(forzar = false) {
   const fallas = [];
   try { const cambio = await sincronizar(); estadoParte("sincro"); if (cambio) pintar(true); }
   catch (e) { estadoParte("sincro", e.message); fallas.push(["sincro", e.message]); }
+  if (!fallas.length && Date.now() - (leer("hojasCuando") || 0) > 20 * 3600000) {
+    try { await asegurarHojas(HOJAS_EXTRA); guardar("hojasCuando", Date.now(), true); } catch (e) { /* se reintenta otro día */ }
+  }
+  if (!fallas.length && (forzar || !datosFacu() || Date.now() - datosFacu().cuando > 3 * 3600000)) {
+    try { await traerCampus(); estadoParte("facu"); }
+    catch (e) { estadoParte("facu", e.message); fallas.push(["facu", e.message]); }
+  }
   if (!fallas.length) {
     try {
       const r = await actualizarFinanzas(forzar);
@@ -488,7 +521,9 @@ async function refrescarTodo(forzar = false) {
   return { ok: !fallas.length, fallas };
 }
 
-const NOMBRE_PARTE = { sincro: "la sincronización", mails: "los mails", economia: "ECONOMÍA", agenda: "la agenda", recibos: "los recibos" };
+// Hojas que Orbe crea solo en tu planilla si todavía no están.
+const HOJAS_EXTRA = { ...HOJAS_FACU };
+const NOMBRE_PARTE = { facu: "el campus de UFASTA", sincro: "la sincronización", mails: "los mails", economia: "ECONOMÍA", agenda: "la agenda", recibos: "los recibos" };
 export function textoError(m) {
   m = String(m || "");
   if (m === "reconectar" || m.startsWith("reconectar")) return "hay que volver a conectar con Google";

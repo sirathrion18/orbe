@@ -2,7 +2,8 @@
 import { SALUDOS } from "./saludos.js";
 import { UNIVERSOS } from "./config.js";
 import { ICONOS, TELA, MARCA } from "./iconos.js";
-import { DIAS, MESES, hhmm, duracion, urgentes, cuandoTexto } from "./contexto.js";
+import { DIAS, MESES, hhmm, duracion, urgentes, cuandoTexto, pendientesCon } from "./contexto.js";
+import { permisos as permisosG } from "./google.js";
 import { describirClima } from "./fuente.js";
 import { leer } from "./almacen.js";
 import { resumenMes, datosFinanzas } from "./finanzas.js";
@@ -172,7 +173,7 @@ function leyenda(datos, ctx, tema) {
 }
 
 // ---------- Tira de modo ----------
-function tira(ctx) {
+function tira(ctx, datos) {
   // Sin alarma para mañana y arrancás temprano: aviso, con opción de cargarla a mano.
   const primero = ctx.manana[0];
   if (ctx.modo === "noche" && !ctx.alarmaManana && primero && primero.ini < 10 * 60) {
@@ -210,6 +211,14 @@ function tira(ctx) {
         <div class="n">${dias === 0 ? "hoy" : "en " + dias + (dias === 1 ? " día" : " días")}</div></div>`;
     }
   }
+  // Un rato libre hoy y una entrega cerca: sugerencia para estudiar (sin tocar el calendario, salvo que lo pidas).
+  const est = ratoDeEstudio(ctx, datos);
+  if (est) {
+    const puede = permisosG().calendario;
+    return `<div class="tira" style="flex-wrap:wrap"><div style="flex:1;min-width:170px"><div class="k">Rato para estudiar</div>
+      <div class="t">${hhmm(est.ini)}–${hhmm(est.fin)} · ${esc(est.tp.titulo)} (${cuandoTexto(est.tp.dias)})</div></div>
+      ${puede ? `<button class="btn" style="height:40px;padding:0 14px" data-accion="agendar-estudio" data-titulo="${esc(est.tp.titulo)}" data-ini="${est.desde}" data-fin="${est.hasta}">Agendar</button>` : ""}</div>`;
+  }
   // El dólar, solo si se movió fuerte.
   const dm = movimientoDolar();
   if (dm && Math.abs(dm.pct) >= 2) {
@@ -217,6 +226,26 @@ function tira(ctx) {
       <div class="n">$ ${Math.round(dm.mep).toLocaleString("es-AR")}</div></a>`;
   }
   return "";
+}
+
+function ratoDeEstudio(ctx, datos) {
+  if (!["normal", "libre"].includes(ctx.modo) || ctx.demo) return null;
+  const tp = pendientesCon(datos, ctx.fecha).filter((p) => p.tipo === "facu" && p.dias >= 0 && p.dias <= 7).sort((a, b) => a.dias - b.dias)[0];
+  if (!tp) return null;
+  let desde = Math.max(9 * 60, Math.ceil((ctx.min + 10) / 15) * 15);
+  const tope = 22 * 60;
+  for (const b of [...ctx.hoy].sort((a, c) => a.ini - c.ini).concat([{ ini: tope, fin: tope }])) {
+    if (b.fin <= desde) continue;
+    const hasta = Math.min(b.ini, tope);
+    if (hasta - desde >= 75) {
+      const fin = Math.min(hasta, desde + 120);
+      const base = new Date(ctx.fecha); base.setHours(0, 0, 0, 0);
+      return { tp, ini: desde, fin, desde: base.getTime() + desde * 60000, hasta: base.getTime() + fin * 60000 };
+    }
+    desde = Math.max(desde, b.fin + 15);
+    if (desde >= tope) break;
+  }
+  return null;
 }
 
 // ---------- Widgets ----------
@@ -329,7 +358,7 @@ export function renderInicio(datos, ctx, clima, tema) {
       ${leyenda(datos, ctx, tema)}
     </div>
     <div class="col-b">
-      ${tira(ctx)}
+      ${tira(ctx, datos)}
       <div class="widgets">${wClima(clima, ctx)}${wUrgente(datos, ctx)}${wTransporte()}${wPlata(datos, ctx)}</div>
       <div class="buscador" role="search">
         <label class="campo"><span class="sr">Buscar o escribir un comando</span>${ICONOS.buscar}

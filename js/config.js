@@ -1,6 +1,6 @@
 // Estructura de Orbe: qué universos hay y qué trae cada uno.
 // Esto es diseño, no datos: no hay nada personal acá.
-export const VERSION = "0.11.0";
+export const VERSION = "0.12.0";
 
 // ID de cliente de Google (es público por diseño: no es una contraseña).
 // Se crea en Google Cloud con el origen https://orbe-5es.pages.dev
@@ -14,7 +14,7 @@ export const UNIVERSOS = [
     bajada: "Tus horarios y tus recibos. Nada del banco como empleador.",
     palabras: "trabajo laburo horario recibo sueldo turnos" },
   { id: "ufasta", nombre: "UFASTA", corto: "UFASTA", color: "tipo:ufasta",
-    bajada: "Entregas, cursada, notas y materiales.",
+    bajada: "Tus materias, entregas, notas y lo nuevo del campus.",
     palabras: "facu facultad tp entregas campus notas materias" },
   { id: "bienestar", nombre: "Bienestar", corto: "Bienestar", color: "tipo:gym",
     bajada: "Pasos, fútbol, gym, comida y un rato para respirar.",

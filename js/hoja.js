@@ -26,3 +26,17 @@ export const escribir = (rango, filas) =>
 
 export const agregar = (rango, filas) =>
   api(BASE + idHoja() + "/values/" + encodeURIComponent(rango) + ":append?valueInputOption=RAW&insertDataOption=INSERT_ROWS", "POST", { values: filas });
+
+// Crea las hojas que falten (con sus encabezados y, si hay, filas de arranque). Una vez por día alcanza.
+export async function asegurarHojas(spec) {
+  const meta = await api(BASE + idHoja() + "?fields=sheets.properties.title");
+  const hay = new Set((meta.sheets || []).map((s) => s.properties.title));
+  const faltan = Object.keys(spec).filter((t) => !hay.has(t));
+  if (!faltan.length) return [];
+  await api(BASE + idHoja() + ":batchUpdate", "POST", { requests: faltan.map((t) => ({ addSheet: { properties: { title: t } } })) });
+  for (const t of faltan) {
+    const { cab, filas = [] } = spec[t];
+    await escribir(t + "!A1:" + String.fromCharCode(64 + cab.length) + (filas.length + 1), [cab, ...filas]);
+  }
+  return faltan;
+}

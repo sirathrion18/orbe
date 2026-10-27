@@ -358,3 +358,7 @@ input[type="time"]::-webkit-date-and-time-value { text-align: left; }
 .aviso-suave { background: var(--urg-bg); }
 .aviso-suave p { font-size: 15px; line-height: 1.45; }
 .chip { white-space: nowrap; }
+.rojo-txt { color: var(--accent); font-weight: 600; }
+.tps li label { display: flex; gap: 10px; align-items: flex-start; flex: 1; min-width: 0; }
+.tps input[type="checkbox"] { width: 20px; height: 20px; flex: none; margin-top: 1px; }
+.materia p { font-size: 15px; }

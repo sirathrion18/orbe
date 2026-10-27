@@ -159,3 +159,11 @@ export async function leerAgenda() {
   guardar("agenda", agenda);
   return agenda;
 }
+
+// Crea un evento en tu calendario principal (solo cuando vos lo pedís desde Orbe).
+export async function crearEvento({ titulo, inicio, fin, descripcion }) {
+  return api("https://www.googleapis.com/calendar/v3/calendars/primary/events", "POST", {
+    summary: titulo, description: descripcion || "Creado desde Orbe",
+    start: { dateTime: inicio.toISOString() }, end: { dateTime: fin.toISOString() }
+  });
+}
