@@ -1,0 +1,33 @@
+// Orbe funciona sin internet: guarda la app y muestra lo último que tenía.
+const VERSION = "orbe-0.1.0";
+const APP = [
+  "./", "index.html", "manifest.webmanifest", "css/orbe.css",
+  "js/app.js", "js/almacen.js", "js/config.js", "js/contexto.js", "js/fuente.js",
+  "js/iconos.js", "js/inicio.js", "js/novedades.js", "js/paginas.js", "js/saludos.js", "js/sol.js",
+  "datos/ejemplo.json", "iconos/icono.svg", "iconos/icono-192.png", "iconos/icono-512.png", "iconos/icono-180.png"
+];
+
+self.addEventListener("install", (e) => {
+  e.waitUntil(caches.open(VERSION).then((c) => c.addAll(APP)).then(() => self.skipWaiting()));
+});
+
+self.addEventListener("activate", (e) => {
+  e.waitUntil(caches.keys()
+    .then((ks) => Promise.all(ks.filter((k) => k !== VERSION).map((k) => caches.delete(k))))
+    .then(() => self.clients.claim()));
+});
+
+// Primero la red (así siempre ves lo último), y si no hay conexión, lo guardado.
+self.addEventListener("fetch", (e) => {
+  const url = new URL(e.request.url);
+  if (e.request.method !== "GET") return;
+  const mismoOrigen = url.origin === location.origin;
+  const fuentes = url.hostname.endsWith("fonts.googleapis.com") || url.hostname.endsWith("fonts.gstatic.com");
+  if (!mismoOrigen && !fuentes) return; // el clima lo maneja la app
+  e.respondWith(
+    fetch(e.request).then((r) => {
+      if (r.ok || r.type === "opaque") { const copia = r.clone(); caches.open(VERSION).then((c) => c.put(e.request, copia)); }
+      return r;
+    }).catch(() => caches.match(e.request, { ignoreSearch: true }).then((r) => r || caches.match("index.html")))
+  );
+});

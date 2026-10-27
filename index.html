@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="es-AR" data-theme="claro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Orbe</title>
+<meta name="description" content="Orbe, un sistema operativo personal.">
+<meta name="theme-color" content="#FFFFFF">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="iconos/icono.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="iconos/icono-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Orbe">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/orbe.css">
+<script>
+  // Tema antes de pintar, para que no parpadee.
+  try {
+    var t = JSON.parse(localStorage.getItem("orbe.tema") || "{}");
+    var h = new Date().getHours();
+    var auto = h >= 7 && h < 19 ? "claro" : "oscuro";
+    var activo = (t.modo === "claro" || t.modo === "oscuro") && (!t.hasta || Date.now() < t.hasta) ? t.modo : auto;
+    document.documentElement.dataset.theme = activo;
+  } catch (e) {}
+</script>
+</head>
+<body>
+<main class="app" id="app">
+  <p style="color:var(--muted);padding-top:40vh;text-align:center">Orbe…</p>
+</main>
+<noscript><p style="padding:20px">Orbe necesita JavaScript.</p></noscript>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,67 @@
+{
+  "_aviso": "DATOS DE EJEMPLO. Este archivo es público y no tiene información real. Los datos reales viven en el Drive de cada usuario y Orbe los lee después de iniciar sesión.",
+  "version": 1,
+  "usuario": { "nombre": "Nacho", "formal": "Ignacio", "cumple": "12-08" },
+  "ciudad": { "nombre": "CABA", "lat": -34.61, "lon": -58.38 },
+  "tipos": {
+    "bna":     { "nombre": "BNA",       "claro": "#3F6FD8", "oscuro": "#5B8CF0" },
+    "ufasta":  { "nombre": "UFASTA",    "claro": "#7A5CD6", "oscuro": "#9A82F0" },
+    "gym":     { "nombre": "Gym",       "claro": "#3E8E66", "oscuro": "#3E9E70" },
+    "futbol":  { "nombre": "Fútbol",    "claro": "#3E8E66", "oscuro": "#3E9E70" },
+    "ntn":     { "nombre": "NTN",       "claro": "#0F8C86", "oscuro": "#2BB5AD" },
+    "river":   { "nombre": "River",     "claro": "#D0242E", "oscuro": "#E5484D" },
+    "agus":    { "nombre": "Agus",      "claro": "#C2456A", "oscuro": "#E46A7E" },
+    "otro":    { "nombre": "Otro",      "claro": "#6B6B73", "oscuro": "#8E8E96" }
+  },
+  "rutina": {
+    "1": [ { "inicio": "10:00", "fin": "16:00", "titulo": "BNA", "tipo": "bna" } ],
+    "2": [
+      { "inicio": "08:00", "fin": "09:30", "titulo": "Gym", "tipo": "gym" },
+      { "inicio": "10:00", "fin": "16:00", "titulo": "BNA", "tipo": "bna" },
+      { "inicio": "19:00", "fin": "21:00", "titulo": "UFASTA", "tipo": "ufasta" }
+    ],
+    "3": [
+      { "inicio": "12:30", "fin": "18:00", "titulo": "BNA", "tipo": "bna" },
+      { "inicio": "21:30", "fin": "23:30", "titulo": "River vs [RIVAL]", "tipo": "river", "detalle": { "rival": "[RIVAL]", "formacion": "[formación probable]", "resultado": "[resultado]" } }
+    ],
+    "4": [
+      { "inicio": "10:00", "fin": "16:00", "titulo": "BNA", "tipo": "bna" },
+      { "inicio": "20:00", "fin": "21:30", "titulo": "Fútbol", "tipo": "futbol" }
+    ],
+    "5": [ { "inicio": "10:00", "fin": "16:00", "titulo": "BNA", "tipo": "bna" } ],
+    "6": [ { "inicio": "17:00", "fin": "19:00", "titulo": "Fútbol", "tipo": "futbol" } ],
+    "0": []
+  },
+  "pendientes": [
+    { "titulo": "Entrega TP de ejemplo", "tipo": "facu", "dias": 2, "universo": "ufasta" },
+    { "titulo": "Vencen las tarjetas", "tipo": "tarjeta", "dias": 8, "universo": "finanzas", "nota": "pago mínimo" },
+    { "titulo": "Pagar ABL", "tipo": "vencimiento", "dias": 5, "universo": "finanzas" },
+    { "titulo": "Factura de luz", "tipo": "vencimiento", "dias": 12, "universo": "finanzas" }
+  ],
+  "plata": { "disponible": null, "usado": 0.78, "diasRestantes": 5, "proximo": "Tarjetas, en 8 días" },
+  "estrenos": [
+    { "titulo": "Avengers: Doomsday", "fecha": "2026-12-18", "nota": "fecha a confirmar" }
+  ],
+  "fechas": [
+    { "titulo": "Viaje a Japón y Madrid", "fecha": "2027-02-01", "tipo": "viaje" }
+  ],
+  "pasos": { "hoy": 6240, "promedio": 7810, "semana": [8120, 6930, 10240, 7410, 5320, 9880, 6240] },
+  "accesos": [
+    { "titulo": "Archivo 64", "url": "https://sirathrion18.github.io/archivo64/", "palabras": "a64 ajedrez lichess" },
+    { "titulo": "Mateshka", "url": "https://sirathrion18.github.io/mateshka/", "palabras": "ruso agus" },
+    { "titulo": "Lichess", "url": "https://lichess.org", "palabras": "ajedrez" },
+    { "titulo": "Google Drive", "url": "https://drive.google.com", "palabras": "archivos drive" },
+    { "titulo": "Gmail", "url": "https://mail.google.com", "palabras": "mail correo" },
+    { "titulo": "Google Calendar", "url": "https://calendar.google.com", "palabras": "agenda calendario" },
+    { "titulo": "Campus UFASTA", "url": "https://www.ufasta.edu.ar", "palabras": "facu campus" }
+  ],
+  "proyectos": [
+    { "id": "a64", "nombre": "Archivo 64", "estado": "Activo", "proximo": "Sumar el bot de práctica", "url": "https://sirathrion18.github.io/archivo64/", "repo": "https://github.com/sirathrion18/archivo64" },
+    { "id": "nexus", "nombre": "Nexus", "estado": "En marcha", "proximo": "Que corra sin ventana en la PC", "url": "", "repo": "" },
+    { "id": "mateshka", "nombre": "Mateshka", "estado": "Activo", "proximo": "Feedback de Agus", "url": "https://sirathrion18.github.io/mateshka/", "repo": "https://github.com/sirathrion18/mateshka" },
+    { "id": "linea", "nombre": "Línea Sagrada", "estado": "En pausa", "proximo": "Repensar la v1", "url": "", "repo": "https://github.com/sirathrion18/linea-sagrada" },
+    { "id": "orbe", "nombre": "Orbe", "estado": "Activo", "proximo": "Conectar Drive", "url": "https://sirathrion18.github.io/orbe/", "repo": "https://github.com/sirathrion18/orbe" },
+    { "id": "ntn", "nombre": "NTN", "estado": "Acceso", "proximo": "", "url": "", "repo": "" },
+    { "id": "sur", "nombre": "SUR lo-fi", "estado": "Acceso", "proximo": "", "url": "", "repo": "" }
+  ]
+}
