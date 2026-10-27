@@ -1,7 +1,7 @@
 // Pantalla de Inicio: saludo, anillo del día, widgets, buscador y universos.
 import { SALUDOS } from "./saludos.js";
 import { UNIVERSOS } from "./config.js";
-import { ICONOS, TELA } from "./iconos.js";
+import { ICONOS, TELA, MARCA } from "./iconos.js";
 import { DIAS, MESES, hhmm, duracion, urgentes, cuandoTexto } from "./contexto.js";
 import { describirClima } from "./fuente.js";
 import { leer } from "./almacen.js";
@@ -225,7 +225,7 @@ export function renderInicio(datos, ctx, clima, tema) {
         <div class="resultados" id="resultados" role="listbox"></div>
       </div>
       <div class="universos">${UNIVERSOS.map((u) => `<a class="u" href="#/u/${u.id}"><i class="dot" style="background:${colorUniverso(datos, u, tema)}"></i>${esc(u.nombre)}</a>`).join("")}</div>
-      <p class="pie">Orbe · datos de ejemplo + clima real · <a href="#/novedades">novedades</a></p>
+      <p class="pie">${MARCA}<br>datos de ejemplo + clima real · <a href="#/novedades">novedades</a></p>
     </div>
   </div>
   <button class="fab" data-accion="idea" aria-label="Anotar una idea">${ICONOS.mas}</button>`;

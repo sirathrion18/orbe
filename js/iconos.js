@@ -24,3 +24,6 @@ export const TELA = `<svg class="tela" viewBox="0 0 190 190" fill="none" stroke=
 <path d="M190 0L0 0M190 0L20 120M190 0L80 190M190 0L190 190M190 0L140 190"/>
 <path d="M150 0Q160 22 168 28Q178 35 190 38"/><path d="M105 0Q122 40 138 52Q160 70 190 78"/>
 <path d="M58 0Q86 60 108 78Q140 105 190 118"/><path d="M12 0Q50 80 78 104Q118 140 190 158"/></svg>`;
+
+// Logo: la "o" es un anillo con el punto rojo de ahora.
+export const MARCA = `<span class="marca" aria-label="Orbe"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="36" fill="none" stroke="currentColor" stroke-width="16"/><circle cx="75.5" cy="24.5" r="11" fill="#C8102E" style="stroke:var(--bg)" stroke-width="5"/></svg><span aria-hidden="true">rbe</span></span>`;

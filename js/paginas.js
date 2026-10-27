@@ -1,7 +1,7 @@
 // Páginas internas: universos, ideas, agenda, respiro, mis datos, ajustes, novedades.
 import { UNIVERSOS, PROMOS, PROMOS_SIEMPRE, VERSION } from "./config.js";
 import { NOVEDADES } from "./novedades.js";
-import { ICONOS } from "./iconos.js";
+import { ICONOS, MARCA } from "./iconos.js";
 import { esc, colorTipo, colorUniverso } from "./inicio.js";
 import { DIAS, DIAS_CORTOS, bloquesDe, cuandoTexto, duracion, MODOS } from "./contexto.js";
 import { leer, todo } from "./almacen.js";
@@ -162,7 +162,7 @@ export function renderDatos() {
 
 export function renderAjustes(estadoTema, demo, hayPin) {
   const tema = estadoTema.modo;
-  return `<div class="pagina">${volver}<h1>Ajustes</h1><p class="bajada">Versión ${VERSION}.</p>
+  return `<div class="pagina">${volver}<h1>Ajustes</h1><p class="bajada">${MARCA} versión ${VERSION}.</p>
     <section class="bloque"><h2>Tema</h2><div class="chips">${[["auto", "Automático"], ["claro", "Claro"], ["oscuro", "Oscuro"]].map(([k, n]) => `<button class="chip ${tema === k ? "on" : ""}" data-accion="tema-fijo" data-tema="${k}">${n}</button>`).join("")}</div>
       <p class="vacio" style="margin-top:12px;font-size:13px">Automático: claro de día y oscuro desde la puesta del sol en Buenos Aires. El botón de Inicio lo cambia hasta la próxima salida o puesta.</p></section>
     <section class="bloque"><h2>Probar modos del día</h2><div class="chips"><button class="chip ${!demo ? "on" : ""}" data-accion="demo" data-modo="">Real</button>${MODOS.map((m) => `<button class="chip ${demo === m ? "on" : ""}" data-accion="demo" data-modo="${m}">${m === "normal" ? "Normal" : m === "libre" ? "Día libre" : m === "river" ? "River" : m === "marvel" ? "Guiño Marvel" : "Noche"}</button>`).join("")}</div>

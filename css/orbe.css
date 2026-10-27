@@ -176,6 +176,10 @@ textarea.campo-texto { height: 120px; padding: 12px 14px; width: 100%; resize: v
 .aviso.on { opacity: 1; transform: translate(-50%, 0); }
 .pie { margin-top: 30px; text-align: center; font-size: 12px; color: var(--muted); }
 .pie a { color: var(--muted); }
+.marca { display: inline-flex; align-items: center; gap: .02em; font-weight: 600; letter-spacing: -.03em; color: var(--text); }
+.marca svg { width: .86em; height: .86em; }
+.pie .marca { font-size: 22px; margin-bottom: 6px; }
+.carga { display: flex; justify-content: center; padding-top: 40vh; font-size: 40px; }
 
 /* ---------- Compu: tablero de dos columnas ---------- */
 @media (min-width: 920px) {

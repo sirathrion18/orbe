@@ -1,6 +1,6 @@
 // Estructura de Orbe: qué universos hay y qué trae cada uno.
 // Esto es diseño, no datos: no hay nada personal acá.
-export const VERSION = "0.1.0";
+export const VERSION = "0.1.1";
 
 export const UNIVERSOS = [
   { id: "agus", nombre: "Agus", corto: "Agus", color: "#E46A7E",

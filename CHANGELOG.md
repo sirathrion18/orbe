@@ -1,5 +1,12 @@
 # Novedades de Orbe
 
+## v0.1.1 · 27/10/2026
+
+Logo nuevo: la o que es anillo.
+
+- Ícono de la app con la o como anillo y el punto rojo de ahora.
+- El nombre con el logo aparece al abrir, al pie de Inicio y en Ajustes.
+
 ## v0.1.0 · 27/10/2026
 
 Primera versión para juguetear: el esqueleto completo con datos de ejemplo.

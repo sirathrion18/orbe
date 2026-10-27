@@ -1,6 +1,15 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.1.1",
+    fecha: "27/10/2026",
+    titulo: "Logo nuevo: la o que es anillo.",
+    cambios: [
+      "Ícono de la app con la o como anillo y el punto rojo de ahora.",
+      "El nombre con el logo aparece al abrir, al pie de Inicio y en Ajustes."
+    ]
+  },
+  {
     version: "0.1.0",
     fecha: "27/10/2026",
     titulo: "Primera versión para juguetear: el esqueleto completo con datos de ejemplo.",
