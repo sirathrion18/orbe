@@ -6,6 +6,7 @@ import { DIAS, MESES, hhmm, duracion, urgentes, cuandoTexto } from "./contexto.j
 import { describirClima } from "./fuente.js";
 import { leer } from "./almacen.js";
 import { resumenMes, datosFinanzas } from "./finanzas.js";
+import { datosEconomia } from "./economia.js";
 
 export const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -195,20 +196,21 @@ function tira(ctx) {
 
 // ---------- Widgets ----------
 function wClima(clima, ctx) {
-  if (clima && clima.manana && ctx && ctx.modo === "noche") {
-    const d = describirClima(clima.manana.codigo);
-    return `<div class="w"><div class="fila"><span class="k">Mañana</span><span style="width:22px;height:22px;display:inline-flex;color:var(--muted)">${ICONOS[d.icono]}</span></div>
-      <span class="grande">${clima.manana.max}°</span><span class="sub">${d.estado}</span>
-      <span class="minmax"><span>↑ ${clima.manana.max}°</span><span>↓ ${clima.manana.min}°</span></span></div>`;
-  }
-  if (!clima) {
-    return `<div class="w"><div class="fila"><span class="k">CABA</span><span style="width:22px;height:22px;display:inline-flex;color:var(--muted)">${ICONOS.nube}</span></div>
-      <span class="grande">—</span><span class="sub">Sin datos del clima</span></div>`;
-  }
-  const d = describirClima(clima.codigo);
-  return `<div class="w"><div class="fila"><span class="k">CABA</span><span style="width:22px;height:22px;display:inline-flex;color:var(--muted)">${ICONOS[d.icono]}</span></div>
-    <span class="grande">${clima.temp}°</span><span class="sub">${d.estado}</span>
-    <span class="minmax"><span>↑ ${clima.max}°</span><span>↓ ${clima.min}°</span></span></div>`;
+  const noche = clima && clima.manana && ctx && ctx.modo === "noche";
+  const c = noche ? { ...clima.manana, temp: clima.manana.max } : clima;
+  if (!c) return `<div class="w clima"><span class="k">CABA</span><div class="fila-clima"><span class="grande">—</span></div><span class="sub">Sin datos del clima</span></div>`;
+  const d = describirClima(c.codigo);
+  return `<div class="w clima"><div class="fila"><span class="k">${noche ? "Mañana" : "CABA"}</span><span class="ico">${ICONOS[d.icono]}</span></div>
+    <div class="fila-clima"><span class="grande">${c.temp}°</span><span class="minmax"><span>↑${c.max}°</span><span>↓${c.min}°</span></span></div>
+    <span class="sub">${d.estado}</span></div>`;
+}
+
+// Transporte: el lugar ya está; el estado en vivo de tus líneas llega en la próxima versión.
+const LINEAS = [["E", "#6B2F8F"], ["H", "#F5C400"], ["A", "#00A8D6"]];
+function wTransporte() {
+  return `<div class="w trans"><span class="k">Transporte</span>
+    <div class="lineas">${LINEAS.map(([l, c]) => `<span class="linea" style="background:${c}">${l}</span>`).join("")}<span class="cole">42 · 26 · 135</span></div>
+    <span class="sub">Estado en vivo, en la próxima versión</span></div>`;
 }
 
 function wUrgente(datos, ctx) {
@@ -216,15 +218,15 @@ function wUrgente(datos, ctx) {
   if (!lista.length) {
     if (ctx.modo === "libre" || ctx.modo === "noche") {
       const libre = ctx.modo === "libre";
-      return `<a class="w" href="${libre ? "#/u/proyectos" : "#/respiro"}" style="text-decoration:none"><span class="k">${libre ? "Para disfrutar" : "Para cerrar"}</span>
+      return `<a class="w alto" href="${libre ? "#/u/proyectos" : "#/respiro"}" style="text-decoration:none"><span class="k">${libre ? "Para disfrutar" : "Para cerrar"}</span>
         <span class="tit">${libre ? "Nada urgente. Una partida en a64, un capítulo o un plan." : "Nada pendiente. Un rato de respiro antes de dormir."}</span>
         <span class="sub">${libre ? "Abrir Proyectos" : "Abrir Respiro"}</span></a>`;
     }
-    return `<div class="w"><span class="k">Urgente</span><span class="tit">Nada urgente</span><span class="sub">Todo en orden por ahora</span></div>`;
+    return `<div class="w alto"><span class="k">Urgente</span><span class="tit">Nada urgente</span><span class="sub">Todo en orden por ahora</span></div>`;
   }
   const [p, segundo] = lista;
   const resto = lista.length - (segundo ? 2 : 1);
-  return `<div class="w urg"><div class="fila"><span class="k">${p.dias < 0 ? "Vencido" : "Urgente"}</span>
+  return `<div class="w urg alto"><div class="fila"><span class="k">${p.dias < 0 ? "Vencido" : "Urgente"}</span>
       <button class="hecho" data-accion="hecho" data-clave="${esc(p.clave)}" aria-label="Marcar ${esc(p.titulo)} como hecho">${ICONOS.check}</button></div>
     <a href="#/u/${esc(p.universo || "finanzas")}" style="text-decoration:none;display:flex;flex-direction:column;gap:6px">
       <span class="tit">${esc(p.titulo)}</span>
@@ -238,22 +240,32 @@ const pesos = (n) => "$ " + Math.round(n).toLocaleString("es-AR");
 
 function wPlata(datos, ctx) {
   const r = resumenMes(datosFinanzas(), ctx.fecha);
+  const e = datosEconomia();
+  const m = e && e.meses[ctx.fecha.getMonth()];
   const oculto = leer("plataOculta", false);
   const mes = MESES[ctx.fecha.getMonth()].toUpperCase();
   const ojo = `<button class="ojo" data-accion="ocultar-plata" aria-label="${oculto ? "Mostrar" : "Ocultar"} la plata">${oculto ? ICONOS.ojoNo : ICONOS.ojo}</button>`;
+  const alerta = r && r.alertas[0];
+  const lineaAlerta = alerta ? `<span class="sub" style="color:var(--accent);font-weight:600">${esc(alerta.rubro)}: ${Math.round(alerta.pct * 100)}% del tope</span>` : "";
+  // Tu planilla manda: saldo del mes y cuánto da por día.
+  if (m && m.saldo != null) {
+    const usado = m.ingresos ? Math.min(1, Math.max(0, (m.total || 0) / m.ingresos)) : 0;
+    return `<a class="w ancho" href="#/u/finanzas" style="text-decoration:none"><div class="fila"><span class="k">Saldo · ${mes}</span>
+        <span class="fila" style="gap:10px"><span class="sub" style="font-size:12px">${m.diario != null ? (oculto ? "••••" : pesos(Math.abs(m.diario))) + (m.diario < 0 ? " de menos" : "") + " por día" : ""}</span>${ojo}</span></div>
+      <span class="medio ${oculto ? "oculto" : ""}" style="${m.saldo < 0 ? "color:var(--accent)" : ""}">${oculto ? "••••••" : pesos(m.saldo)}</span>
+      <div class="barra"><i style="width:${oculto ? 0 : Math.round(usado * 100)}%;${m.saldo < 0 ? "background:var(--accent)" : ""}"></i></div>
+      ${lineaAlerta || `<span class="sub">Ingresos ${oculto ? "••••" : pesos(m.ingresos || 0)} · egresos ${oculto ? "••••" : pesos(m.total || 0)}</span>`}</a>`;
+  }
   if (!r || r.queda == null) {
     return `<a class="w ancho" href="#/u/finanzas" style="text-decoration:none"><div class="fila"><span class="k">Plata · ${mes}</span></div>
-      <span class="medio" style="font-size:22px;color:var(--muted)">${r ? "Falta el disponible del mes" : "Activá finanzas en Ajustes"}</span>
-      <span class="sub">${r ? "Cargalo en la hoja MES de tu planilla" : "Lee tus mails del BNA y Mercado Pago"}</span></a>`;
+      <span class="medio" style="font-size:20px;color:var(--muted)">${r ? "Falta el disponible del mes" : "Activá finanzas en Ajustes"}</span>
+      <span class="sub">${r ? "Cargalo en la hoja MES de tu planilla" : "Lee tu planilla y tus mails del BNA y Mercado Pago"}</span></a>`;
   }
-  const alerta = r.alertas[0];
-  const pie = alerta ? `<span class="sub" style="color:var(--accent);font-weight:600">${esc(alerta.rubro)}: ${Math.round(alerta.pct * 100)}% del tope</span>`
-    : `<span class="sub">Salió ${oculto ? "••••" : pesos(r.salio)} de ${oculto ? "••••" : pesos(r.disponible)}${r.propio ? "" : " · disponible de " + esc(r.base.mes)}</span>`;
   return `<div class="w ancho"><div class="fila"><span class="k">Te queda · ${mes}</span>
       <span class="fila" style="gap:10px"><span class="sub" style="font-size:12px">${r.diasRestantes} días</span>${ojo}</span></div>
     <a href="#/u/finanzas" style="text-decoration:none"><span class="medio ${oculto ? "oculto" : ""}" style="${r.queda < 0 ? "color:var(--accent)" : ""}">${oculto ? "••••••" : pesos(r.queda)}</span></a>
     <div class="barra"><i style="width:${oculto ? 0 : Math.round(r.usado * 100)}%;${r.queda < 0 ? "background:var(--accent)" : ""}"></i></div>
-    ${pie}</div>`;
+    ${lineaAlerta || `<span class="sub">Salió ${oculto ? "••••" : pesos(r.salio)} de ${oculto ? "••••" : pesos(r.disponible)}</span>`}</div>`;
 }
 
 function wPasos(datos) {
@@ -292,7 +304,7 @@ export function renderInicio(datos, ctx, clima, tema) {
     </div>
     <div class="col-b">
       ${tira(ctx)}
-      <div class="widgets">${wClima(clima, ctx)}${wUrgente(datos, ctx)}${wPlata(datos, ctx)}${wPasos(datos)}</div>
+      <div class="widgets">${wClima(clima, ctx)}${wUrgente(datos, ctx)}${wTransporte()}${wPlata(datos, ctx)}</div>
       <div class="buscador" role="search">
         <label class="campo"><span class="sr">Buscar o escribir un comando</span>${ICONOS.buscar}
           <input id="q" type="search" autocomplete="off" placeholder="Buscar, o «gasto 3500 súper»"></label>

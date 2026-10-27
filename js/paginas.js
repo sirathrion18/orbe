@@ -9,6 +9,7 @@ import { datosFinanzas, resumenMes } from "./finanzas.js";
 import { linkHoja } from "./hoja.js";
 import { ultimaSincro, activa as sincroActiva } from "./sincro.js";
 import { RUBROS } from "./rubros.js";
+import { datosEconomia, linkEconomia, idEconomia } from "./economia.js";
 
 const MESES_LARGOS = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 
@@ -19,6 +20,47 @@ const local = '<p class="vacio" style="margin-top:12px;font-size:12px">Por ahora
 function cabecera(u, datos, tema) {
   return `${volver}<h1><i class="dot" style="width:12px;height:12px;border-radius:6px;vertical-align:middle;margin-right:10px;background:${colorUniverso(datos, u, tema)}"></i>${esc(u.nombre)}</h1>
     <p class="bajada">${esc(u.bajada)}</p>`;
+}
+
+// ---------- Tu planilla ECONOMÍA ----------
+const MESES_CORTOS = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+function bloqueEconomia(ctx, $) {
+  const e = datosEconomia();
+  if (!idEconomia()) return "";
+  if (!e) return '<section class="bloque"><h2>Tu planilla ECONOMÍA</h2><p class="vacio">Se lee en cuanto termine la sincronización.</p></section>';
+  const cargados = e.meses.filter(Boolean);
+  const m = e.meses[ctx.fecha.getMonth()] || cargados[cargados.length - 1];
+  if (!m) return '<section class="bloque"><h2>Tu planilla ECONOMÍA</h2><p class="vacio">Todavía no hay meses cargados en la hoja ' + esc(e.anio || "") + '.</p></section>';
+  const previo = [...cargados].reverse().find((x) => x.mes < m.mes);
+  const antes = (c) => previo ? (previo.egresos.find((x) => x.concepto === c) || {}).monto || 0 : null;
+  const max = Math.max(...m.egresos.map((x) => x.monto), 1);
+  const maxSaldo = Math.max(...cargados.map((x) => Math.abs(x.saldo || 0)), 1);
+  const div = e.division && e.division.actual;
+  return `<section class="bloque"><h2>${esc(m.nombre.toLowerCase())} · tu planilla <a class="link" href="${esc(linkEconomia())}" target="_blank" rel="noopener" style="font-size:12px;letter-spacing:0;text-transform:none">abrir</a></h2>
+      <div class="trio"><div><span class="k">Ingresos</span><b>${$(m.ingresos || 0)}</b></div><div><span class="k">Egresos</span><b>${$(m.total || 0)}</b></div>
+        <div><span class="k">Saldo</span><b style="${m.saldo < 0 ? "color:var(--accent)" : ""}">${$(m.saldo || 0)}</b></div></div>
+      ${m.diario != null ? `<p class="prom">${m.saldo < 0 ? "Te faltan" : "Te quedan"} unos <b>${$(Math.abs(m.diario))} por día</b> · ${$(Math.abs(m.semanal || 0))} por semana.</p>` : ""}
+      ${(() => { const fila = (x) => { const a = antes(x.concepto); const d = a == null ? 0 : x.monto - a;
+          return `<div class="eg"><div class="fila"><span>${esc(x.concepto)}</span><span>${$(x.monto)}${a != null && d !== 0 ? ` <small class="${d > 0 ? "sube" : "baja"}">${d > 0 ? "▲" : "▼"} ${$(Math.abs(d))}</small>` : ""}</span></div>
+            <div class="barra"><i style="width:${Math.round(x.monto / max * 100)}%"></i></div></div>`; };
+        const top = m.egresos.slice(0, 5), resto = m.egresos.slice(5);
+        return `<div class="egresos">${top.map(fila).join("")}</div>${resto.length ? `<details class="mas"><summary>Ver los otros ${resto.length}</summary><div class="egresos">${resto.map(fila).join("")}</div></details>` : ""}`; })()}
+      ${previo ? `<p class="fuente-dato">Flechas: contra ${esc(previo.nombre.toLowerCase())}.</p>` : ""}
+      ${cargados.length > 1 ? `<div class="saldos" aria-label="Saldo de cada mes">${cargados.map((x) => { const h = Math.max(3, Math.round(Math.abs(x.saldo || 0) / maxSaldo * 48));
+          return `<div class="${x.mes === m.mes ? "hoy" : ""}"><span class="arr">${x.saldo >= 0 ? `<i style="height:${h}px"></i>` : ""}</span><span class="aba">${x.saldo < 0 ? `<i class="neg" style="height:${h}px"></i>` : ""}</span><small>${MESES_CORTOS[x.mes]}</small></div>`; }).join("")}</div>
+        <p class="fuente-dato" style="text-align:center">Saldo de cada mes ${esc(e.anio || "")}: arriba sobró, en rojo faltó.</p>` : ""}
+    </section>
+    ${div ? `<section class="bloque"><h2>Con Agus <span class="tag">DIVISIÓN</span></h2>
+      <ul class="lista">${div.items.filter((i) => i.monto > 0).map((i) => `<li><span>${esc(i.concepto.charAt(0) + i.concepto.slice(1).toLowerCase())}</span><span class="der">${$(i.monto)}</span></li>`).join("")}</ul>
+      <div class="trio" style="margin-top:14px"><div><span class="k">Total</span><b>${$(div.total || 0)}</b></div><div><span class="k">Tu mitad</span><b>${$(div.mitad || 0)}</b></div><div></div></div>
+      <p class="fuente-dato">El último bloque cargado de la hoja DIVISIÓN.</p></section>` : ""}`;
+}
+
+function bloqueAlias() {
+  const a = datosEconomia()?.alias;
+  if (!a || !a.cuentas.length) return "";
+  return `<section class="bloque"><h2>Tus alias <span class="tag">tocá para copiar</span></h2><div class="alias">${a.cuentas.map((c) =>
+    `<button class="al" data-accion="copiar" data-texto="${esc(c.alias || c.cbu)}"><span>${esc(c.banco)}</span><b>${esc(c.alias || c.cbu)}</b></button>`).join("")}</div></section>`;
 }
 
 // ---------- Universos ----------
@@ -121,7 +163,7 @@ const PAGINAS = {
       cabeza = `<section class="bloque"><h2>Tu plata al día</h2><p>Orbe lee los avisos del BNA y de Mercado Pago, los ordena por rubro y te dice cuánto te queda del mes.</p>
         <div class="chips" style="margin-top:14px"><a class="btn" href="#/ajustes" style="display:inline-flex;align-items:center;text-decoration:none">Activar en Ajustes</a></div></section>`;
     } else {
-      cabeza = `<section class="bloque"><h2>Te queda en ${esc(MESES_LARGOS[ctx.fecha.getMonth()])} <button class="link" data-accion="fin-actualizar" style="font-size:12px;letter-spacing:0;text-transform:none">actualizar</button></h2>
+      cabeza = `<section class="bloque"><h2>Según tus movimientos <button class="link" data-accion="fin-actualizar" style="font-size:12px;letter-spacing:0;text-transform:none">actualizar</button></h2>
         ${r.queda == null ? '<p class="vacio">Falta el disponible del mes: cargalo en la hoja MES de tu planilla.</p>' : `
         <p class="cifra" style="${r.queda < 0 ? "color:var(--accent)" : ""}">${$(r.queda)}</p>
         <div class="barra" style="margin:10px 0 8px"><i style="width:${Math.round(r.usado * 100)}%"></i></div>
@@ -152,12 +194,13 @@ const PAGINAS = {
         <div class="nota">${d.saldo != null && d.cuota ? (d.tipo === "tarjeta" ? "Mínimo " : "Cuota ") + $(d.cuota) + " · " : ""}${d.vence ? "vence " + esc(d.vence) + " · " : ""}${esc(d.nota || "")}<br>Fuente: ${esc(d.fuente || "?")}${d.al ? ", al " + esc(d.al) : ""}.</div></div>`).join("")}
         ${(() => { const caras = fin.deudas.filter((d) => d.tasa > 0 && d.saldo > 0); const costo = caras.reduce((s, d) => s + d.saldo * d.tasa / 100, 0); return costo ? `<p class="fuente-dato">Lo que cuesta no bajar las tarjetas: unos ${$(costo)} por mes de intereses, al ritmo de hoy.</p>` : ""; })()}</section>` : "";
 
-    return `${cabeza}${revisar}${topes}${rubros}
+    return `${bloqueEconomia(ctx, $)}${cabeza}${revisar}${topes}${rubros}
       <section class="bloque"><h2>Vencimientos ${datos.agenda ? "" : '<span class="ejemplo">Ejemplo</span>'}</h2><ul class="lista">${venc.map((d) => `<li style="align-items:flex-start"><span style="display:flex;flex-direction:column;gap:4px;min-width:0"><span>${esc(d.titulo)}${d.vernet ? ' <span class="tag">Vernet</span>' : ""}${d.nota ? ` <span class="tag">${esc(d.nota)}</span>` : ""}</span>${d.monto ? `<b>${esc(d.monto)}</b>` : ""}<span class="der ${d.dias <= 7 && !d.vernet ? "rojo" : ""}" style="font-size:17px">${cuandoTexto(d.dias)}</span></span>
         <button class="hecho" style="margin:0" data-accion="hecho" data-clave="${esc(d.clave)}" aria-label="Marcar ${esc(d.titulo)} como hecho">${ICONOS.check}</button></li>`).join("") || '<li class="vacio">Nada pendiente.</li>'}</ul>
         ${leer("hechos", []).length ? '<button class="link" style="margin-top:12px;font-size:13px" data-accion="deshacer-hechos">Volver a mostrar los marcados como hechos</button>' : ""}</section>
       ${movs}${deudas}
-      <section class="bloque"><h2>Promos de hoy, ${DIAS[dia]}</h2><ul class="lista">${(PROMOS[dia] || []).concat(PROMOS_SIEMPRE).map((x) => `<li><span>${esc(x)}</span></li>`).join("")}</ul>
+      ${bloqueAlias()}
+      <section class="bloque"><h2>Promos de hoy, ${DIAS[dia]}</h2><ul class="lista">${((datosEconomia()?.alias?.promos?.[dia]?.length ? datosEconomia().alias.promos[dia] : null) || (PROMOS[dia] || []).concat(PROMOS_SIEMPRE)).map((x) => `<li><span>${esc(x)}</span></li>`).join("")}</ul>
         <p class="vacio" style="margin-top:10px;font-size:12px">Los topes cambian seguido: verificalos antes de pagar.</p></section>
       ${linkHoja() ? `<section class="bloque"><h2>Planilla</h2><p>Todo vive en tu planilla <b>Orbe · datos</b>: podés corregir a mano lo que quieras.</p><div class="chips" style="margin-top:12px"><a class="chip" href="${esc(linkHoja())}" target="_blank" rel="noopener">Abrir la planilla</a></div></section>` : ""}`;
   },
@@ -256,8 +299,15 @@ export function renderAjustes(estadoTema, demo, hayPin, google) {
           <p class="vacio" style="margin-top:12px;font-size:12px">Google va a pedirte ver tus mails (solo lectura: Orbe nunca escribe ni borra) y editar planillas (Orbe solo toca su planilla «Orbe · datos»). El texto de los mails no sale del servidor de Orbe.</p>`
         : !google.hoja ? `<p>Pegá el link de tu planilla <b>Orbe · datos</b> (está en Drive, en Herramientas de IA → Orbe). Se hace una vez en cada dispositivo.</p>
           <form class="form" data-form="hoja"><input name="link" placeholder="https://docs.google.com/spreadsheets/d/…" aria-label="Link de la planilla" required><button class="btn">Listo</button></form>`
+        : google.error ? `<p style="color:var(--accent)"><b>No se pudo sincronizar.</b></p>
+          ${/api-apagada/.test(google.error.msj) ? `<p style="margin-top:8px">Falta prender un servicio en Google Cloud, una sola vez. Tocá cada link y después <b>Habilitar</b>:</p>
+            <div class="chips" style="margin-top:10px"><a class="chip" target="_blank" rel="noopener" href="https://console.cloud.google.com/apis/library/sheets.googleapis.com?project=orbe-512903">Planillas (Sheets)</a><a class="chip" target="_blank" rel="noopener" href="https://console.cloud.google.com/apis/library/gmail.googleapis.com?project=orbe-512903">Gmail</a></div>`
+            : `<p class="vacio" style="margin-top:6px">Motivo: ${esc(google.error.msj)}.</p>`}
+          <div class="chips" style="margin-top:12px"><button class="btn" data-accion="sincronizar">Probar de nuevo</button></div>`
         : `<p>Sincronizado con tu planilla.${sinc ? ` <span class="vacio">Último envío: ${esc(new Date(sinc).toLocaleString("es-AR", { weekday: "long", hour: "2-digit", minute: "2-digit" }))}.</span>` : ""}</p>
-          <div class="chips" style="margin-top:12px"><button class="btn" data-accion="sincronizar">Sincronizar ahora</button><a class="chip" href="${esc(linkHoja())}" target="_blank" rel="noopener">Abrir la planilla</a></div>`}
+          <div class="chips" style="margin-top:12px"><button class="btn" data-accion="sincronizar">Sincronizar ahora</button><a class="chip" href="${esc(linkHoja())}" target="_blank" rel="noopener">Abrir la planilla</a></div>
+          <p style="margin-top:16px">${idEconomia() ? "Tu planilla <b>ECONOMÍA</b> está conectada: Orbe la lee y nunca la modifica." : "Para ver tu planilla <b>ECONOMÍA</b> en Finanzas, pegá su link:"}</p>
+          ${idEconomia() ? "" : '<form class="form" data-form="economia"><input name="link" placeholder="Link de ECONOMÍA" aria-label="Link de la planilla ECONOMÍA" required><button class="btn">Listo</button></form>'}`}
     </section>
 
     <section class="bloque"><h2>Tipografías</h2>
@@ -283,7 +333,7 @@ export function renderAjustes(estadoTema, demo, hayPin, google) {
       <div class="chips">${google.huella ? '<button class="btn sec" data-accion="huella-sacar">Apagar la huella</button>' : '<button class="btn" data-accion="huella-activar">Activar huella</button>'}</div>
       <p class="vacio" style="margin:16px 0 0;font-size:13px">PIN de respaldo (para la compu sin lector, o si la huella falla):</p>
       ${hayPin ? '<button class="btn sec" data-accion="pin-sacar" style="margin-top:10px">Sacar el PIN</button>' : '<form class="form" data-form="pin-nuevo"><input name="pin" type="password" inputmode="numeric" minlength="4" placeholder="4 dígitos o más" aria-label="Nuevo PIN" required><button class="btn">Poner PIN</button></form>'}
-      <p class="vacio" style="margin-top:12px;font-size:13px">Usa el lector del celu: la huella nunca sale del teléfono. Se pide una vez cada vez que abrís Orbe. Es una cortina para miradas ajenas, no un cofre.</p></section>
+      <p class="vacio" style="margin-top:12px;font-size:13px">Usa el lector del celu: la huella nunca sale del teléfono. Se pide una vez cada vez que abrís Orbe, y también para activarla o apagarla. Es una cortina para miradas ajenas, no un cofre.</p></section>
     <section class="bloque"><h2>Más</h2><div class="chips"><a class="chip" href="#/datos">Mis datos</a><a class="chip" href="#/respiro">Respiro</a><a class="chip" href="#/novedades">Novedades</a></div></section></div>`;
 }
 

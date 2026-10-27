@@ -51,9 +51,16 @@ export async function api(url, metodo = "GET", cuerpo) {
   if (cuerpo !== undefined) { op.headers["Content-Type"] = "application/json"; op.body = JSON.stringify(cuerpo); }
   const r = await fetch(url, op);
   if (r.status === 401) { pase = null; throw new Error("reconectar"); }
-  if (r.status === 403) throw new Error("permiso");
-  if (r.status === 404) throw new Error("no-existe");
-  if (!r.ok) throw new Error("Google respondió " + r.status);
+  if (!r.ok) {
+    const txt = await r.text().catch(() => "");
+    // Servicio apagado en Google Cloud: hay que habilitarlo una vez en el proyecto.
+    if (r.status === 403 && /has not been used|is disabled|SERVICE_DISABLED|accessNotConfigured/i.test(txt)) {
+      throw new Error("api-apagada:" + (/sheets/i.test(url) ? "sheets" : /gmail/i.test(url) ? "gmail" : "calendar"));
+    }
+    if (r.status === 403) throw new Error("permiso");
+    if (r.status === 404) throw new Error("no-existe");
+    throw new Error("Google respondió " + r.status);
+  }
   return r.json();
 }
 

@@ -1,5 +1,18 @@
 # Novedades de Orbe
 
+## v0.9.0 · 27/10/2026
+
+Más compacto, y tu planilla ECONOMÍA adentro.
+
+- Inicio más compacto en el celu: tipografías más chicas, el anillo más arriba y todo a la vista sin tanto scroll.
+- Clima en una tarjeta corta y, debajo, el lugar del transporte (tus líneas E, H y A y los colectivos 42, 26 y 135), los dos a la altura de lo urgente.
+- Tu planilla ECONOMÍA, en Finanzas: ingresos, egresos y saldo del mes, cuánto te queda por día y por semana, cada gasto comparado con el mes anterior y el saldo de todo el año en un gráfico.
+- Lo compartido con Agus (hoja DIVISIÓN), tus alias para copiar con un toque y las promos del día salen de tu propia planilla. Orbe la lee y nunca la modifica.
+- En Inicio, el saldo del mes y cuánto te queda por día salen de tu planilla.
+- Para apagar la huella (o sacar el PIN) primero hay que poner la huella.
+- Si falta prender un servicio de Google, Ajustes lo dice y lleva al botón para habilitarlo.
+- Afuera la tarjeta de pasos de ejemplo: los pasos reales llegan con Satélite (Google cerró la API de Fit).
+
 ## v0.8.1 · 27/10/2026
 
 Huella.

@@ -7,6 +7,7 @@ import { renderUniverso, renderBloqueo, renderIdeas, renderAgenda, renderRespiro
 import { sincronizar, activa as sincroActiva } from "./sincro.js";
 import { leerPlanilla, traerMails, corregir, datosFinanzas } from "./finanzas.js";
 import { fijarHoja, idHoja } from "./hoja.js";
+import { fijarEconomia, leerEconomia, datosEconomia, idEconomia } from "./economia.js";
 import { huellaActiva, huellaDisponible, registrarHuella, verificarHuella, sacarHuella } from "./huella.js";
 import { UNIVERSOS, SECCIONES } from "./config.js";
 import { leer, guardar, borrar, todo, borrarTodo, sesion } from "./almacen.js";
@@ -78,7 +79,7 @@ function pintar(refresco = false) {
   else if (r === "/ajustes") {
     const ag = leer("agenda");
     html = renderAjustes(estadoTema(), demo, !!leer("pin"), {
-      configurado: G.configurado(), cuenta: G.cuenta(), estado: G.estadoSesion, permisos: G.permisos(), hoja: idHoja(), huella: huellaActiva(),
+      configurado: G.configurado(), cuenta: G.cuenta(), estado: G.estadoSesion, permisos: G.permisos(), hoja: idHoja(), huella: huellaActiva(), error: leer("errorSincro"),
       aviso: AVISOS_GOOGLE[new URLSearchParams(location.hash.split("?")[1] || "").get("google")] || null,
       agenda: ag ? new Date(ag.cuando).toLocaleString("es-AR", { weekday: "long", hour: "2-digit", minute: "2-digit" }) : null
     });
@@ -279,7 +280,10 @@ document.addEventListener("click", (e) => {
     const f = leer("fuentes", {}); f[el.dataset.grupo] = el.dataset.valor; guardar("fuentes", f); vibrar(); pintar(true);
   }
   else if (a === "sincronizar") { avisar("Sincronizando…"); refrescarTodo(true).then((ok) => avisar(ok ? "Todo al día" : "No se pudo sincronizar")); }
-  else if (a === "fin-actualizar") actualizarFinanzas(true);
+  else if (a === "fin-actualizar") { actualizarFinanzas(true); if (idEconomia()) leerEconomia().then(() => pintar(true)).catch(() => {}); }
+  else if (a === "copiar") {
+    navigator.clipboard?.writeText(el.dataset.texto).then(() => avisar("Copiado: " + el.dataset.texto), () => avisar(el.dataset.texto));
+  }
   else if (a === "fin-mov") {
     const m = (datosFinanzas()?.movs || []).find((x) => x.id === el.dataset.id);
     if (m) abrirHoja(hojaMovimiento(m), "Corregir movimiento");
@@ -295,12 +299,17 @@ document.addEventListener("click", (e) => {
       try { await registrarHuella(); avisar("Huella activada"); pintar(); } catch (err) { avisar("No se activó la huella"); }
     });
   }
-  else if (a === "huella-sacar") { sacarHuella(); avisar("Huella apagada"); pintar(); }
+  else if (a === "huella-sacar") {
+    // Para apagarla, primero tu huella: nadie puede sacar el bloqueo con tu celu en la mano.
+    verificarHuella().then((ok) => { if (ok) { sacarHuella(); avisar("Huella apagada"); pintar(); } else avisar("No se reconoció la huella: sigue activada"); });
+  }
   else if (a === "huella-abrir") {
     const id = el.dataset.id;
     verificarHuella().then((ok) => { if (ok) { sesion("abierto-" + id, true); vibrar(); pintar(); } else avisar("No se reconoció la huella"); });
   }
-  else if (a === "pin-sacar") { borrar("pin"); avisar("PIN sacado"); pintar(); }
+  else if (a === "pin-sacar") {
+    (huellaActiva() ? verificarHuella() : Promise.resolve(true)).then((ok) => { if (ok) { borrar("pin"); avisar("PIN sacado"); pintar(); } else avisar("No se reconoció la huella"); });
+  }
   else if (a === "exportar") {
     const blob = new Blob([JSON.stringify(todo(), null, 2)], { type: "application/json" });
     const link = document.createElement("a");
@@ -347,6 +356,9 @@ document.addEventListener("submit", async (e) => {
   } else if (tipo === "hoja") {
     if (!fijarHoja(d.link)) { avisar("Ese link no parece de una planilla de Google"); return; }
     avisar("Planilla conectada"); await refrescarTodo(true); pintar();
+  } else if (tipo === "economia") {
+    if (!fijarEconomia(d.link)) { avisar("Ese link no parece de una planilla de Google"); return; }
+    avisar("Leyendo ECONOMÍA…"); await refrescarTodo(true); pintar();
   } else if (tipo === "fin-mov") {
     const id = f.dataset.id;
     cerrarHoja(); avisar("Guardando…");
@@ -414,13 +426,27 @@ async function refrescarTodo(forzar = false) {
   if (!sincroActiva()) return false;
   try {
     const cambio = await sincronizar();
+    borrar("errorSincro");
     if (cambio) pintar(true);
     await actualizarFinanzas(false, forzar);
+    const eco = datosEconomia();
+    if (idEconomia() && (forzar || !eco || Date.now() - eco.cuando > 10 * 60000)) { await leerEconomia(); pintar(true); }
     return true;
   } catch (e) {
-    if (e.message === "no-existe" || e.message === "permiso") avisar("No encuentro la planilla: revisá el link en Ajustes");
+    guardar("errorSincro", { msj: e.message, cuando: Date.now() }, true);
+    avisar(textoError(e.message));
+    if (ruta() === "/ajustes") pintar(true);
     return false;
   }
+}
+
+export function textoError(m) {
+  if (m === "reconectar") return "Hay que volver a conectar con Google";
+  if (m === "api-apagada:sheets") return "Falta prender el servicio de planillas en Google Cloud (Ajustes)";
+  if (m === "api-apagada:gmail") return "Falta prender el servicio de Gmail en Google Cloud (Ajustes)";
+  if (m === "permiso") return "Google no dio permiso: Ajustes → Dar permiso";
+  if (m === "no-existe") return "No encuentro la planilla: revisá el link en Ajustes";
+  return "No se pudo sincronizar";
 }
 
 let finEnCurso = false;
@@ -435,15 +461,19 @@ async function actualizarFinanzas(aMano, forzar) {
     pintar(true);
     if (aMano) avisar(nuevos ? nuevos + (nuevos === 1 ? " movimiento nuevo" : " movimientos nuevos") : "No hay movimientos nuevos");
   } catch (e) {
-    if (aMano) avisar(e.message === "reconectar" ? "Hay que volver a conectar con Google" : e.message === "permiso" ? "Falta el permiso de mails: Ajustes → Dar permiso" : "No se pudo actualizar");
+    guardar("errorSincro", { msj: e.message, cuando: Date.now() }, true);
+    if (aMano) avisar(textoError(e.message));
   } finally { finEnCurso = false; }
 }
 
 // Un link con ?hoja=ID deja la planilla configurada en este dispositivo.
 function leerHojaDelLink() {
   const q = new URLSearchParams(location.hash.split("?")[1] || "");
-  if (q.get("hoja") && fijarHoja(q.get("hoja"))) { avisar("Planilla conectada"); return true; }
-  return false;
+  let ok = false;
+  if (q.get("hoja") && fijarHoja(q.get("hoja"))) ok = true;
+  if (q.get("economia") && fijarEconomia(q.get("economia"))) ok = true;
+  if (ok) avisar("Planillas conectadas");
+  return ok;
 }
 window.addEventListener("hashchange", () => { if (leerHojaDelLink()) refrescarTodo(true); });
 

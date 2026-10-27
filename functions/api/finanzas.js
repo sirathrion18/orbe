@@ -46,7 +46,11 @@ export async function onRequestPost({ request, env }) {
   for (let i = 0; i < 2; i++) {
     const q = encodeURIComponent(REMITENTES + (desde ? " after:" + desde : ""));
     const r = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=500&q=" + q + (pagina ? "&pageToken=" + pagina : ""), auth);
-    if (!r.ok) return json({ error: "gmail", status: r.status }, 502);
+    if (!r.ok) {
+      const txt = await r.text().catch(() => "");
+      const apagada = r.status === 403 && /has not been used|is disabled|SERVICE_DISABLED|accessNotConfigured/i.test(txt);
+      return json({ error: apagada ? "api-apagada:gmail" : "gmail", status: r.status }, 502);
+    }
     const j = await r.json();
     (j.messages || []).forEach((m) => ids.push(m.id));
     if (!j.nextPageToken) break;
