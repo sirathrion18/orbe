@@ -4,7 +4,7 @@ import * as G from "./google.js";
 import { construirContexto } from "./contexto.js";
 import { renderInicio, despuesInicio, esc, colorUniverso } from "./inicio.js";
 import { ICONOS } from "./iconos.js";
-import { renderUniverso, renderBloqueo, renderIdeas, renderAgenda, renderRespiro, renderDatos, renderAjustes, renderNovedades, renderNoEncontrado, hojaMovimiento, hojaTp, hojaMateria, hojaAsignar, hojaAgus, hojaPartido, hojaPasos } from "./paginas.js";
+import { renderRiver, renderUniverso, renderBloqueo, renderIdeas, renderAgenda, renderRespiro, renderDatos, renderAjustes, renderNovedades, renderNoEncontrado, hojaMovimiento, hojaTp, hojaMateria, hojaAsignar, hojaAgus, hojaPartido, hojaPasos } from "./paginas.js";
 import { HOJAS_LISTAS, leerListas, datosListas, traerGithub, agregarAgus, tildarAgus, anotarPartido, guardarProximos } from "./listas.js";
 import { sincronizar, activa as sincroActiva } from "./sincro.js";
 import { leerPlanilla, traerMails, corregir, datosFinanzas, pendientesDeTarjetas, guardarTope } from "./finanzas.js";
@@ -12,7 +12,7 @@ import { leerRecibos } from "./recibos.js";
 import { datosFacu, traerCampus, leerFacu, tildarTp, nuevoTp, guardarMateria, asignarTp, pendientesDeTps, HOJAS_FACU } from "./facu.js";
 import { asegurarHojas } from "./hoja.js";
 import { fijarHoja, idHoja } from "./hoja.js";
-import { traerDolar, traerRiver } from "./extras.js";
+import { traerDolar, traerRiver, traerTransporte } from "./extras.js";
 import { responder } from "./preguntas.js";
 import { fijarEconomia, leerEconomia, datosEconomia, idEconomia } from "./economia.js";
 import { huellaActiva, huellaDisponible, registrarHuella, verificarHuella, sacarHuella } from "./huella.js";
@@ -85,6 +85,7 @@ function pintar(refresco = false) {
   else if (r === "/ideas") html = renderIdeas();
   else if (r === "/agenda") html = renderAgenda(estado.datos, estado.ctx, tema);
   else if (r === "/respiro") html = renderRespiro();
+  else if (r === "/river") html = renderRiver(estado.ctx);
   else if (r === "/datos") html = renderDatos();
   else if (r === "/ajustes") {
     const ag = leer("agenda");
@@ -310,6 +311,7 @@ document.addEventListener("click", (e) => {
   else if (a === "agus-tilde") {
     tildarAgus(Number(el.dataset.fila), el.checked).then(() => { vibrar(); pintar(true); }).catch((e) => avisar("No se pudo: " + textoError(e.message)));
   }
+  else if (a === "fichado") { guardar("fichado", el.dataset.dia); vibrar(); avisar("Fichado. Buen día de laburo."); pintar(true); }
   else if (a === "agus-nuevo") abrirHoja(hojaAgus(el.dataset.tipo), "Agregar");
   else if (a === "partido-nuevo") abrirHoja(hojaPartido(), "Anotar partido");
   else if (a === "proyecto-pasos") {
@@ -517,7 +519,7 @@ const estadoParte = (parte, error, nota) => {
 };
 
 async function refrescarTodo(forzar = false) {
-  Promise.all([traerDolar(), traerRiver()]).then(() => pintar(true)).catch(() => {});
+  Promise.all([traerDolar(), traerRiver(), traerTransporte()]).then(() => pintar(true)).catch(() => {});
   if (!sincroActiva()) return { ok: true };
   const fallas = [];
   try { const cambio = await sincronizar(); estadoParte("sincro"); if (cambio) pintar(true); }

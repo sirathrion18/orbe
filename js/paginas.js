@@ -2,7 +2,7 @@
 import { UNIVERSOS, PROMOS, PROMOS_SIEMPRE, VERSION } from "./config.js";
 import { NOVEDADES } from "./novedades.js";
 import { ICONOS, MARCA } from "./iconos.js";
-import { esc, colorTipo, colorUniverso } from "./inicio.js";
+import { esc, colorTipo, colorUniverso, datosPartido, resultadoTxt } from "./inicio.js";
 import { DIAS, DIAS_CORTOS, bloquesDe, bloquesFecha, pendientesCon, cuandoTexto, duracion, hhmm, MODOS, lunesDe, minutosDia, sumaTipo } from "./contexto.js";
 import { datosListas, proximaAnual } from "./listas.js";
 import { permisos as permisosG } from "./google.js";
@@ -169,6 +169,7 @@ const PAGINAS = {
       <p class="fuente-dato">Disponible real = neto − talón complementario. Lo leo de tu carpeta BNA en Drive.</p></section>`
       : pronto("Sueldo", "Cuando des permiso de Drive en Ajustes, leo tus recibos de la carpeta BNA y te muestro el disponible real de cada mes.");
     return `${semana(0)}${semana(1)}${horas}${sueldo}
+      <section class="bloque"><h2>Fichar</h2><p>Media hora antes de entrar, Inicio te recuerda fichar en Teams. Tocás «Listo» y desaparece hasta el día siguiente.</p></section>
       ${pronto("Productividad", "El lugar ya está y queda detrás de tu huella. Lo armamos cuando me cuentes qué números querés ver.")}
       <section class="bloque"><h2>Lo que nunca entra</h2><p class="vacio">Clientes, procedimientos e informes del banco quedan afuera de Orbe, siempre.</p></section>`;
   },
@@ -574,4 +575,27 @@ export function hojaPasos(p) {
   return `<h2>${esc(p.nombre)}</h2><form data-form="proyecto-pasos" data-id="${esc(p.id)}">
     <div class="grupo"><span>Próximos pasos (uno por renglón)</span><textarea class="campo-texto" name="pasos">${esc(p.proximos.join("\n"))}</textarea></div>
     ${pie("Guardar")}</form>`;
+}
+
+// River: todo lo del club en una página (se entra desde la tarjeta de Inicio).
+export function renderRiver(ctx) {
+  const rv = leer("river");
+  const vuelta = `${volver}<h1>River</h1><p class="bajada">Próximos partidos, resultados y la tabla. Datos públicos de ESPN.</p>`;
+  if (!rv || (!rv.proximo && !rv.ultimo)) return `<div class="pagina">${vuelta}<section class="bloque"><p class="vacio">Todavía no llegaron los datos. Tocá ↻ en Inicio.</p></section></div>`;
+  const p = rv.proximo;
+  const d = p && datosPartido(p, ctx.fecha);
+  const hero = p ? `<section class="w river ancho hero ${p.clasico ? "clasico" : ""}"><div class="fila"><span class="k">${p.clasico ? "Superclásico" : "Próximo partido"} · ${esc(p.torneo)}</span></div>
+      <span class="tit">${esc(d.titulo)}</span><span class="sub">${d.dia} · ${d.hora}${p.estadio ? " · " + esc(p.estadio) : ""}</span>
+      <span class="falta">${d.dias <= 0 ? "<b>Hoy</b>" : d.dias === 1 ? "<b>1</b><small>día</small>" : "<b>" + d.dias + "</b><small>días</small>"}</span></section>` : "";
+  const prox = (rv.proximos || []).slice(1);
+  const R = (u) => u.gf > u.gc ? "G" : u.gf < u.gc ? "P" : "E";
+  const ult = rv.ultimos || (rv.ultimo ? [rv.ultimo] : []);
+  const t = rv.tabla;
+  return `<div class="pagina">${vuelta}${hero}
+    ${prox.length ? `<section class="bloque"><h2>Lo que sigue</h2><ul class="lista">${prox.map((x) => { const dx = datosPartido(x, ctx.fecha); return `<li><span>${x.clasico ? "<b>Superclásico</b> · " : ""}${x.local ? "vs " : "en cancha de "}${esc(x.rival)}<br><small class="vacio">${esc(x.torneo)}</small></span><span class="tag">${dx.dia} · ${dx.hora}</span></li>`; }).join("")}</ul></section>` : ""}
+    ${ult.length ? `<section class="bloque"><h2>Últimos resultados</h2><ul class="lista">${ult.map((x) => `<li><span><span class="res res-${R(x)}">${R(x)}</span> ${x.gf}-${x.gc}${x.penales ? ` (${x.penales[0]}-${x.penales[1]} pen.)` : ""} ${x.local ? "vs" : "en cancha de"} ${esc(x.rival)}<br><small class="vacio">${esc(x.torneo)}</small></span><span class="tag">${new Date(x.fecha).getDate()}/${new Date(x.fecha).getMonth() + 1}</span></li>`).join("")}</ul></section>` : ""}
+    ${t ? `<section class="bloque"><h2>Tabla <span class="tag">${esc(t.zona)}</span></h2><div class="trio">
+      <div><span class="k">Posición</span><b>${t.pos}° de ${t.equipos}</b></div><div><span class="k">Puntos</span><b>${t.pts}</b></div><div><span class="k">PJ · G-E-P</span><b>${t.pj} · ${t.g}-${t.e}-${t.p}</b></div></div>
+      <p class="fuente-dato">${esc(t.torneo)}. Diferencia de gol: ${t.dg > 0 ? "+" : ""}${t.dg}.</p></section>` : ""}
+    <section class="bloque"><h2>Accesos</h2><div class="chips"><a class="chip" href="https://www.cariverplate.com.ar" target="_blank" rel="noopener">Sitio oficial</a><a class="chip" href="https://www.espn.com.ar/futbol/equipo/_/id/16/river-plate" target="_blank" rel="noopener">River en ESPN</a></div></section></div>`;
 }

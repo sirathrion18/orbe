@@ -1,5 +1,14 @@
 # Novedades de Orbe
 
+## v0.14.0 · 27/10/2026
+
+River en Inicio y el aviso para fichar.
+
+- River tiene su tarjeta en Inicio, debajo de la de plata: blanca con la banda roja cruzada, el próximo partido y la cuenta regresiva en días. Si es el superclásico, se destaca.
+- Tocando la tarjeta entrás a River: lo que sigue, últimos resultados, la tabla y accesos. Suma Liga, Copa Argentina y copas de CONMEBOL (ESPN).
+- BNA: media hora antes de entrar, Inicio te recuerda fichar en Teams. «Listo» y desaparece hasta mañana.
+- Transporte listo para el estado en vivo del subte (E, H y A): apenas cargues las credenciales de la Ciudad, se prende solo. Si la E tiene problemas un día de BNA, aparece arriba con la alternativa en colectivo.
+
 ## v0.13.0 · 27/10/2026
 
 BNA, Agus, Bienestar y Proyectos con datos reales.

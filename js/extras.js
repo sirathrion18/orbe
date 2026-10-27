@@ -43,3 +43,16 @@ export async function traerRiver() {
     return d;
   } catch (e) { return g || null; }
 }
+
+// Subte en vivo (líneas E, H y A). Si la Ciudad todavía no te dio las credenciales, queda en espera sin molestar.
+export async function traerTransporte() {
+  const g = leer("transporte");
+  if (g && Date.now() - g.cuando < 3 * 60000) return g;
+  try {
+    const r = await fetch("/api/transporte");
+    const d = await r.json();
+    if (!r.ok) { guardar("transporte", { cuando: Date.now(), error: d.error || "ciudad" }, true); return null; }
+    guardar("transporte", d, true);
+    return d;
+  } catch (e) { return g || null; }
+}

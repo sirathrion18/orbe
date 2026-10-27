@@ -175,6 +175,13 @@ function leyenda(datos, ctx, tema) {
 
 // ---------- Tira de modo ----------
 function tira(ctx, datos) {
+  // BNA: media hora antes de entrar, acordarte de fichar en Teams (hasta que lo marques o pasen 15 min de la entrada).
+  const bna = ctx.demo ? null : ctx.hoy.find((b) => b.tipo === "bna");
+  const hoyIso = ctx.fecha.getFullYear() + "-" + String(ctx.fecha.getMonth() + 1).padStart(2, "0") + "-" + String(ctx.fecha.getDate()).padStart(2, "0");
+  if (bna && ctx.min >= bna.ini - 30 && ctx.min < bna.ini + 15 && leer("fichado") !== hoyIso) {
+    return `<div class="tira tira-bna"><div><div class="k">BNA · entrás a las ${bna.inicio}</div><div class="t">Acordate de fichar en Teams</div></div>
+      <button class="btn" style="height:40px;padding:0 14px" data-accion="fichado" data-dia="${hoyIso}">Listo</button></div>`;
+  }
   // Sin alarma para mañana y arrancás temprano: aviso, con opción de cargarla a mano.
   const primero = ctx.manana[0];
   if (ctx.modo === "noche" && !ctx.alarmaManana && primero && primero.ini < 10 * 60) {
@@ -186,6 +193,12 @@ function tira(ctx, datos) {
   }
   if (ctx.cumpleManana && ctx.cumpleManana.length && ctx.modo !== "river") {
     return `<div class="tira"><div><div class="k">Mañana cumple</div><div class="t">${esc(unir(ctx.cumpleManana))}</div></div><div class="n">mañana</div></div>`;
+  }
+  // Problemas en la línea E (la tuya, Emilio Mitre): alerta con alternativa, los días que vas al BNA.
+  const tr = leer("transporte");
+  if (bna && tr?.lineas?.E && !tr.lineas.E.ok && ctx.min < bna.fin && Date.now() - tr.cuando < 30 * 60000) {
+    return `<div class="tira" style="border-color:var(--accent)"><div><div class="k">Línea E con problemas</div>
+      <div class="t">${esc(tr.lineas.E.texto || "Servicio interrumpido o demorado")}</div><div class="sub" style="font-size:13px;color:var(--muted);margin-top:3px">Alternativa: colectivo 42, 26 o 135. Salí con margen.</div></div></div>`;
   }
   // Aniversario o cumple de Agus: aviso desde 3 días antes.
   const fa = (leer("listas")?.agus || []).filter((x) => x.tipo === "fecha" && x.fecha && /anual/i.test(x.nota))
@@ -206,17 +219,6 @@ function tira(ctx, datos) {
       return `<div class="tira"><div><div class="k">Se viene</div><div class="t">${esc(e.titulo)}</div></div><div class="n">${cuandoTexto(e.dias)}</div></div>`;
     if (ctx.viaje)
       return `<div class="tira"><div><div class="k">Cuenta regresiva</div><div class="t">${esc(ctx.viaje.titulo)}</div></div><div class="n">${cuandoTexto(ctx.viaje.dias)}</div></div>`;
-  }
-  // Próximo partido de River (datos de ESPN), dentro de la semana.
-  const rv = leer("river");
-  if (rv && rv.proximo) {
-    const f = new Date(rv.proximo.fecha), dias = Math.round((new Date(f.getFullYear(), f.getMonth(), f.getDate()) - new Date(ctx.fecha.getFullYear(), ctx.fecha.getMonth(), ctx.fecha.getDate())) / 86400000);
-    if (dias >= 0 && dias <= 6) {
-      const hora = String(f.getHours()).padStart(2, "0") + ":" + String(f.getMinutes()).padStart(2, "0");
-      return `<div class="tira tira-river"><div><div class="k">River ${rv.proximo.local ? "vs" : "visita a"} ${esc(rv.proximo.rival)}</div>
-        <div class="t">${dias === 0 ? "Hoy" : dias === 1 ? "Mañana" : DIAS[f.getDay()][0].toUpperCase() + DIAS[f.getDay()].slice(1)} a las ${hora}${rv.ultimo ? ` · último: ${rv.ultimo.gf}-${rv.ultimo.gc} vs ${esc(rv.ultimo.rival)}` : ""}</div></div>
-        <div class="n">${dias === 0 ? "hoy" : "en " + dias + (dias === 1 ? " día" : " días")}</div></div>`;
-    }
   }
   // Un rato libre hoy y una entrega cerca: sugerencia para estudiar (sin tocar el calendario, salvo que lo pidas).
   const est = ratoDeEstudio(ctx, datos);
@@ -266,12 +268,17 @@ function wClima(clima, ctx) {
     <span class="sub">${d.estado}</span></div>`;
 }
 
-// Transporte: el lugar ya está; el estado en vivo de tus líneas llega en la próxima versión.
+// Transporte: estado en vivo de tus líneas de subte (E, H, A) y tus colectivos.
 const LINEAS = [["E", "#6B2F8F"], ["H", "#F5C400"], ["A", "#00A8D6"]];
 function wTransporte() {
-  return `<div class="w trans"><span class="k">Transporte</span>
-    <div class="lineas">${LINEAS.map(([l, c]) => `<span class="linea" style="background:${c}">${l}</span>`).join("")}<span class="cole">42 · 26 · 135</span></div>
-    <span class="sub">Estado en vivo, en la próxima versión</span></div>`;
+  const t = leer("transporte");
+  const vivo = t && t.lineas;
+  const mal = vivo ? LINEAS.filter(([l]) => t.lineas[l] && !t.lineas[l].ok).map(([l]) => l) : [];
+  const sub = !vivo ? (t?.error === "sin-configurar" ? "Esperando las credenciales de la Ciudad" : "Sin datos en vivo")
+    : mal.length ? "Problemas en la " + mal.join(", ") : "Subte normal";
+  return `<div class="w trans ${mal.length ? "con-problemas" : ""}"><span class="k">Transporte</span>
+    <div class="lineas">${LINEAS.map(([l, c]) => `<span class="linea ${vivo && mal.includes(l) ? "mal" : ""}" style="background:${c}">${l}</span>`).join("")}<span class="cole">42 · 26 · 135</span></div>
+    <span class="sub">${sub}</span></div>`;
 }
 
 function wUrgente(datos, ctx) {
@@ -329,6 +336,29 @@ function wPlata(datos, ctx) {
     ${lineaAlerta || `<span class="sub">Salió ${oculto ? "••••" : pesos(r.salio)} de ${oculto ? "••••" : pesos(r.disponible)}</span>`}</div>`;
 }
 
+// River: tarjeta blanca con la banda roja. Toca y abre todo lo del club.
+export function datosPartido(p, desde) {
+  const f = new Date(p.fecha);
+  const dias = Math.round((new Date(f.getFullYear(), f.getMonth(), f.getDate()) - new Date(desde.getFullYear(), desde.getMonth(), desde.getDate())) / 86400000);
+  const dia = dias === 0 ? "Hoy" : dias === 1 ? "Mañana" : DIAS[f.getDay()][0].toUpperCase() + DIAS[f.getDay()].slice(1) + " " + f.getDate() + "/" + (f.getMonth() + 1);
+  const hora = p.hora === false ? "hora a confirmar" : String(f.getHours()).padStart(2, "0") + ":" + String(f.getMinutes()).padStart(2, "0");
+  return { dias, dia, hora, titulo: (p.local ? "River recibe a " : "River visita a ") + p.rival };
+}
+export const resultadoTxt = (u) => (u.gf > u.gc ? "Ganó" : u.gf < u.gc ? "Perdió" : "Empató") + " " + u.gf + "-" + u.gc + (u.penales ? " (" + u.penales[0] + "-" + u.penales[1] + " pen.)" : "") + " vs " + u.rival;
+
+function wRiver(ctx) {
+  const rv = leer("river");
+  if (!rv || (!rv.proximo && !rv.ultimo)) return "";
+  const p = rv.proximo, u = rv.ultimo;
+  const d = p && datosPartido(p, ctx.fecha);
+  const jugando = p && d.dias === 0 && Date.now() >= new Date(p.fecha).getTime() && Date.now() < new Date(p.fecha).getTime() + 2 * 3600000;
+  return `<a class="w ancho river ${p?.clasico ? "clasico" : ""}" href="#/river" aria-label="River: abrir todo lo del club">
+    <div class="fila"><span class="k">${p?.clasico ? "Superclásico" : "River"}${p?.torneo ? " · " + esc(p.torneo) : ""}</span></div>
+    ${d ? `<span class="falta">${jugando ? "<b>Ya</b><small>jugando</small>" : d.dias <= 0 ? "<b>Hoy</b>" : d.dias === 1 ? "<b>1</b><small>día</small>" : "<b>" + d.dias + "</b><small>días</small>"}</span>` : ""}
+    ${p ? `<span class="tit">${esc(d.titulo)}</span><span class="sub">${d.dia} · ${d.hora}${p.estadio ? " · " + esc(p.estadio) : ""}</span>` : '<span class="tit">Sin partido confirmado</span>'}
+    ${u ? `<span class="sub">Último: ${esc(resultadoTxt(u))}</span>` : ""}</a>`;
+}
+
 function wPasos(datos) {
   const p = datos.pasos;
   const dif = Math.round((p.hoy / p.promedio - 1) * 100);
@@ -366,7 +396,7 @@ export function renderInicio(datos, ctx, clima, tema) {
     </div>
     <div class="col-b">
       ${tira(ctx, datos)}
-      <div class="widgets">${wClima(clima, ctx)}${wUrgente(datos, ctx)}${wTransporte()}${wPlata(datos, ctx)}</div>
+      <div class="widgets">${wClima(clima, ctx)}${wUrgente(datos, ctx)}${wTransporte()}${wPlata(datos, ctx)}${wRiver(ctx)}</div>
       <div class="buscador" role="search">
         <label class="campo"><span class="sr">Buscar o escribir un comando</span>${ICONOS.buscar}
           <input id="q" type="search" autocomplete="off" placeholder="Buscar, o «gasto 3500 súper»"></label>
