@@ -1,6 +1,12 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.2.2",
+    fecha: "27/10/2026",
+    titulo: "Arreglo de instalación.",
+    cambios: ["Orbe tiene identidad propia como app, para que el celu la instale de cero aunque haya quedado una instalación trabada."]
+  },
+  {
     version: "0.2.1",
     fecha: "27/10/2026",
     titulo: "Más seguridad.",

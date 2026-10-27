@@ -1,5 +1,11 @@
 # Novedades de Orbe
 
+## v0.2.2 · 27/10/2026
+
+Arreglo de instalación.
+
+- Identidad propia en el manifiesto (`id`), para instalar de cero aunque haya quedado una instalación trabada.
+
 ## v0.2.1 · 27/10/2026
 
 Más seguridad.
