@@ -11,6 +11,7 @@ Sistema operativo personal: un solo lugar para el día, los universos (Agus, BNA
 - `js/saludos.js`: los saludos. Se editan a mano.
 - `datos/ejemplo.json`: **datos de ejemplo, públicos y ficticios**. Los datos reales nunca se suben a este repositorio: van a vivir en el Google Drive de cada usuario.
 - `js/fuente.js`: la única puerta por donde entran los datos. Cambiar de ejemplo a Drive se hace acá.
+- `functions/api/` y `servidor/sesion.js`: el servidor chico (Cloudflare Pages Functions). Inicia sesión con Google y guarda la renovación cifrada en una cookie `HttpOnly`. El único secreto, `GOOGLE_CLIENT_SECRET`, vive en las variables cifradas de Cloudflare, nunca en este repo.
 - `CHANGELOG.md`: qué cambió en cada versión.
 
 ## Privacidad

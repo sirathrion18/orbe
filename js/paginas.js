@@ -184,12 +184,14 @@ export function renderDatos() {
 export function renderAjustes(estadoTema, demo, hayPin, google) {
   const tema = estadoTema.modo;
   return `<div class="pagina">${volver}<h1>Ajustes</h1><p class="bajada">${MARCA} versión ${VERSION}.</p>
+    ${google.aviso ? `<section class="bloque" role="alert" style="background:var(--urg-bg)"><p>${esc(google.aviso)}</p></section>` : ""}
     <section class="bloque"><h2>Cuenta de Google</h2>
       ${!google.configurado ? '<p class="vacio">Falta un paso de configuración en Google Cloud para poder conectar.</p>'
+        : google.cuenta && google.estado === "reconectar" ? `<p>Se cortó la conexión con <b>${esc(google.cuenta.email)}</b>.</p><div class="chips" style="margin-top:12px"><button class="btn" data-accion="google-reconectar">Reconectar</button><button class="btn sec" data-accion="google-salir">Desconectar</button></div>`
         : google.cuenta ? `<p>Conectado como <b>${esc(google.cuenta.email)}</b>.</p><p class="vacio" style="margin-top:6px;font-size:13px">${google.agenda ? "Agenda actualizada " + esc(google.agenda) + "." : "Todavía no se leyó la agenda."}</p>
           <div class="chips" style="margin-top:12px"><button class="btn" data-accion="google-actualizar">Actualizar agenda</button><button class="btn sec" data-accion="google-salir">Desconectar</button></div>`
         : '<p>Conectá tu Google para que el anillo, lo urgente y la agenda salgan de tu calendario real.</p><div class="chips" style="margin-top:12px"><button class="btn" data-accion="google-conectar">Conectar con Google</button></div>'}
-      <p class="vacio" style="margin-top:12px;font-size:12px">Orbe solo lee tu calendario. No escribe, no borra y no guarda tu contraseña.</p></section>
+      <p class="vacio" style="margin-top:12px;font-size:12px">La sesión dura 30 días y se renueva sola cada vez que usás Orbe. Orbe solo lee tu calendario: no escribe, no borra y nunca ve tu contraseña.</p></section>
     <section class="bloque"><h2>Horario fijo del BNA</h2>
       <p class="vacio" style="font-size:13px;margin-bottom:12px">Rellena los días hábiles en los que tu calendario no tiene el BNA cargado. Se guarda solo en este celu.</p>
       <form data-form="horario" style="display:grid;gap:8px">${[1, 2, 3, 4, 5].map((d) => { const h = leer("horario", {})[d] || {}; return `<label style="display:flex;align-items:center;gap:8px"><span style="width:44px;font-size:13px;color:var(--muted)">${DIAS_CORTOS[d]}</span>

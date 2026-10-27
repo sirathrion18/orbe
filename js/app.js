@@ -41,7 +41,14 @@ function aplicarTema() {
 }
 
 // ---------- Navegación ----------
-function ruta() { return (location.hash || "#/").slice(1); }
+function ruta() { return (location.hash || "#/").slice(1).split("?")[0]; }
+const AVISOS_GOOGLE = {
+  "sin-configurar": "Falta cargar el secreto de Google en Cloudflare.",
+  cancelado: "Cancelaste la conexión con Google.",
+  estado: "La conexión tardó demasiado o vino de otro lado. Probá de nuevo.",
+  google: "Google no devolvió la renovación. Probá de nuevo.",
+  cuenta: "Esa cuenta de Google no está autorizada en Orbe."
+};
 
 function pintar(refresco = false) {
   const tema = aplicarTema();
@@ -63,17 +70,25 @@ function pintar(refresco = false) {
   else if (r === "/ajustes") {
     const ag = leer("agenda");
     html = renderAjustes(estadoTema(), demo, !!leer("pin"), {
-      configurado: G.configurado(), cuenta: G.cuenta(),
+      configurado: G.configurado(), cuenta: G.cuenta(), estado: G.estadoSesion,
+      aviso: AVISOS_GOOGLE[new URLSearchParams(location.hash.split("?")[1] || "").get("google")] || null,
       agenda: ag ? new Date(ag.cuando).toLocaleString("es-AR", { weekday: "long", hour: "2-digit", minute: "2-digit" }) : null
     });
   }
   else if (r === "/novedades") html = renderNovedades();
   else html = renderNoEncontrado();
 
-  app.innerHTML = html + (esInicio ? "" : barraInferior(r, tema));
+  app.innerHTML = franjaSesion() + html + (esInicio ? "" : barraInferior(r, tema));
   document.body.classList.toggle("con-barra", !esInicio);
   if (esInicio) { despuesInicio(app, !refresco); conectarBuscador(); }
   document.title = esInicio ? "Orbe" : "Orbe · " + (app.querySelector("h1")?.textContent.trim() || "");
+}
+
+// Franja de arriba cuando hay que volver a conectar: un toque y listo.
+function franjaSesion() {
+  if (G.estadoSesion !== "reconectar" || !G.cuenta()) return "";
+  return `<div class="franja" role="alert"><span>Se cortó la conexión con Google. Lo que ves es lo último guardado.</span>
+    <button class="btn" data-accion="google-reconectar">Reconectar</button></div>`;
 }
 
 function barraInferior(r, tema) {
@@ -240,7 +255,8 @@ document.addEventListener("click", (e) => {
   else if (a === "medita") meditar(Number(el.dataset.min));
   else if (a === "medita-parar") { clearInterval(timerMedita); meditar(0); const r = document.getElementById("medita-reloj"); if (r) r.textContent = "05:00"; }
   else if (a === "google-conectar" || a === "google-actualizar") conectarGoogle(a === "google-actualizar");
-  else if (a === "google-salir") { G.desconectar(); recargarDatos(); avisar("Google desconectado"); }
+  else if (a === "google-salir") { G.desconectar().then(recargarDatos); avisar("Google desconectado"); }
+  else if (a === "google-reconectar") G.conectar();
   else if (a === "hecho") {
     const h = leer("hechos", []); h.push(el.dataset.clave); guardar("hechos", h.slice(-300));
     avisar("Marcado como hecho"); pintar(true);
@@ -306,9 +322,7 @@ document.addEventListener("visibilitychange", async () => {
   if (document.visibilityState !== "visible" || !estado.datos) return;
   pintar(true);
   const ag = leer("agenda");
-  if (G.cuenta() && sesion("token") && (!ag || Date.now() - ag.cuando > 5 * 60000)) {
-    try { await G.leerAgenda(); await recargarDatos(); } catch (e) { /* queda lo último */ }
-  }
+  if (!ag || Date.now() - ag.cuando > 5 * 60000) await refrescarAgenda();
 });
 
 // Cada 30 segundos se actualiza Inicio (hora, anillo, modo), salvo que estés escribiendo.
@@ -323,16 +337,25 @@ async function recargarDatos() {
   pintar(true);
 }
 
-async function conectarGoogle(yaConectado) {
+async function conectarGoogle(soloActualizar) {
+  if (!soloActualizar) { G.conectar(); return; }
   try {
-    avisar(yaConectado ? "Actualizando…" : "Abriendo Google…");
-    if (!yaConectado || !sesion("token")) await G.conectar(yaConectado);
+    avisar("Actualizando…");
     await G.leerAgenda();
     await recargarDatos();
     avisar("Agenda al día");
   } catch (e) {
-    avisar(e.message === "sin-token" ? "Volvé a conectar con Google" : "No se pudo: " + e.message);
+    if (e.message === "reconectar") { pintar(true); avisar("Hay que volver a conectar con Google"); }
+    else if (e.message === "sin-configurar") avisar("Falta cargar el secreto en Cloudflare");
+    else avisar("No se pudo actualizar");
   }
+}
+
+// Trae la agenda en silencio usando la sesión del servidor. Si hace falta reconectar, Inicio muestra la franja.
+async function refrescarAgenda() {
+  if (!G.cuenta() && G.estadoSesion !== "desconocido") return;
+  try { await G.leerAgenda(); await recargarDatos(); }
+  catch (e) { pintar(true); }
 }
 
 // ---------- Arranque ----------
@@ -344,8 +367,10 @@ async function conectarGoogle(yaConectado) {
     estado.clima = await Promise.race([pedido, new Promise((r) => setTimeout(() => r(null), 1500))]);
     pintar();
     if (!estado.clima) { estado.clima = await pedido; if (estado.clima) pintar(true); }
-    // Si la sesión de Google sigue abierta, refresca la agenda sin preguntar.
-    if (G.cuenta() && sesion("token")) { try { await G.leerAgenda(); await recargarDatos(); } catch (e) { /* queda lo último */ } }
+    // Vuelta de Google después de conectar.
+    if (location.hash.includes("google=ok")) { history.replaceState(null, "", location.pathname + "#/"); avisar("Conectado con Google"); }
+    // Refresca la agenda sin preguntar: la sesión del servidor dura semanas.
+    await refrescarAgenda();
   } catch (e) {
     app.innerHTML = `<div class="pagina"><h1>Ups</h1><p class="bajada">No pude cargar Orbe. Revisá la conexión y volvé a abrir.</p></div>`;
   }

@@ -1,67 +1,51 @@
-// Conexión con Google: inicio de sesión y lectura del calendario.
-// Todo pasa entre tu navegador y Google: Orbe no tiene servidor propio y no guarda tu contraseña.
-import { GOOGLE_CLIENT_ID } from "./config.js";
-import { leer, guardar, borrar, sesion } from "./almacen.js";
+// Conexión con Google a través del servidor de Orbe (Cloudflare).
+// El servidor guarda, cifrada en una cookie que el navegador no puede leer, la renovación de Google.
+// Acá solo se piden pases de 1 hora cuando hacen falta: la sesión dura semanas sin tocar nada.
+import { leer, guardar, borrar } from "./almacen.js";
 
-const ALCANCES = "openid email profile https://www.googleapis.com/auth/calendar.readonly";
-let cliente = null;
+let pase = null;            // { valor, vence } en memoria, nunca en el almacenamiento del celu
+let pedido = null;          // evita pedir dos pases a la vez
+export let estadoSesion = "desconocido"; // "ok" | "reconectar" | "sin-configurar" | "sin-red"
 
-export const configurado = () => !!GOOGLE_CLIENT_ID;
+export const configurado = () => true;
 export const cuenta = () => leer("cuenta");
 
-function cargarScript() {
-  if (window.google?.accounts?.oauth2) return Promise.resolve();
-  return new Promise((ok, mal) => {
-    const s = document.createElement("script");
-    s.src = "https://accounts.google.com/gsi/client";
-    s.async = true; s.onload = ok; s.onerror = () => mal(new Error("No pude cargar el inicio de sesión de Google"));
-    document.head.appendChild(s);
-  });
+// Lleva a Google para conectar (o reconectar). Vuelve sola a Orbe.
+export function conectar() { location.href = "/api/auth/login"; }
+
+export async function desconectar() {
+  pase = null;
+  try { await fetch("/api/auth/salir", { method: "POST", credentials: "same-origin" }); } catch (e) { /* igual se limpia */ }
+  borrar("cuenta"); borrar("agenda");
+  estadoSesion = "reconectar";
 }
 
-function tokenVigente() {
-  const t = sesion("token");
-  return t && Date.now() < t.vence - 60000 ? t.valor : null;
-}
-
-// Pide permiso (la primera vez muestra la ventana de Google; después, si ya diste permiso, es casi instantáneo).
-export async function conectar(silencioso = false) {
-  if (!configurado()) throw new Error("Falta el ID de cliente de Google");
-  await cargarScript();
-  return new Promise((ok, mal) => {
-    cliente = google.accounts.oauth2.initTokenClient({
-      client_id: GOOGLE_CLIENT_ID,
-      scope: ALCANCES,
-      prompt: silencioso ? "" : "consent",
-      login_hint: cuenta()?.email,
-      callback: async (r) => {
-        if (r.error) return mal(new Error(r.error));
-        sesion("token", { valor: r.access_token, vence: Date.now() + r.expires_in * 1000 });
-        try {
-          const yo = await api("https://www.googleapis.com/oauth2/v3/userinfo");
-          guardar("cuenta", { email: yo.email, nombre: yo.given_name || yo.name, foto: yo.picture });
-          ok(yo);
-        } catch (e) { mal(e); }
-      },
-      error_callback: (e) => mal(new Error(e.type || "cancelado"))
-    });
-    cliente.requestAccessToken();
-  });
-}
-
-export function desconectar() {
-  const t = tokenVigente();
-  if (t && window.google?.accounts?.oauth2) google.accounts.oauth2.revoke(t, () => {});
-  sesion("token", null);
-  borrar("cuenta");
-  borrar("agenda");
+export async function pedirPase() {
+  if (pase && Date.now() < pase.vence - 60000) return pase.valor;
+  if (pedido) return pedido;
+  pedido = (async () => {
+    try {
+      const r = await fetch("/api/token", { method: "POST", credentials: "same-origin" });
+      if (r.status === 401) { estadoSesion = "reconectar"; throw new Error("reconectar"); }
+      if (r.status === 503) { estadoSesion = "sin-configurar"; throw new Error("sin-configurar"); }
+      if (!r.ok) throw new Error("servidor " + r.status);
+      const t = await r.json();
+      pase = { valor: t.access_token, vence: Date.now() + t.expires_in * 1000 };
+      estadoSesion = "ok";
+      if (t.email && cuenta()?.email !== t.email) guardar("cuenta", { email: t.email });
+      return pase.valor;
+    } catch (e) {
+      if (e instanceof TypeError) estadoSesion = "sin-red";
+      throw e;
+    } finally { pedido = null; }
+  })();
+  return pedido;
 }
 
 async function api(url) {
-  const t = tokenVigente();
-  if (!t) throw new Error("sin-token");
+  const t = await pedirPase();
   const r = await fetch(url, { headers: { Authorization: "Bearer " + t } });
-  if (r.status === 401) { sesion("token", null); throw new Error("sin-token"); }
+  if (r.status === 401) { pase = null; throw new Error("reconectar"); }
   if (!r.ok) throw new Error("Google respondió " + r.status);
   return r.json();
 }

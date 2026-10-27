@@ -202,3 +202,8 @@ textarea.campo-texto { height: 120px; padding: 12px 14px; width: 100%; resize: v
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* Franja de reconexión */
+.franja { position: relative; z-index: 5; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  margin: -8px 0 18px; padding: 12px 14px; border-radius: 16px; background: var(--urg-bg); color: var(--text); font-size: 14px; line-height: 1.35; }
+.franja .btn { height: 40px; background: var(--accent); color: #fff; }

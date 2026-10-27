@@ -1,5 +1,15 @@
 # Novedades de Orbe
 
+## v0.6.0 · 27/10/2026
+
+Sesión que no se corta.
+
+- La sesión de Google dura 30 días y se renueva sola cada vez que usás Orbe: se terminó la ventana de una hora.
+- Si alguna vez se corta, aparece una franja arriba de Inicio con el botón Reconectar.
+- Servidor chico de Orbe en Cloudflare: guarda la renovación de Google cifrada en una cookie que el navegador no puede leer. Sin base de datos.
+- Solo tu cuenta de Google puede entrar; cualquier otra queda rechazada.
+- Lista blanca más estricta: Orbe ya no carga código de terceros.
+
 ## v0.5.0 · 27/10/2026
 
 Alarmas.

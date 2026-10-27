@@ -1,5 +1,5 @@
 // Orbe funciona sin internet: guarda la app y muestra lo último que tenía.
-const VERSION = "orbe-0.5.0";
+const VERSION = "orbe-0.6.0";
 const APP = [
   "./", "index.html", "manifest.webmanifest", "css/orbe.css",
   "js/app.js", "js/almacen.js", "js/config.js", "js/contexto.js", "js/fuente.js", "js/google.js",
@@ -24,6 +24,7 @@ self.addEventListener("fetch", (e) => {
   const mismoOrigen = url.origin === location.origin;
   const fuentes = url.hostname.endsWith("fonts.googleapis.com") || url.hostname.endsWith("fonts.gstatic.com");
   if (!mismoOrigen && !fuentes) return; // el clima lo maneja la app
+  if (mismoOrigen && url.pathname.startsWith("/api/")) return; // la sesión nunca se guarda en caché
   e.respondWith(
     fetch(e.request).then((r) => {
       if (r.ok || r.type === "opaque") { const copia = r.clone(); caches.open(VERSION).then((c) => c.put(e.request, copia)); }
