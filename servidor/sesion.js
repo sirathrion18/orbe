@@ -11,6 +11,21 @@ const COOKIE_ESTADO = "__Host-orbe-estado";
 const TREINTA_DIAS = 30 * 24 * 3600;
 // Permisos de solo lectura. Se piden de a poco: cada versión suma los que necesita.
 export const ALCANCES = ["openid", "email", "https://www.googleapis.com/auth/calendar.readonly"];
+// Se suman cuando activás sincronización y finanzas: la planilla de Orbe (Sheets) y los mails de aviso (Gmail, solo lectura).
+export const SHEETS = "https://www.googleapis.com/auth/spreadsheets";
+export const GMAIL = "https://www.googleapis.com/auth/gmail.readonly";
+export const EXTRAS = [SHEETS, GMAIL];
+
+// Pide a Google un pase de 1 hora con solo los permisos indicados (así el navegador nunca recibe el de Gmail).
+export async function paseDe(env, rt, alcances) {
+  const cuerpo = { client_id: CLIENT_ID, client_secret: env.GOOGLE_CLIENT_SECRET, refresh_token: rt, grant_type: "refresh_token" };
+  if (alcances && alcances.length) cuerpo.scope = alcances.join(" ");
+  const r = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams(cuerpo)
+  });
+  const t = await r.json().catch(() => ({}));
+  return { ok: r.ok, t };
+}
 
 const enc = new TextEncoder(), dec = new TextDecoder();
 const b64 = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");

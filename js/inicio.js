@@ -5,6 +5,7 @@ import { ICONOS, TELA, MARCA } from "./iconos.js";
 import { DIAS, MESES, hhmm, duracion, urgentes, cuandoTexto } from "./contexto.js";
 import { describirClima } from "./fuente.js";
 import { leer } from "./almacen.js";
+import { resumenMes, datosFinanzas } from "./finanzas.js";
 
 export const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -233,18 +234,26 @@ function wUrgente(datos, ctx) {
       ${resto > 0 ? `<span class="sub">+${resto} más</span>` : ""}</a></div>`;
 }
 
+const pesos = (n) => "$ " + Math.round(n).toLocaleString("es-AR");
+
 function wPlata(datos, ctx) {
-  const p = datos.plata;
+  const r = resumenMes(datosFinanzas(), ctx.fecha);
   const oculto = leer("plataOculta", false);
   const mes = MESES[ctx.fecha.getMonth()].toUpperCase();
-  const monto = p.disponible == null ? '<span style="font-size:22px;color:var(--muted)">Conectá la planilla</span>'
-    : "$ " + Number(p.disponible).toLocaleString("es-AR");
-  return `<div class="w ancho"><div class="fila"><span class="k">Disponible · ${mes}</span>
-      <span class="fila" style="gap:10px"><span class="sub" style="font-size:12px">quedan ${p.diasRestantes} días</span>
-      <button class="ojo" data-accion="ocultar-plata" aria-label="${oculto ? "Mostrar" : "Ocultar"} la plata">${oculto ? ICONOS.ojoNo : ICONOS.ojo}</button></span></div>
-    <span class="medio ${oculto ? "oculto" : ""}">${oculto ? "••••••" : monto}</span>
-    <div class="barra"><i style="width:${oculto ? 0 : Math.round(p.usado * 100)}%"></i></div>
-    <span class="sub">Próximo: ${esc(p.proximo)}</span></div>`;
+  const ojo = `<button class="ojo" data-accion="ocultar-plata" aria-label="${oculto ? "Mostrar" : "Ocultar"} la plata">${oculto ? ICONOS.ojoNo : ICONOS.ojo}</button>`;
+  if (!r || r.queda == null) {
+    return `<a class="w ancho" href="#/u/finanzas" style="text-decoration:none"><div class="fila"><span class="k">Plata · ${mes}</span></div>
+      <span class="medio" style="font-size:22px;color:var(--muted)">${r ? "Falta el disponible del mes" : "Activá finanzas en Ajustes"}</span>
+      <span class="sub">${r ? "Cargalo en la hoja MES de tu planilla" : "Lee tus mails del BNA y Mercado Pago"}</span></a>`;
+  }
+  const alerta = r.alertas[0];
+  const pie = alerta ? `<span class="sub" style="color:var(--accent);font-weight:600">${esc(alerta.rubro)}: ${Math.round(alerta.pct * 100)}% del tope</span>`
+    : `<span class="sub">Salió ${oculto ? "••••" : pesos(r.salio)} de ${oculto ? "••••" : pesos(r.disponible)}${r.propio ? "" : " · disponible de " + esc(r.base.mes)}</span>`;
+  return `<div class="w ancho"><div class="fila"><span class="k">Te queda · ${mes}</span>
+      <span class="fila" style="gap:10px"><span class="sub" style="font-size:12px">${r.diasRestantes} días</span>${ojo}</span></div>
+    <a href="#/u/finanzas" style="text-decoration:none"><span class="medio ${oculto ? "oculto" : ""}" style="${r.queda < 0 ? "color:var(--accent)" : ""}">${oculto ? "••••••" : pesos(r.queda)}</span></a>
+    <div class="barra"><i style="width:${oculto ? 0 : Math.round(r.usado * 100)}%;${r.queda < 0 ? "background:var(--accent)" : ""}"></i></div>
+    ${pie}</div>`;
 }
 
 function wPasos(datos) {

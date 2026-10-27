@@ -1,5 +1,5 @@
 // Arranca el inicio de sesión con Google (pide la renovación de larga duración).
-import { CLIENT_ID, ALCANCES, configurado, cookieEstado } from "../../../servidor/sesion.js";
+import { CLIENT_ID, ALCANCES, EXTRAS, configurado, cookieEstado } from "../../../servidor/sesion.js";
 
 export async function onRequestGet({ request, env }) {
   if (!configurado(env)) return new Response("Orbe todavía no tiene cargado el secreto de Google en Cloudflare.", { status: 503 });
@@ -9,7 +9,8 @@ export async function onRequestGet({ request, env }) {
     client_id: CLIENT_ID,
     redirect_uri: url.origin + "/api/auth/callback",
     response_type: "code",
-    scope: ALCANCES.join(" "),
+    // ?permisos=todo suma la planilla y los mails (sincronización y finanzas).
+    scope: (url.searchParams.get("permisos") === "todo" ? ALCANCES.concat(EXTRAS) : ALCANCES).join(" "),
     access_type: "offline",
     include_granted_scopes: "true",
     prompt: "consent",

@@ -5,6 +5,12 @@ import { ICONOS, MARCA } from "./iconos.js";
 import { esc, colorTipo, colorUniverso } from "./inicio.js";
 import { DIAS, DIAS_CORTOS, bloquesDe, bloquesFecha, pendientesCon, cuandoTexto, duracion, hhmm, MODOS } from "./contexto.js";
 import { leer, todo } from "./almacen.js";
+import { datosFinanzas, resumenMes } from "./finanzas.js";
+import { linkHoja } from "./hoja.js";
+import { ultimaSincro, activa as sincroActiva } from "./sincro.js";
+import { RUBROS } from "./rubros.js";
+
+const MESES_LARGOS = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 
 const volver = `<a class="volver" href="#/">${ICONOS.volver} Inicio</a>`;
 const pronto = (titulo, texto) => `<section class="bloque pronto"><h2>${titulo}</h2><p class="vacio">${texto}</p></section>`;
@@ -95,27 +101,65 @@ const PAGINAS = {
   },
 
   finanzas(datos, ctx) {
-    const p = datos.plata;
-    const deudas = pendientesCon(datos, ctx.fecha).filter((x) => x.universo === "finanzas" && x.dias >= -60);
-    const gastos = leer("gastos", []);
-    const hoy = new Date();
-    const porRubro = {};
-    gastos.filter((g) => { const d = new Date(g.fecha); return d.getMonth() === hoy.getMonth() && d.getFullYear() === hoy.getFullYear(); }).forEach((g) => { porRubro[g.rubro] = (porRubro[g.rubro] || 0) + g.monto; });
-    const rubros = Object.entries(porRubro).sort((a, b) => b[1] - a[1]);
+    const fin = datosFinanzas();
+    const r = resumenMes(fin, ctx.fecha);
+    const oculto = leer("plataOculta", false);
+    const $ = (n) => oculto ? "••••" : "$ " + Math.round(n).toLocaleString("es-AR");
+    const venc = pendientesCon(datos, ctx.fecha).filter((x) => x.universo === "finanzas" && x.dias >= -60);
     const dia = ctx.fecha.getDay();
-    return `<section class="bloque"><h2>Disponible del mes</h2>
-        <p style="font-family:var(--serif);font-size:36px;line-height:1.15;margin-bottom:10px">${p.disponible == null ? '<span style="font-size:20px;color:var(--muted)">Se conecta con tu planilla en la próxima versión</span>' : "$ " + Number(p.disponible).toLocaleString("es-AR")}</p>
-        <div class="barra"><i style="width:${Math.round(p.usado * 100)}%"></i></div><p class="prom">Quedan ${p.diasRestantes} días de mes.</p></section>
-      <section class="bloque"><h2>Tarjetas y vencimientos ${datos.agenda ? "" : '<span class="ejemplo">Ejemplo</span>'}</h2><ul class="lista">${deudas.map((d) => `<li style="align-items:flex-start"><span style="display:flex;flex-direction:column;gap:4px;min-width:0"><span>${esc(d.titulo)}${d.vernet ? ' <span class="tag">Vernet</span>' : ""}${d.nota ? ` <span class="tag">${esc(d.nota)}</span>` : ""}</span>${d.monto ? `<b>${esc(d.monto)}</b>` : ""}<span class="der ${d.dias <= 7 && !d.vernet ? "rojo" : ""}" style="font-size:17px">${cuandoTexto(d.dias)}</span></span>
+    const cuandoMov = (ts) => { const d = new Date(ts); return d.getDate() + "/" + (d.getMonth() + 1); };
+    const CLASE = { gasto: "", "gasto-tarjeta": "tarjeta", tarjeta: "pago de tarjeta", deuda: "cuota", ahorro: "ahorro", propia: "entre tus cuentas", usd: "dólares", ingreso: "ingreso", devolucion: "devolución" };
+    const filaMov = (m) => {
+      const entra = m.clase === "ingreso" || m.clase === "devolucion";
+      return `<button class="mov" data-accion="fin-mov" data-id="${esc(m.id)}"><span class="q">${esc(m.contra || m.tipo)}</span>
+        <span class="m ${entra ? "entra" : ""}">${entra ? "+ " : ""}${m.moneda === "USD" ? "US$ " + m.monto : $(m.monto || 0)}</span>
+        <span class="d">${cuandoMov(m.ts)} · ${esc(m.rubro || CLASE[m.clase] || m.clase)}${m.clase === "gasto-tarjeta" ? ' <span class="tag">tarjeta</span>' : ""}${CLASE[m.clase] && m.clase !== "gasto-tarjeta" && m.rubro ? ` <span class="tag">${CLASE[m.clase]}</span>` : ""}${m.mitad ? ' <span class="tag">tu mitad</span>' : ""}${m.revisar ? ' <span class="tag rojo">a revisar</span>' : ""}</span></button>`;
+    };
+
+    let cabeza;
+    if (!fin) {
+      cabeza = `<section class="bloque"><h2>Tu plata al día</h2><p>Orbe lee los avisos del BNA y de Mercado Pago, los ordena por rubro y te dice cuánto te queda del mes.</p>
+        <div class="chips" style="margin-top:14px"><a class="btn" href="#/ajustes" style="display:inline-flex;align-items:center;text-decoration:none">Activar en Ajustes</a></div></section>`;
+    } else {
+      cabeza = `<section class="bloque"><h2>Te queda en ${esc(MESES_LARGOS[ctx.fecha.getMonth()])} <button class="link" data-accion="fin-actualizar" style="font-size:12px;letter-spacing:0;text-transform:none">actualizar</button></h2>
+        ${r.queda == null ? '<p class="vacio">Falta el disponible del mes: cargalo en la hoja MES de tu planilla.</p>' : `
+        <p class="cifra" style="${r.queda < 0 ? "color:var(--accent)" : ""}">${$(r.queda)}</p>
+        <div class="barra" style="margin:10px 0 8px"><i style="width:${Math.round(r.usado * 100)}%"></i></div>
+        <p class="prom" style="margin-top:0">Salió ${$(r.salio)} de ${$(r.disponible)} · quedan ${r.diasRestantes} días.</p>
+        <p class="fuente-dato">Disponible: ${esc(r.base.fuente || "hoja MES")}${r.propio ? "" : " (último cargado, de " + esc(r.base.mes) + ")"}.
+          Las compras con tarjeta cuentan en su rubro al comprar y en lo que te queda cuando pagás la tarjeta.</p>`}
+      </section>`;
+    }
+
+    const topes = r && r.topes.length ? `<section class="bloque"><h2>Topes del mes</h2>${r.topes.map((t) => `<div class="tope ${t.pct >= 0.8 ? "alerta" : ""}">
+        <div class="fila"><span>${esc(t.rubro)}</span><span>${$(t.gastado)} de ${$(t.tope)} · ${Math.round(t.pct * 100)}%</span></div>
+        <div class="barra"><i style="width:${Math.min(100, Math.round(t.pct * 100))}%"></i></div></div>`).join("")}
+        <p class="fuente-dato">Por ahora Orbe ve las compras con tarjeta de los resúmenes y de los avisos de Mercado Pago; el resto llega con Satélite.</p></section>` : "";
+
+    const revisar = r && r.revisar.length ? `<section class="bloque" style="background:var(--urg-bg)"><h2>A revisar <span class="tag">${r.revisar.length}</span></h2>
+        <p class="vacio" style="margin-bottom:8px">Tocá cada uno para decirme qué es. Lo aprendo para la próxima.</p>
+        <div class="lista-mov">${r.revisar.slice(0, 8).map(filaMov).join("")}</div></section>` : "";
+
+    const rubros = r && r.porRubro.length ? `<section class="bloque"><h2>Gastos por rubro</h2><ul class="lista">${r.porRubro.map(([k, v]) => `<li><span>${esc(k)}</span><span class="der">${$(v)}</span></li>`).join("")}</ul></section>` : "";
+
+    const movs = r ? `<section class="bloque"><h2>Movimientos del mes <span class="tag">${r.movs.length}</span></h2>
+        ${r.movs.length ? `<div class="lista-mov">${r.movs.slice(0, 40).map(filaMov).join("")}</div>` : '<p class="vacio">Todavía no hay movimientos este mes.</p>'}
+        ${r.usd.length ? `<p class="fuente-dato">En dólares, aparte: ${r.usd.map((m) => esc(m.contra) + " US$ " + m.monto).join(" · ")}.</p>` : ""}</section>` : "";
+
+    const deudas = fin && fin.deudas.length ? `<section class="bloque"><h2>Deuda</h2>${fin.deudas.map((d) => `<div class="deuda">
+        <div class="fila"><span>${esc(d.nombre)}${d.tasa ? ` <span class="tag">${String(d.tasa).replace(".", ",")}% mensual</span>` : d.tasa === 0 ? ' <span class="tag">sin interés</span>' : ' <span class="tag rojo">tasa ?</span>'}</span>
+          <span class="der" style="font-family:var(--serif);font-size:20px">${d.saldo != null ? $(d.saldo) : d.cuota ? $(d.cuota) + "/mes" : "?"}</span></div>
+        <div class="nota">${d.saldo != null && d.cuota ? (d.tipo === "tarjeta" ? "Mínimo " : "Cuota ") + $(d.cuota) + " · " : ""}${d.vence ? "vence " + esc(d.vence) + " · " : ""}${esc(d.nota || "")}<br>Fuente: ${esc(d.fuente || "?")}${d.al ? ", al " + esc(d.al) : ""}.</div></div>`).join("")}
+        ${(() => { const caras = fin.deudas.filter((d) => d.tasa > 0 && d.saldo > 0); const costo = caras.reduce((s, d) => s + d.saldo * d.tasa / 100, 0); return costo ? `<p class="fuente-dato">Lo que cuesta no bajar las tarjetas: unos ${$(costo)} por mes de intereses, al ritmo de hoy.</p>` : ""; })()}</section>` : "";
+
+    return `${cabeza}${revisar}${topes}${rubros}
+      <section class="bloque"><h2>Vencimientos ${datos.agenda ? "" : '<span class="ejemplo">Ejemplo</span>'}</h2><ul class="lista">${venc.map((d) => `<li style="align-items:flex-start"><span style="display:flex;flex-direction:column;gap:4px;min-width:0"><span>${esc(d.titulo)}${d.vernet ? ' <span class="tag">Vernet</span>' : ""}${d.nota ? ` <span class="tag">${esc(d.nota)}</span>` : ""}</span>${d.monto ? `<b>${esc(d.monto)}</b>` : ""}<span class="der ${d.dias <= 7 && !d.vernet ? "rojo" : ""}" style="font-size:17px">${cuandoTexto(d.dias)}</span></span>
         <button class="hecho" style="margin:0" data-accion="hecho" data-clave="${esc(d.clave)}" aria-label="Marcar ${esc(d.titulo)} como hecho">${ICONOS.check}</button></li>`).join("") || '<li class="vacio">Nada pendiente.</li>'}</ul>
         ${leer("hechos", []).length ? '<button class="link" style="margin-top:12px;font-size:13px" data-accion="deshacer-hechos">Volver a mostrar los marcados como hechos</button>' : ""}</section>
-      <section class="bloque"><h2>Gastos del mes por rubro</h2>
-        ${rubros.length ? `<ul class="lista">${rubros.map(([r, m]) => `<li><span>${esc(r)}</span><span class="der">$ ${m.toLocaleString("es-AR")}</span></li>`).join("")}</ul>` : '<p class="vacio">Todavía no cargaste gastos este mes.</p>'}
-        <form class="form" data-form="gasto"><input name="monto" inputmode="decimal" placeholder="Monto" aria-label="Monto" required style="max-width:110px"><input name="desc" placeholder="Rubro (súper, uber…)" aria-label="Rubro"><button class="btn">+</button></form>
-        <p class="vacio" style="margin-top:10px;font-size:12px">Atajo: escribí «gasto 3500 súper» en el buscador de Inicio.</p></section>
+      ${movs}${deudas}
       <section class="bloque"><h2>Promos de hoy, ${DIAS[dia]}</h2><ul class="lista">${(PROMOS[dia] || []).concat(PROMOS_SIEMPRE).map((x) => `<li><span>${esc(x)}</span></li>`).join("")}</ul>
         <p class="vacio" style="margin-top:10px;font-size:12px">Los topes cambian seguido: verificalos antes de pagar.</p></section>
-      <section class="bloque"><h2>Mercado</h2><p>La pizarra de CEDEARs, renta fija y cripto se pide en el chat con <b>/pizarra</b>.</p></section>`;
+      ${linkHoja() ? `<section class="bloque"><h2>Planilla</h2><p>Todo vive en tu planilla <b>Orbe · datos</b>: podés corregir a mano lo que quieras.</p><div class="chips" style="margin-top:12px"><a class="chip" href="${esc(linkHoja())}" target="_blank" rel="noopener">Abrir la planilla</a></div></section>` : ""}`;
   },
 
   proyectos(datos) {
@@ -181,31 +225,76 @@ export function renderDatos() {
     <section class="bloque"><h2>Acciones</h2><div class="chips"><button class="btn sec" data-accion="exportar">Exportar todo</button><button class="btn peligro" data-accion="borrar-todo">Borrar todo</button></div></section></div>`;
 }
 
+const RELOJES = [["logo", "Logo", "Inter, como «Orbe»"], ["revista", "Revista", "La serif del saludo"], ["fina", "Fina", "Inter liviana"], ["mono", "Máquina", "Monoespaciada"]];
+const SALUDOS_F = [["revista", "Revista", "Serif"], ["cursiva", "Cursiva", "Serif inclinada"], ["logo", "Logo", "Inter"]];
+const FAMILIA = { logo: "var(--sans);font-weight:600;letter-spacing:-.045em", revista: "var(--serif)", fina: "var(--sans);font-weight:300", mono: "ui-monospace,monospace;letter-spacing:-.06em",
+  cursiva: "var(--serif);font-style:italic" };
+
 export function renderAjustes(estadoTema, demo, hayPin, google) {
   const tema = estadoTema.modo;
+  const f = { reloj: "logo", saludo: "revista", ...leer("fuentes", {}) };
+  const sinc = ultimaSincro();
+  const conectado = google.cuenta && google.estado !== "reconectar";
+  const p = google.permisos || {};
+  const tarjeta = !google.configurado ? '<p class="vacio">Falta un paso de configuración en Google Cloud para poder conectar.</p>'
+    : google.cuenta && google.estado === "reconectar" ? `<p>Se cortó la conexión con <b>${esc(google.cuenta.email)}</b>.</p><div class="chips" style="margin-top:12px"><button class="btn" data-accion="google-reconectar">Reconectar</button><button class="btn sec" data-accion="google-salir">Desconectar</button></div>`
+    : google.cuenta ? `<p>Conectado como <b>${esc(google.cuenta.email)}</b>.</p><p class="vacio" style="margin-top:6px;font-size:13px">${google.agenda ? "Agenda actualizada " + esc(google.agenda) + "." : "Todavía no se leyó la agenda."}</p>
+        <div class="chips" style="margin-top:12px"><button class="btn" data-accion="google-actualizar">Actualizar agenda</button><button class="btn sec" data-accion="google-salir">Desconectar</button></div>`
+    : '<p>Conectá tu Google para que el anillo, lo urgente y la agenda salgan de tu calendario real.</p><div class="chips" style="margin-top:12px"><button class="btn" data-accion="google-conectar">Conectar con Google</button></div>';
+  const muestra = (grupo, [k, n, d]) => `<button class="muestra ${f[grupo] === k ? "on" : ""}" data-accion="fuente" data-grupo="${grupo}" data-valor="${k}" aria-pressed="${f[grupo] === k}">
+      <b style="font-family:${FAMILIA[k]}">${grupo === "reloj" ? "10:24" : "Buen día"}</b><small>${n} · ${d}</small></button>`;
   return `<div class="pagina">${volver}<h1>Ajustes</h1><p class="bajada">${MARCA} versión ${VERSION}.</p>
     ${google.aviso ? `<section class="bloque" role="alert" style="background:var(--urg-bg)"><p>${esc(google.aviso)}</p></section>` : ""}
-    <section class="bloque"><h2>Cuenta de Google</h2>
-      ${!google.configurado ? '<p class="vacio">Falta un paso de configuración en Google Cloud para poder conectar.</p>'
-        : google.cuenta && google.estado === "reconectar" ? `<p>Se cortó la conexión con <b>${esc(google.cuenta.email)}</b>.</p><div class="chips" style="margin-top:12px"><button class="btn" data-accion="google-reconectar">Reconectar</button><button class="btn sec" data-accion="google-salir">Desconectar</button></div>`
-        : google.cuenta ? `<p>Conectado como <b>${esc(google.cuenta.email)}</b>.</p><p class="vacio" style="margin-top:6px;font-size:13px">${google.agenda ? "Agenda actualizada " + esc(google.agenda) + "." : "Todavía no se leyó la agenda."}</p>
-          <div class="chips" style="margin-top:12px"><button class="btn" data-accion="google-actualizar">Actualizar agenda</button><button class="btn sec" data-accion="google-salir">Desconectar</button></div>`
-        : '<p>Conectá tu Google para que el anillo, lo urgente y la agenda salgan de tu calendario real.</p><div class="chips" style="margin-top:12px"><button class="btn" data-accion="google-conectar">Conectar con Google</button></div>'}
-      <p class="vacio" style="margin-top:12px;font-size:12px">La sesión dura 30 días y se renueva sola cada vez que usás Orbe. Orbe solo lee tu calendario: no escribe, no borra y nunca ve tu contraseña.</p></section>
+    <section class="bloque"><h2>Cuenta de Google</h2>${tarjeta}
+      <p class="vacio" style="margin-top:12px;font-size:12px">La sesión dura 30 días y se renueva sola cada vez que usás Orbe. Orbe nunca ve tu contraseña.</p></section>
+
+    <section class="bloque"><h2>Celu y compu sincronizados</h2>
+      ${!conectado ? '<p class="vacio">Primero conectá tu Google.</p>'
+        : !p.sheets || !p.gmail ? `<p>Un solo permiso más y Orbe: sincroniza el celu y la compu (hechos, horario, ideas, súper, menú, tipografías) y lee los avisos del BNA y de Mercado Pago para Finanzas.</p>
+          <div class="chips" style="margin-top:12px"><button class="btn" data-accion="activar-todo">Dar permiso</button></div>
+          <p class="vacio" style="margin-top:12px;font-size:12px">Google va a pedirte ver tus mails (solo lectura: Orbe nunca escribe ni borra) y editar planillas (Orbe solo toca su planilla «Orbe · datos»). El texto de los mails no sale del servidor de Orbe.</p>`
+        : !google.hoja ? `<p>Pegá el link de tu planilla <b>Orbe · datos</b> (está en Drive, en Herramientas de IA → Orbe). Se hace una vez en cada dispositivo.</p>
+          <form class="form" data-form="hoja"><input name="link" placeholder="https://docs.google.com/spreadsheets/d/…" aria-label="Link de la planilla" required><button class="btn">Listo</button></form>`
+        : `<p>Sincronizado con tu planilla.${sinc ? ` <span class="vacio">Último envío: ${esc(new Date(sinc).toLocaleString("es-AR", { weekday: "long", hour: "2-digit", minute: "2-digit" }))}.</span>` : ""}</p>
+          <div class="chips" style="margin-top:12px"><button class="btn" data-accion="sincronizar">Sincronizar ahora</button><a class="chip" href="${esc(linkHoja())}" target="_blank" rel="noopener">Abrir la planilla</a></div>`}
+    </section>
+
+    <section class="bloque"><h2>Tipografías</h2>
+      <p class="vacio" style="font-size:13px;margin-bottom:10px">Reloj del anillo</p>
+      <div class="muestras">${RELOJES.map((x) => muestra("reloj", x)).join("")}</div>
+      <p class="vacio" style="font-size:13px;margin:16px 0 10px">Saludo</p>
+      <div class="muestras">${SALUDOS_F.map((x) => muestra("saludo", x)).join("")}</div></section>
+
     <section class="bloque"><h2>Horario fijo del BNA</h2>
-      <p class="vacio" style="font-size:13px;margin-bottom:12px">Rellena los días hábiles en los que tu calendario no tiene el BNA cargado. Se guarda solo en este celu.</p>
-      <form data-form="horario" style="display:grid;gap:8px">${[1, 2, 3, 4, 5].map((d) => { const h = leer("horario", {})[d] || {}; return `<label style="display:flex;align-items:center;gap:8px"><span style="width:44px;font-size:13px;color:var(--muted)">${DIAS_CORTOS[d]}</span>
-        <input type="time" name="i${d}" value="${esc(h.inicio || "")}" aria-label="Entrada ${DIAS[d]}" style="flex:1;height:42px;padding:0 10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);font-size:15px">
-        <input type="time" name="f${d}" value="${esc(h.fin || "")}" aria-label="Salida ${DIAS[d]}" style="flex:1;height:42px;padding:0 10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);font-size:15px"></label>`; }).join("")}
-        <button class="btn" style="margin-top:6px">Guardar horario</button></form></section>
+      <p class="vacio" style="font-size:13px;margin-bottom:14px">Completa los días hábiles que tu calendario no tenga cargados.</p>
+      <form data-form="horario"><div class="horas"><span></span><span class="cab">Entrada</span><span class="cab">Salida</span>
+        ${[1, 2, 3, 4, 5].map((d) => { const h = leer("horario", {})[d] || {}; return `<span class="dia">${DIAS_CORTOS[d]}</span>
+        <input type="time" name="i${d}" value="${esc(h.inicio || "")}" aria-label="Entrada ${DIAS[d]}">
+        <input type="time" name="f${d}" value="${esc(h.fin || "")}" aria-label="Salida ${DIAS[d]}">`; }).join("")}</div>
+        <button class="btn ancho-completo" style="margin-top:14px">Guardar horario</button></form></section>
+
     <section class="bloque"><h2>Tema</h2><div class="chips">${[["auto", "Automático"], ["claro", "Claro"], ["oscuro", "Oscuro"]].map(([k, n]) => `<button class="chip ${tema === k ? "on" : ""}" data-accion="tema-fijo" data-tema="${k}">${n}</button>`).join("")}</div>
       <p class="vacio" style="margin-top:12px;font-size:13px">Automático: claro de día y oscuro desde la puesta del sol en Buenos Aires. El botón de Inicio lo cambia hasta la próxima salida o puesta.</p></section>
     <section class="bloque"><h2>Probar modos del día</h2><div class="chips"><button class="chip ${!demo ? "on" : ""}" data-accion="demo" data-modo="">Real</button>${MODOS.map((m) => `<button class="chip ${demo === m ? "on" : ""}" data-accion="demo" data-modo="${m}">${m === "normal" ? "Normal" : m === "libre" ? "Día libre" : m === "river" ? "River" : m === "marvel" ? "Guiño Marvel" : "Noche"}</button>`).join("")}</div>
       <p class="vacio" style="margin-top:12px;font-size:13px">Simula el día y la hora de cada modo. Se apaga al cerrar Orbe.</p></section>
     <section class="bloque"><h2>PIN para Finanzas y Bienestar</h2>
       ${hayPin ? '<button class="btn sec" data-accion="pin-sacar">Sacar el PIN</button>' : '<form class="form" data-form="pin-nuevo"><input name="pin" type="password" inputmode="numeric" minlength="4" placeholder="4 dígitos o más" aria-label="Nuevo PIN" required><button class="btn">Poner PIN</button></form>'}
-      <p class="vacio" style="margin-top:12px;font-size:13px">Es una cortina para miradas ajenas, no un cofre: en esta versión los datos siguen en el dispositivo.</p></section>
+      <p class="vacio" style="margin-top:12px;font-size:13px">Es una cortina para miradas ajenas, no un cofre. Con la sincronización activa, el mismo PIN vale en el celu y en la compu.</p></section>
     <section class="bloque"><h2>Más</h2><div class="chips"><a class="chip" href="#/datos">Mis datos</a><a class="chip" href="#/respiro">Respiro</a><a class="chip" href="#/novedades">Novedades</a></div></section></div>`;
+}
+
+// Hoja para corregir un movimiento: rubro, tipo y si se divide con Agus.
+export function hojaMovimiento(m) {
+  const CLASES_TXT = [["gasto", "Gasto"], ["gasto-tarjeta", "Con tarjeta"], ["tarjeta", "Pago de tarjeta"], ["deuda", "Cuota"], ["ahorro", "Ahorro"], ["propia", "Entre mis cuentas"], ["ingreso", "Ingreso"]];
+  return `<h2>${esc(m.contra || m.tipo)}</h2>
+    <p class="vacio" style="margin:-4px 0 4px">$ ${Math.round(m.monto || 0).toLocaleString("es-AR")} · ${esc(m.fuente || "")}</p>
+    <form data-form="fin-mov" data-id="${esc(m.id)}">
+      <div class="grupo"><span>Qué es</span><div class="chips">${CLASES_TXT.map(([k, n]) => `<label class="chip ${m.clase === k ? "on" : ""}"><input type="radio" class="sr" name="clase" value="${k}" ${m.clase === k ? "checked" : ""}>${n}</label>`).join("")}</div></div>
+      <div class="grupo"><span>Rubro</span><div class="chips">${RUBROS.map((r) => `<label class="chip ${m.rubro === r ? "on" : ""}"><input type="radio" class="sr" name="rubro" value="${esc(r)}" ${m.rubro === r ? "checked" : ""}>${esc(r)}</label>`).join("")}</div></div>
+      <div class="grupo"><label style="display:flex;gap:10px;align-items:center"><input type="checkbox" name="mitad" ${m.mitad ? "checked" : ""} style="width:20px;height:20px"> Se divide con Agus (cuenta tu mitad)</label></div>
+      <div class="grupo"><label style="display:flex;gap:10px;align-items:center"><input type="checkbox" name="aprender" checked style="width:20px;height:20px"> Recordarlo para la próxima vez que aparezca</label></div>
+      <div class="grupo" style="display:flex;gap:10px"><button type="button" class="btn sec" data-accion="cerrar-hoja" style="flex:1">Cancelar</button><button class="btn" style="flex:2">Guardar</button></div>
+    </form>`;
 }
 
 export function renderNovedades() {

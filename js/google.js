@@ -11,12 +11,14 @@ export const configurado = () => true;
 export const cuenta = () => leer("cuenta");
 
 // Lleva a Google para conectar (o reconectar). Vuelve sola a Orbe.
-export function conectar() { location.href = "/api/auth/login"; }
+export function conectar(todo) { location.href = "/api/auth/login" + (todo || permisos().sheets ? "?permisos=todo" : ""); }
+// Qué permisos extra diste: { sheets, gmail }. Llega con cada pase.
+export const permisos = () => leer("permisos", {});
 
 export async function desconectar() {
   pase = null;
   try { await fetch("/api/auth/salir", { method: "POST", credentials: "same-origin" }); } catch (e) { /* igual se limpia */ }
-  borrar("cuenta"); borrar("agenda");
+  borrar("cuenta"); borrar("agenda"); borrar("permisos");
   estadoSesion = "reconectar";
 }
 
@@ -33,6 +35,7 @@ export async function pedirPase() {
       pase = { valor: t.access_token, vence: Date.now() + t.expires_in * 1000 };
       estadoSesion = "ok";
       if (t.email && cuenta()?.email !== t.email) guardar("cuenta", { email: t.email });
+      if (t.permisos) guardar("permisos", t.permisos);
       return pase.valor;
     } catch (e) {
       if (e instanceof TypeError) estadoSesion = "sin-red";
@@ -42,12 +45,25 @@ export async function pedirPase() {
   return pedido;
 }
 
-async function api(url) {
+export async function api(url, metodo = "GET", cuerpo) {
   const t = await pedirPase();
-  const r = await fetch(url, { headers: { Authorization: "Bearer " + t } });
+  const op = { method: metodo, headers: { Authorization: "Bearer " + t } };
+  if (cuerpo !== undefined) { op.headers["Content-Type"] = "application/json"; op.body = JSON.stringify(cuerpo); }
+  const r = await fetch(url, op);
   if (r.status === 401) { pase = null; throw new Error("reconectar"); }
+  if (r.status === 403) throw new Error("permiso");
+  if (r.status === 404) throw new Error("no-existe");
   if (!r.ok) throw new Error("Google respondió " + r.status);
   return r.json();
+}
+
+// Llama al servidor de Orbe (mismo origen, con la cookie de sesión).
+export async function servidor(ruta, cuerpo) {
+  const r = await fetch(ruta, { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cuerpo || {}) });
+  const j = await r.json().catch(() => ({}));
+  if (r.status === 401) { estadoSesion = "reconectar"; throw new Error("reconectar"); }
+  if (!r.ok) throw new Error(j.error || "servidor " + r.status);
+  return j;
 }
 
 // ---------- Calendario ----------

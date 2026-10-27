@@ -1,6 +1,31 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.8.0",
+    fecha: "27/10/2026",
+    titulo: "Finanzas conectada.",
+    cambios: [
+      "Finanzas conectada: lee los avisos de transferencias, compras de dólares y Debin del BNA, y los pagos, cuotas y resúmenes de Mercado Pago. El texto de los mails no sale del servidor de Orbe.",
+      "«Te queda» del mes en Inicio y en Finanzas: el disponible real menos lo que salió de tus cuentas, contando tu mitad en lo que se divide con Agus.",
+      "Topes de delivery, Uber y bares con barra; en rojo al pasar el 80%, con aviso en Inicio.",
+      "Movimientos del mes con su fuente; los dudosos quedan «a revisar» y se corrigen con un toque. Orbe aprende la regla para la próxima.",
+      "Tablero de deuda: tarjetas y préstamos con saldo, tasa, vencimiento y de dónde sale cada número; lo que falta dice «?».",
+      "Los avisos repetidos de una misma operación (BNA+ y Red Link, Debin) se cuentan una sola vez. Los dólares van aparte.",
+      "Arranca con las compras de tarjeta de los resúmenes de octubre ya cargadas."
+    ]
+  },
+  {
+    version: "0.7.0",
+    fecha: "27/10/2026",
+    titulo: "Celu y compu sincronizados, y tipografías a elección.",
+    cambios: [
+      "Sincronización entre el celu y la compu: hechos, horario, ideas, súper, menú, tipografías y PIN viajan solos a través de tu planilla «Orbe · datos» en Drive. Lo más nuevo de cada lado gana.",
+      "Tipografías a elección en Ajustes, para el reloj del anillo y para el saludo. Por defecto: reloj con la del logo y saludo con la serif de revista.",
+      "Arreglado el horario fijo del BNA: los campos de hora ya no se salen de la caja en el celu.",
+      "Un solo permiso nuevo de Google (planillas y mails, solo lectura de mails) para sincronizar y para Finanzas. El pase que llega al navegador nunca incluye Gmail."
+    ]
+  },
+  {
     version: "0.6.0",
     fecha: "27/10/2026",
     titulo: "Sesión que no se corta.",

@@ -25,18 +25,23 @@
   <p>Orbe es una aplicación personal, de uso privado, hecha por Ignacio Dubois para organizar su propio día. No es un servicio público: solo puede usarla la cuenta de Google de su autor.</p>
 
   <h2>Qué datos usa</h2>
-  <p>Con permiso explícito del usuario, Orbe lee en modo de solo lectura datos de su cuenta de Google (calendario y, si se habilitan, correos de aviso, planillas y archivos de Drive) para mostrarlos en su propia pantalla de inicio.</p>
+  <p>Con permiso explícito del usuario, Orbe usa estos datos de su cuenta de Google:</p>
+  <ul>
+    <li><b>Calendario</b>, solo lectura: para armar el día.</li>
+    <li><b>Gmail</b>, solo lectura y solo los avisos de pago del Banco Nación y de Mercado Pago: el servidor de Orbe extrae fecha, monto y destinatario. El texto de los mails no se guarda ni llega al navegador.</li>
+    <li><b>Planillas</b>: Orbe lee y escribe únicamente su propia planilla («Orbe · datos»), donde guarda los movimientos y lo que se sincroniza entre dispositivos.</li>
+  </ul>
 
   <h2>Qué hace con ellos</h2>
   <ul>
     <li>Los muestra solo al propio usuario, en su dispositivo.</li>
     <li>No los vende, no los comparte con terceros y no los usa para publicidad.</li>
     <li>No los usa para entrenar modelos de inteligencia artificial.</li>
-    <li>No escribe, modifica ni borra nada en la cuenta de Google.</li>
+    <li>No envía mails, no borra nada y no modifica ningún archivo de Google salvo su propia planilla.</li>
   </ul>
 
   <h2>Dónde se guardan</h2>
-  <p>Lo que se muestra queda guardado en el propio dispositivo del usuario. El servidor de Orbe solo guarda, cifrada dentro de una cookie del navegador, la autorización necesaria para renovar el acceso; no tiene base de datos.</p>
+  <p>En el propio dispositivo del usuario y en su planilla «Orbe · datos» de Google Drive. El servidor de Orbe solo guarda, cifrada dentro de una cookie del navegador, la autorización necesaria para renovar el acceso; no tiene base de datos.</p>
 
   <h2>Cómo revocar el acceso</h2>
   <p>Desde Orbe (Ajustes → Desconectar) o desde <a href="https://myaccount.google.com/connections">myaccount.google.com/connections</a>. Desde Ajustes → Mis datos se puede exportar o borrar todo lo guardado en el dispositivo.</p>

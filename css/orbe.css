@@ -207,3 +207,60 @@ textarea.campo-texto { height: 120px; padding: 12px 14px; width: 100%; resize: v
 .franja { position: relative; z-index: 5; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
   margin: -8px 0 18px; padding: 12px 14px; border-radius: 16px; background: var(--urg-bg); color: var(--text); font-size: 14px; line-height: 1.35; }
 .franja .btn { height: 40px; background: var(--accent); color: #fff; }
+
+/* ---------- Tipografías elegibles (Ajustes) ---------- */
+:root { --f-reloj: var(--sans); --f-saludo: var(--serif); }
+.centro .big { font-family: var(--f-reloj); font-variant-numeric: tabular-nums; }
+.saludo h1 { font-family: var(--f-saludo); }
+[data-reloj="logo"] .centro .big { font-weight: 600; letter-spacing: -.045em; }
+[data-reloj="revista"] { --f-reloj: var(--serif); }
+[data-reloj="fina"] .centro .big { font-weight: 300; letter-spacing: -.03em; }
+[data-reloj="mono"] { --f-reloj: ui-monospace, "SF Mono", "Roboto Mono", Menlo, monospace; }
+[data-reloj="mono"] .centro .big { letter-spacing: -.06em; font-weight: 500; }
+[data-saludo="logo"] { --f-saludo: var(--sans); }
+[data-saludo="logo"] .saludo h1 { font-weight: 600; letter-spacing: -.035em; line-height: 1.05; }
+[data-saludo="cursiva"] .saludo h1 { font-style: italic; }
+.muestra { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 12px 14px; min-width: 96px; border-radius: 14px;
+  border: 1px solid var(--line); background: transparent; color: var(--text); text-align: left; }
+.muestra.on { border-color: var(--text); box-shadow: inset 0 0 0 1px var(--text); }
+.muestra b { font-size: 26px; line-height: 1.1; font-weight: 400; }
+.muestra small { font-size: 11px; color: var(--muted); }
+
+/* ---------- Campos de hora (el horario del BNA) ---------- */
+.horas { display: grid; grid-template-columns: 40px minmax(0, 1fr) minmax(0, 1fr); gap: 8px 8px; align-items: center; }
+.horas .cab { font-size: 11px; font-weight: 600; letter-spacing: .08em; color: var(--muted); text-transform: uppercase; }
+.horas .dia { font-size: 13px; color: var(--muted); }
+input[type="time"], .campo-hora { width: 100%; min-width: 0; height: 44px; padding: 0 10px; border-radius: 12px; border: 1px solid var(--line);
+  background: var(--bg); color: var(--text); font: inherit; font-size: 16px; font-variant-numeric: tabular-nums; -webkit-appearance: none; appearance: none; }
+input[type="time"]::-webkit-calendar-picker-indicator { opacity: .5; margin-left: 2px; }
+[data-theme="oscuro"] input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(1); }
+input[type="time"]::-webkit-date-and-time-value { text-align: left; }
+.pagina .btn { max-width: 100%; }
+.ancho-completo { width: 100%; }
+
+/* ---------- Finanzas ---------- */
+.cifra { font-family: var(--serif); font-size: 40px; line-height: 1.05; }
+.cifra.chica { font-size: 26px; }
+.tope { padding: 12px 0; border-top: 1px solid var(--line); }
+.tope:first-child { border-top: 0; padding-top: 0; }
+.tope .fila { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 15px; }
+.tope .fila span:last-child { font-size: 13px; color: var(--muted); white-space: nowrap; }
+.tope .barra { margin-top: 8px; }
+.tope.alerta .barra i { background: var(--accent); }
+.tope.alerta .fila span:last-child { color: var(--accent); font-weight: 600; }
+.mov { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; padding: 12px 0; border-top: 1px solid var(--line); width: 100%;
+  background: none; border-left: 0; border-right: 0; border-bottom: 0; color: var(--text); text-align: left; font: inherit; }
+.lista-mov > .mov:first-child { border-top: 0; padding-top: 0; }
+.mov .q { font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mov .m { font-family: var(--serif); font-size: 19px; white-space: nowrap; text-align: right; }
+.mov .m.entra { color: #2E9E6A; }
+.mov .d { grid-column: 1 / -1; font-size: 12px; color: var(--muted); display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.mov .d .tag { font-size: 10px; padding: 1px 7px; }
+.mov .d .tag.rojo { color: var(--accent); border-color: var(--accent); }
+.deuda { padding: 12px 0; border-top: 1px solid var(--line); }
+.deuda:first-child { border-top: 0; padding-top: 0; }
+.deuda .fila { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.deuda .nota { font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.45; }
+.fuente-dato { font-size: 11px; color: var(--muted); margin-top: 8px; }
+.muestras { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.muestras .muestra { min-width: 0; }

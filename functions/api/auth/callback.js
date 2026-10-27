@@ -26,7 +26,7 @@ export async function onRequestGet({ request, env }) {
   const yo = decodificarIdToken(t.id_token);
   if (!yo.email_verified || !(await mailPermitido(yo.email))) return volver(url.origin, "cuenta");
 
-  const valor = await cifrar(env, { rt: t.refresh_token, email: yo.email, desde: Date.now() });
+  const valor = await cifrar(env, { rt: t.refresh_token, email: yo.email, desde: Date.now(), scope: t.scope || "" });
   const h = new Headers({ Location: url.origin + "/#/?google=ok", "Cache-Control": "no-store" });
   h.append("Set-Cookie", cookieSesion(valor));
   h.append("Set-Cookie", borrarEstado());

@@ -1,5 +1,26 @@
 # Novedades de Orbe
 
+## v0.8.0 · 27/10/2026
+
+Finanzas conectada.
+
+- Finanzas conectada: lee los avisos de transferencias, compras de dólares y Debin del BNA, y los pagos, cuotas y resúmenes de Mercado Pago. El texto de los mails no sale del servidor de Orbe.
+- «Te queda» del mes en Inicio y en Finanzas: el disponible real menos lo que salió de tus cuentas, contando tu mitad en lo que se divide con Agus.
+- Topes de delivery, Uber y bares con barra; en rojo al pasar el 80%, con aviso en Inicio.
+- Movimientos del mes con su fuente; los dudosos quedan «a revisar» y se corrigen con un toque. Orbe aprende la regla para la próxima.
+- Tablero de deuda: tarjetas y préstamos con saldo, tasa, vencimiento y de dónde sale cada número; lo que falta dice «?».
+- Los avisos repetidos de una misma operación (BNA+ y Red Link, Debin) se cuentan una sola vez. Los dólares van aparte.
+- Arranca con las compras de tarjeta de los resúmenes de octubre ya cargadas.
+
+## v0.7.0 · 27/10/2026
+
+Celu y compu sincronizados, y tipografías a elección.
+
+- Sincronización entre el celu y la compu: hechos, horario, ideas, súper, menú, tipografías y PIN viajan solos a través de tu planilla «Orbe · datos» en Drive. Lo más nuevo de cada lado gana.
+- Tipografías a elección en Ajustes, para el reloj del anillo y para el saludo. Por defecto: reloj con la del logo y saludo con la serif de revista.
+- Arreglado el horario fijo del BNA: los campos de hora ya no se salen de la caja en el celu.
+- Un solo permiso nuevo de Google (planillas y mails, solo lectura de mails) para sincronizar y para Finanzas. El pase que llega al navegador nunca incluye Gmail.
+
 ## v0.6.0 · 27/10/2026
 
 Sesión que no se corta.

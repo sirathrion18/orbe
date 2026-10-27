@@ -3,7 +3,10 @@ import { cargarDatos, cargarClima, mezclar } from "./fuente.js";
 import * as G from "./google.js";
 import { construirContexto } from "./contexto.js";
 import { renderInicio, despuesInicio, esc, colorUniverso } from "./inicio.js";
-import { renderUniverso, renderBloqueo, renderIdeas, renderAgenda, renderRespiro, renderDatos, renderAjustes, renderNovedades, renderNoEncontrado } from "./paginas.js";
+import { renderUniverso, renderBloqueo, renderIdeas, renderAgenda, renderRespiro, renderDatos, renderAjustes, renderNovedades, renderNoEncontrado, hojaMovimiento } from "./paginas.js";
+import { sincronizar, activa as sincroActiva } from "./sincro.js";
+import { leerPlanilla, traerMails, corregir, datosFinanzas } from "./finanzas.js";
+import { fijarHoja, idHoja } from "./hoja.js";
 import { UNIVERSOS, SECCIONES } from "./config.js";
 import { leer, guardar, borrar, todo, borrarTodo, sesion } from "./almacen.js";
 import { sol } from "./sol.js";
@@ -37,6 +40,9 @@ function aplicarTema() {
   document.documentElement.dataset.theme = tema;
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.content = tema === "oscuro" ? "#0B0B0C" : "#FFFFFF";
+  const f = leer("fuentes", {});
+  document.documentElement.dataset.reloj = f.reloj || "logo";
+  document.documentElement.dataset.saludo = f.saludo || "revista";
   return tema;
 }
 
@@ -70,7 +76,7 @@ function pintar(refresco = false) {
   else if (r === "/ajustes") {
     const ag = leer("agenda");
     html = renderAjustes(estadoTema(), demo, !!leer("pin"), {
-      configurado: G.configurado(), cuenta: G.cuenta(), estado: G.estadoSesion,
+      configurado: G.configurado(), cuenta: G.cuenta(), estado: G.estadoSesion, permisos: G.permisos(), hoja: idHoja(),
       aviso: AVISOS_GOOGLE[new URLSearchParams(location.hash.split("?")[1] || "").get("google")] || null,
       agenda: ag ? new Date(ag.cuando).toLocaleString("es-AR", { weekday: "long", hour: "2-digit", minute: "2-digit" }) : null
     });
@@ -211,6 +217,15 @@ function abrirHojaIdea() {
     if (e.target.name === "u") hoja.querySelectorAll(".chip").forEach((c) => c.classList.toggle("on", c.contains(e.target)));
   });
 }
+function abrirHoja(html, etiqueta) {
+  cerrarHoja();
+  const velo = document.createElement("div"); velo.className = "velo on"; velo.dataset.accion = "cerrar-hoja";
+  const hoja = document.createElement("div"); hoja.className = "hoja"; hoja.setAttribute("role", "dialog"); hoja.setAttribute("aria-label", etiqueta);
+  hoja.style.maxHeight = "88vh"; hoja.style.overflowY = "auto";
+  hoja.innerHTML = html;
+  document.body.append(velo, hoja);
+  requestAnimationFrame(() => hoja.classList.add("on"));
+}
 function cerrarHoja() { document.querySelectorAll(".velo, .hoja").forEach((el) => el.remove()); }
 
 // ---------- Meditación ----------
@@ -257,6 +272,16 @@ document.addEventListener("click", (e) => {
   else if (a === "google-conectar" || a === "google-actualizar") conectarGoogle(a === "google-actualizar");
   else if (a === "google-salir") { G.desconectar().then(recargarDatos); avisar("Google desconectado"); }
   else if (a === "google-reconectar") G.conectar();
+  else if (a === "activar-todo") G.conectar(true);
+  else if (a === "fuente") {
+    const f = leer("fuentes", {}); f[el.dataset.grupo] = el.dataset.valor; guardar("fuentes", f); vibrar(); pintar(true);
+  }
+  else if (a === "sincronizar") { avisar("Sincronizando…"); refrescarTodo(true).then((ok) => avisar(ok ? "Todo al día" : "No se pudo sincronizar")); }
+  else if (a === "fin-actualizar") actualizarFinanzas(true);
+  else if (a === "fin-mov") {
+    const m = (datosFinanzas()?.movs || []).find((x) => x.id === el.dataset.id);
+    if (m) abrirHoja(hojaMovimiento(m), "Corregir movimiento");
+  }
   else if (a === "hecho") {
     const h = leer("hechos", []); h.push(el.dataset.clave); guardar("hechos", h.slice(-300));
     avisar("Marcado como hecho"); pintar(true);
@@ -279,6 +304,7 @@ document.addEventListener("click", (e) => {
 
 document.addEventListener("change", (e) => {
   const el = e.target;
+  if (el.type === "radio" && el.closest(".chips")) el.closest(".chips").querySelectorAll(".chip").forEach((c) => c.classList.toggle("on", c.contains(el) && el.checked));
   if (el.dataset.accion === "super-tilde") { const l = leer("super", []); l[Number(el.dataset.i)].ok = el.checked; guardar("super", l); vibrar(); pintar(); }
   if (el.classList.contains("campo-menu")) { const m = leer("menu", {}); m[el.dataset.dia] = el.value.trim(); guardar("menu", m); avisar("Menú guardado"); }
 });
@@ -305,6 +331,16 @@ document.addEventListener("submit", async (e) => {
     const h = {};
     [1, 2, 3, 4, 5].forEach((dd) => { if (d["i" + dd] && d["f" + dd]) h[dd] = { inicio: d["i" + dd], fin: d["f" + dd] }; });
     guardar("horario", h); avisar("Horario guardado"); pintar(true);
+  } else if (tipo === "hoja") {
+    if (!fijarHoja(d.link)) { avisar("Ese link no parece de una planilla de Google"); return; }
+    avisar("Planilla conectada"); await refrescarTodo(true); pintar();
+  } else if (tipo === "fin-mov") {
+    const id = f.dataset.id;
+    cerrarHoja(); avisar("Guardando…");
+    try {
+      await corregir(id, { clase: d.clase, rubro: d.rubro || "", mitad: !!d.mitad }, !!d.aprender);
+      avisar("Guardado en tu planilla"); pintar(true);
+    } catch (err) { avisar("No se pudo guardar: " + err.message); }
   } else if (tipo === "pin-nuevo") {
     if (!/^\d{4,}$/.test(d.pin)) { avisar("El PIN tiene que tener 4 números o más"); return; }
     guardar("pin", await hash(d.pin)); avisar("PIN puesto"); pintar();
@@ -323,6 +359,7 @@ document.addEventListener("visibilitychange", async () => {
   pintar(true);
   const ag = leer("agenda");
   if (!ag || Date.now() - ag.cuando > 5 * 60000) await refrescarAgenda();
+  await refrescarTodo();
 });
 
 // Cada 30 segundos se actualiza Inicio (hora, anillo, modo), salvo que estés escribiendo.
@@ -358,6 +395,45 @@ async function refrescarAgenda() {
   catch (e) { pintar(true); }
 }
 
+// ---------- Sincronización y finanzas ----------
+// Trae lo del otro dispositivo y, cada tanto, los mails nuevos de plata.
+async function refrescarTodo(forzar = false) {
+  if (!sincroActiva()) return false;
+  try {
+    const cambio = await sincronizar();
+    if (cambio) pintar(true);
+    await actualizarFinanzas(false, forzar);
+    return true;
+  } catch (e) {
+    if (e.message === "no-existe" || e.message === "permiso") avisar("No encuentro la planilla: revisá el link en Ajustes");
+    return false;
+  }
+}
+
+let finEnCurso = false;
+async function actualizarFinanzas(aMano, forzar) {
+  if (!sincroActiva() || finEnCurso) return;
+  const fin = datosFinanzas();
+  if (!aMano && !forzar && fin && Date.now() - fin.cuando < 10 * 60000) return;
+  finEnCurso = true;
+  try {
+    if (aMano) avisar("Leyendo tus mails…");
+    const nuevos = G.permisos().gmail ? await traerMails() : (await leerPlanilla(), 0);
+    pintar(true);
+    if (aMano) avisar(nuevos ? nuevos + (nuevos === 1 ? " movimiento nuevo" : " movimientos nuevos") : "No hay movimientos nuevos");
+  } catch (e) {
+    if (aMano) avisar(e.message === "reconectar" ? "Hay que volver a conectar con Google" : e.message === "permiso" ? "Falta el permiso de mails: Ajustes → Dar permiso" : "No se pudo actualizar");
+  } finally { finEnCurso = false; }
+}
+
+// Un link con ?hoja=ID deja la planilla configurada en este dispositivo.
+function leerHojaDelLink() {
+  const q = new URLSearchParams(location.hash.split("?")[1] || "");
+  if (q.get("hoja") && fijarHoja(q.get("hoja"))) { avisar("Planilla conectada"); return true; }
+  return false;
+}
+window.addEventListener("hashchange", () => { if (leerHojaDelLink()) refrescarTodo(true); });
+
 // ---------- Arranque ----------
 (async function arrancar() {
   try {
@@ -369,8 +445,10 @@ async function refrescarAgenda() {
     if (!estado.clima) { estado.clima = await pedido; if (estado.clima) pintar(true); }
     // Vuelta de Google después de conectar.
     if (location.hash.includes("google=ok")) { history.replaceState(null, "", location.pathname + "#/"); avisar("Conectado con Google"); }
+    leerHojaDelLink();
     // Refresca la agenda sin preguntar: la sesión del servidor dura semanas.
     await refrescarAgenda();
+    await refrescarTodo();
   } catch (e) {
     app.innerHTML = `<div class="pagina"><h1>Ups</h1><p class="bajada">No pude cargar Orbe. Revisá la conexión y volvé a abrir.</p></div>`;
   }

@@ -8,8 +8,16 @@ export function leer(clave, porDefecto = null) {
   } catch (e) { return porDefecto; }
 }
 
-export function guardar(clave, valor) {
-  try { localStorage.setItem(P + clave, JSON.stringify(valor)); return true; } catch (e) { return false; }
+// Avisos para la sincronización: quien quiera enterarse de cada cambio se anota acá.
+const oyentes = [];
+export const alGuardar = (fn) => oyentes.push(fn);
+
+export function guardar(clave, valor, silencioso = false) {
+  try {
+    localStorage.setItem(P + clave, JSON.stringify(valor));
+    if (!silencioso) oyentes.forEach((fn) => fn(clave));
+    return true;
+  } catch (e) { return false; }
 }
 
 export function borrar(clave) {
