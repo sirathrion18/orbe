@@ -2,11 +2,11 @@
 
 Sistema operativo personal: un solo lugar para el día, los universos (Agus, BNA, UFASTA, Bienestar, Finanzas, Proyectos) y las ideas.
 
-**Abrir:** https://sirathrion18.github.io/orbe/
+**Abrir:** https://orbe-5es.pages.dev/
 
 ## Cómo está armado
 
-- `index.html`, `css/`, `js/`: la app, sin herramientas de compilación. Se publica tal cual con GitHub Pages.
+- `index.html`, `css/`, `js/`: la app, sin herramientas de compilación. Se publica tal cual con Cloudflare Pages en cada cambio de la rama main.
 - `js/config.js`: qué universos hay y qué trae cada uno (diseño, no datos).
 - `js/saludos.js`: los saludos. Se editan a mano.
 - `datos/ejemplo.json`: **datos de ejemplo, públicos y ficticios**. Los datos reales nunca se suben a este repositorio: van a vivir en el Google Drive de cada usuario.

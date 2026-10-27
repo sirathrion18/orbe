@@ -1,5 +1,14 @@
 # Novedades de Orbe
 
+## v0.3.0 · 27/10/2026
+
+Casa propia: https://orbe-5es.pages.dev
+
+- Orbe se publica en Cloudflare Pages, con origen propio separado de a64 y Mateshka.
+- Se instala como app independiente.
+- Encabezados de seguridad (`_headers`): CSP con `frame-ancestors 'none'`, `nosniff`, sin referer, permisos de cámara, micrófono y ubicación bloqueados, HSTS.
+- La dirección vieja de GitHub Pages redirige a la nueva.
+
 ## v0.2.2 · 27/10/2026
 
 Arreglo de instalación.

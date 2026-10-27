@@ -1,3 +1,7 @@
+// Si se abre desde la dirección vieja (GitHub Pages), pasa a la nueva.
+if (location.hostname === "sirathrion18.github.io") {
+  location.replace("https://orbe-5es.pages.dev/" + location.hash);
+}
 // Se ejecuta antes de pintar para que el tema no parpadee.
   try {
     var t = JSON.parse(localStorage.getItem("orbe.tema") || "{}");

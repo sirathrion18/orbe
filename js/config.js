@@ -1,9 +1,9 @@
 // Estructura de Orbe: qué universos hay y qué trae cada uno.
 // Esto es diseño, no datos: no hay nada personal acá.
-export const VERSION = "0.2.2";
+export const VERSION = "0.3.0";
 
 // ID de cliente de Google (es público por diseño: no es una contraseña).
-// Se crea en Google Cloud con el origen https://sirathrion18.github.io
+// Se crea en Google Cloud con el origen https://orbe-5es.pages.dev
 export const GOOGLE_CLIENT_ID = "775947921311-t5edjab9rq99eng3fd3dh1bs5c1jd8e7.apps.googleusercontent.com";
 
 export const UNIVERSOS = [

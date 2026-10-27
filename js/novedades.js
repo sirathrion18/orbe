@@ -1,6 +1,17 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.3.0",
+    fecha: "27/10/2026",
+    titulo: "Casa propia: orbe-5es.pages.dev.",
+    cambios: [
+      "Orbe vive en su propia dirección, separada de a64 y Mateshka: ninguna otra app puede leer lo que guarda en tu celu.",
+      "Se instala como app de verdad, sin la barra de Chrome.",
+      "Protecciones extra del servidor: no se puede meter Orbe dentro de otra página y bloquea cámara, micrófono y ubicación.",
+      "La dirección vieja redirige sola a la nueva."
+    ]
+  },
+  {
     version: "0.2.2",
     fecha: "27/10/2026",
     titulo: "Arreglo de instalación.",
