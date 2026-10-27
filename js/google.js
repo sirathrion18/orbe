@@ -68,46 +68,83 @@ async function api(url) {
 
 // ---------- Calendario ----------
 const TIPOS = [
-  [/\briver\b/i, "river"], [/\bbna\b|banco/i, "bna"], [/ufasta|facu|clase|cursada|parcial|final\b/i, "ufasta"],
+  [/river/i, "river"], [/\bbna\b|banco/i, "bna"], [/ufasta|facu|clase|cursada|parcial|final\b/i, "ufasta"],
   [/gym|gimnasio/i, "gym"], [/f[uú]tbol|zorros/i, "futbol"], [/\bntn\b/i, "ntn"], [/agus/i, "agus"]
 ];
+const NOMBRES = { bna: "BNA", ufasta: "UFASTA", gym: "Gym", futbol: "Fútbol", ntn: "NTN" };
 const tipoDe = (t) => (TIPOS.find(([re]) => re.test(t)) || [null, "otro"])[1];
 const iso = (d) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
 const hhmm = (d) => String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+const FERIADOS_AR = "es.ar#holiday@group.v.calendar.google.com";
+const MONTO = /\$\s?[\d.]+(,\d{1,2})?/;
 
-// Trae hoy, mañana y los vencimientos de las próximas dos semanas de todos tus calendarios.
+// Separa "Vence Edesur Vernet 354 $ 45.677,67" en título y monto.
+function pendienteDe(titulo, fecha) {
+  const m = titulo.match(MONTO);
+  const limpio = titulo.replace(MONTO, "").replace(/^vence:?\s*/i, "").replace(/\s{2,}/g, " ").trim();
+  const facu = /entrega|\btp\b|parcial|final/i.test(titulo) && !/^vence/i.test(titulo);
+  return {
+    titulo: limpio, monto: m ? m[0].replace(/\s/g, " ").replace("$ ", "$ ") : null, fecha,
+    tipo: facu ? "facu" : /tarjeta|visa|master/i.test(titulo) ? "tarjeta" : "vencimiento",
+    universo: facu ? "ufasta" : "finanzas", vernet: /vernet/i.test(titulo),
+    clave: (limpio + "|" + fecha).toLowerCase()
+  };
+}
+
+// Trae del calendario: los últimos 30 días (para lo vencido) y las próximas dos semanas.
 export async function leerAgenda() {
   const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
-  const desde = hoy.toISOString();
+  const desde = new Date(hoy.getTime() - 30 * 86400000).toISOString();
   const hasta = new Date(hoy.getTime() + 15 * 86400000).toISOString();
   const lista = await api("https://www.googleapis.com/calendar/v3/users/me/calendarList?minAccessRole=reader");
   const cals = (lista.items || []).filter((c) => c.selected !== false);
-  const porDia = {}, pendientes = [];
+  if (!cals.some((c) => c.id === FERIADOS_AR)) cals.push({ id: FERIADOS_AR, summary: "Feriados" });
+  if (!cals.some((c) => c.id.includes("#contacts@"))) cals.push({ id: "addressbook#contacts@group.v.calendar.google.com", summary: "Cumpleaños" });
+  const porDia = {}, avisos = {}, feriados = {}, libres = {}, cumples = {}, pendientes = new Map();
   await Promise.all(cals.map(async (c) => {
     const url = "https://www.googleapis.com/calendar/v3/calendars/" + encodeURIComponent(c.id) +
-      "/events?singleEvents=true&orderBy=startTime&maxResults=250&timeMin=" + encodeURIComponent(desde) + "&timeMax=" + encodeURIComponent(hasta);
+      "/events?singleEvents=true&orderBy=startTime&maxResults=500&timeMin=" + encodeURIComponent(desde) + "&timeMax=" + encodeURIComponent(hasta);
     let ev;
     try { ev = await api(url); } catch (e) { return; }
+    const esFeriados = c.id.includes("#holiday@");
+    const esCumples = c.id.includes("#contacts@");
     (ev.items || []).forEach((e) => {
       if (e.status === "cancelled") return;
-      const titulo = e.summary || "(sin título)";
-      if (e.start.date) { // evento de día completo
+      const titulo = (e.summary || "(sin título)").trim();
+      if (e.start.date) { // día completo
         const [y, m, d] = e.start.date.split("-").map(Number);
-        const dias = Math.round((new Date(y, m - 1, d) - hoy) / 86400000);
-        if (/^vence/i.test(titulo)) {
-          pendientes.push({ titulo: titulo.replace(/^vence:?\s*/i, "Vence "), tipo: /tarjeta|visa|master/i.test(titulo) ? "tarjeta" : "vencimiento", dias, universo: "finanzas" });
-        } else if (/entrega|tp\b|parcial|final/i.test(titulo)) {
-          pendientes.push({ titulo, tipo: "facu", dias, universo: "ufasta" });
+        const ini = new Date(y, m - 1, d);
+        const [y2, m2, d2] = e.end.date.split("-").map(Number);
+        const fin = new Date(y2, m2 - 1, d2);
+        const fecha = e.start.date;
+        if (esFeriados) { feriados[fecha] = titulo; return; }
+        if (esCumples || e.eventType === "birthday" || /^cumple/i.test(titulo)) {
+          (cumples[fecha] = cumples[fecha] || []).push(titulo.replace(/^(cumpleaños de|cumple de|cumple)\s*/i, "").replace(/^feliz cumpleaños,?\s*/i, ""));
+          return;
         }
+        if (/vacaciones|licencia|franco|d[ií]a libre/i.test(titulo)) {
+          for (let t = ini.getTime(); t < fin.getTime(); t += 86400000) libres[iso(new Date(t))] = titulo;
+          return;
+        }
+        if (/^vence/i.test(titulo) || /entrega|\btp\b|parcial/i.test(titulo)) {
+          const p = pendienteDe(titulo, fecha);
+          if (!pendientes.has(p.clave)) pendientes.set(p.clave, p); // uno solo aunque esté en dos calendarios
+          return;
+        }
+        (avisos[fecha] = avisos[fecha] || []).push({ titulo });
         return;
       }
       const ini = new Date(e.start.dateTime), fin = new Date(e.end.dateTime);
+      if (fin < hoy) return;
       const dia = iso(ini);
+      const minutos = (fin - ini) / 60000;
+      if (minutos <= 15) { (avisos[dia] = avisos[dia] || []).push({ titulo, inicio: hhmm(ini) }); return; } // recordatorios: fuera del anillo
+      const tipo = tipoDe(titulo + " " + (c.summary || "") + " " + c.id);
       const finTxt = iso(fin) === dia ? hhmm(fin) : "23:59";
-      (porDia[dia] = porDia[dia] || []).push({ inicio: hhmm(ini), fin: finTxt, titulo, tipo: tipoDe(titulo + " " + (c.summary || "")) });
+      (porDia[dia] = porDia[dia] || []).push({ inicio: hhmm(ini), fin: finTxt, titulo: NOMBRES[tipo] || titulo, original: titulo, tipo });
     });
   }));
-  const agenda = { cuando: Date.now(), porDia, pendientes };
+  const agenda = { cuando: Date.now(), porDia, avisos, feriados, libres, cumples, pendientes: [...pendientes.values()] };
   guardar("agenda", agenda);
   return agenda;
 }

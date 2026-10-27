@@ -3,7 +3,7 @@ import { UNIVERSOS, PROMOS, PROMOS_SIEMPRE, VERSION } from "./config.js";
 import { NOVEDADES } from "./novedades.js";
 import { ICONOS, MARCA } from "./iconos.js";
 import { esc, colorTipo, colorUniverso } from "./inicio.js";
-import { DIAS, DIAS_CORTOS, bloquesDe, cuandoTexto, duracion, MODOS } from "./contexto.js";
+import { DIAS, DIAS_CORTOS, bloquesDe, bloquesFecha, pendientesCon, cuandoTexto, duracion, hhmm, MODOS } from "./contexto.js";
 import { leer, todo } from "./almacen.js";
 
 const volver = `<a class="volver" href="#/">${ICONOS.volver} Inicio</a>`;
@@ -38,21 +38,28 @@ const PAGINAS = {
     ${pronto("Cuenta de Agus", "Cuando la v1 te ande a vos, Agus entra con su Google y ve solo lo compartido.")}`;
   },
 
-  bna(datos) {
-    const filas = [1, 2, 3, 4, 5, 6, 0].map((d) => {
-      const b = bloquesDe(datos, d).filter((x) => x.tipo === "bna");
-      return b.length ? `<li><span>${DIAS[d][0].toUpperCase() + DIAS[d].slice(1)}</span><span class="der">${b.map((x) => x.inicio + "–" + x.fin).join(", ")}</span></li>` : "";
-    }).join("");
-    return `<section class="bloque"><h2>Horarios <span class="ejemplo">Ejemplo</span></h2><ul class="lista">${filas || '<li class="vacio">Sin horarios.</li>'}</ul></section>
+  bna(datos, ctx) {
+    const real = !!datos.agenda;
+    const filas = real
+      ? [0, 1, 2, 3, 4, 5, 6].map((i) => {
+          const f = new Date(ctx.fecha.getTime() + i * 86400000);
+          const b = bloquesFecha(datos, f).filter((x) => x.tipo === "bna");
+          return b.length ? `<li><span>${i === 0 ? "Hoy" : i === 1 ? "Mañana" : DIAS[f.getDay()][0].toUpperCase() + DIAS[f.getDay()].slice(1) + " " + f.getDate()}</span><span class="der">${b.map((x) => x.inicio + "–" + hhmm(x.fin)).join(", ")}</span></li>` : "";
+        }).join("")
+      : [1, 2, 3, 4, 5, 6, 0].map((d) => {
+          const b = bloquesDe(datos, d).filter((x) => x.tipo === "bna");
+          return b.length ? `<li><span>${DIAS[d][0].toUpperCase() + DIAS[d].slice(1)}</span><span class="der">${b.map((x) => x.inicio + "–" + hhmm(x.fin)).join(", ")}</span></li>` : "";
+        }).join("");
+    return `<section class="bloque"><h2>${real ? "Próximos 7 días" : 'Horarios <span class="ejemplo">Ejemplo</span>'}</h2><ul class="lista">${filas || '<li class="vacio">Sin horarios.</li>'}</ul></section>
       ${pronto("Recibos de sueldo", "Los leo de tu carpeta de recibos en Drive y te muestro neto, descuentos y disponible real de cada mes.")}
       <section class="bloque"><h2>Lo que nunca entra</h2><p class="vacio">Clientes, procedimientos e informes del banco quedan afuera de Orbe, siempre.</p></section>`;
   },
 
-  ufasta(datos) {
-    const entregas = (datos.pendientes || []).filter((p) => p.tipo === "facu");
+  ufasta(datos, ctx) {
+    const entregas = pendientesCon(datos, ctx.fecha).filter((p) => p.tipo === "facu");
     const cursada = [1, 2, 3, 4, 5, 6, 0].flatMap((d) => bloquesDe(datos, d).filter((x) => x.tipo === "ufasta").map((x) => ({ d, x })));
     return `<section class="bloque"><h2>Entregas y TPs <span class="ejemplo">Ejemplo</span></h2><ul class="lista">${entregas.map((p) => `<li><span>${esc(p.titulo)}</span><span class="der ${p.dias < 3 ? "rojo" : ""}">${cuandoTexto(p.dias)}</span></li>`).join("") || '<li class="vacio">Nada pendiente.</li>'}</ul></section>
-      <section class="bloque"><h2>Cursada</h2><ul class="lista">${cursada.map(({ d, x }) => `<li><span>${DIAS[d][0].toUpperCase() + DIAS[d].slice(1)}</span><span class="der">${x.inicio}–${x.fin}</span></li>`).join("") || '<li class="vacio">Sin horarios.</li>'}</ul></section>
+      <section class="bloque"><h2>Cursada</h2><ul class="lista">${cursada.map(({ d, x }) => `<li><span>${DIAS[d][0].toUpperCase() + DIAS[d].slice(1)}</span><span class="der">${x.inicio}–${hhmm(x.fin)}</span></li>`).join("") || '<li class="vacio">Sin horarios.</li>'}</ul></section>
       ${pronto("Notas", "Las traigo del campus cuando aparezcan.")}
       ${pronto("Materiales y links", "Apuntes y links de cada materia, ordenados.")}
       <section class="bloque"><h2>Accesos</h2><div class="chips"><a class="chip" href="https://www.ufasta.edu.ar" target="_blank" rel="noopener">Sitio de UFASTA ${""}</a></div></section>`;
@@ -89,7 +96,7 @@ const PAGINAS = {
 
   finanzas(datos, ctx) {
     const p = datos.plata;
-    const deudas = (datos.pendientes || []).filter((x) => x.universo === "finanzas").sort((a, b) => a.dias - b.dias);
+    const deudas = pendientesCon(datos, ctx.fecha).filter((x) => x.universo === "finanzas" && x.dias >= -60);
     const gastos = leer("gastos", []);
     const hoy = new Date();
     const porRubro = {};
@@ -99,7 +106,9 @@ const PAGINAS = {
     return `<section class="bloque"><h2>Disponible del mes</h2>
         <p style="font-family:var(--serif);font-size:36px;line-height:1.15;margin-bottom:10px">${p.disponible == null ? '<span style="font-size:20px;color:var(--muted)">Se conecta con tu planilla en la próxima versión</span>' : "$ " + Number(p.disponible).toLocaleString("es-AR")}</p>
         <div class="barra"><i style="width:${Math.round(p.usado * 100)}%"></i></div><p class="prom">Quedan ${p.diasRestantes} días de mes.</p></section>
-      <section class="bloque"><h2>Tarjetas y vencimientos <span class="ejemplo">Ejemplo</span></h2><ul class="lista">${deudas.map((d) => `<li><span>${esc(d.titulo)}${d.nota ? ` <span class="tag">${esc(d.nota)}</span>` : ""}</span><span class="der ${d.dias < 7 ? "rojo" : ""}">${cuandoTexto(d.dias)}</span></li>`).join("")}</ul></section>
+      <section class="bloque"><h2>Tarjetas y vencimientos ${datos.agenda ? "" : '<span class="ejemplo">Ejemplo</span>'}</h2><ul class="lista">${deudas.map((d) => `<li style="align-items:flex-start"><span style="display:flex;flex-direction:column;gap:4px;min-width:0"><span>${esc(d.titulo)}${d.vernet ? ' <span class="tag">Vernet</span>' : ""}${d.nota ? ` <span class="tag">${esc(d.nota)}</span>` : ""}</span>${d.monto ? `<b>${esc(d.monto)}</b>` : ""}<span class="der ${d.dias <= 7 && !d.vernet ? "rojo" : ""}" style="font-size:17px">${cuandoTexto(d.dias)}</span></span>
+        <button class="hecho" style="margin:0" data-accion="hecho" data-clave="${esc(d.clave)}" aria-label="Marcar ${esc(d.titulo)} como hecho">${ICONOS.check}</button></li>`).join("") || '<li class="vacio">Nada pendiente.</li>'}</ul>
+        ${leer("hechos", []).length ? '<button class="link" style="margin-top:12px;font-size:13px" data-accion="deshacer-hechos">Volver a mostrar los marcados como hechos</button>' : ""}</section>
       <section class="bloque"><h2>Gastos del mes por rubro</h2>
         ${rubros.length ? `<ul class="lista">${rubros.map(([r, m]) => `<li><span>${esc(r)}</span><span class="der">$ ${m.toLocaleString("es-AR")}</span></li>`).join("")}</ul>` : '<p class="vacio">Todavía no cargaste gastos este mes.</p>'}
         <form class="form" data-form="gasto"><input name="monto" inputmode="decimal" placeholder="Monto" aria-label="Monto" required style="max-width:110px"><input name="desc" placeholder="Rubro (súper, uber…)" aria-label="Rubro"><button class="btn">+</button></form>
@@ -138,10 +147,22 @@ export function renderIdeas() {
 }
 
 export function renderAgenda(datos, ctx, tema) {
-  const fila = (b) => `<li><span><i class="dot" style="background:${colorTipo(datos, b.tipo, tema)};margin-right:10px"></i>${esc(b.titulo)}</span><span class="der">${b.inicio}–${b.fin}</span></li>`;
-  return `<div class="pagina">${volver}<h1>Agenda</h1><p class="bajada">Por ahora sale de la rutina de ejemplo. Después, de tu Google Calendar.</p>
-    <section class="bloque"><h2>Hoy, ${DIAS[ctx.dia]}</h2><ul class="lista">${ctx.hoy.map(fila).join("") || '<li class="vacio">Nada fijo.</li>'}</ul></section>
-    <section class="bloque"><h2>Mañana, ${DIAS[(ctx.dia + 1) % 7]}</h2><ul class="lista">${ctx.manana.map(fila).join("") || '<li class="vacio">Nada fijo.</li>'}</ul></section></div>`;
+  const fila = (b) => `<li><span><i class="dot" style="background:${colorTipo(datos, b.tipo, tema)};margin-right:10px"></i>${esc(b.titulo)}${b.fijo ? ' <span class="tag">horario fijo</span>' : ""}</span><span class="der">${b.inicio}–${hhmm(b.fin)}</span></li>`;
+  const ag = datos.agenda;
+  const extra = (iso) => {
+    if (!ag) return "";
+    const items = [];
+    if (ag.feriados?.[iso]) items.push(`<li><span>Feriado: ${esc(ag.feriados[iso])}</span></li>`);
+    if (ag.libres?.[iso]) items.push(`<li><span>${esc(ag.libres[iso])}</span></li>`);
+    (ag.cumples?.[iso] || []).forEach((n) => items.push(`<li><span>Cumple ${esc(n)}</span></li>`));
+    (ag.avisos?.[iso] || []).forEach((a) => items.push(`<li><span>${esc(a.titulo)}</span>${a.inicio ? `<span class="der">${a.inicio}</span>` : ""}</li>`));
+    return items.length ? `<h2 style="margin-top:18px">Avisos</h2><ul class="lista">${items.join("")}</ul>` : "";
+  };
+  const isoDe = (d) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  const manana = new Date(ctx.fecha.getTime() + 86400000);
+  return `<div class="pagina">${volver}<h1>Agenda</h1><p class="bajada">${ag ? "De tu Google Calendar." : "Rutina de ejemplo: conectá Google en Ajustes para ver la tuya."}</p>
+    <section class="bloque"><h2>Hoy, ${DIAS[ctx.dia]}</h2><ul class="lista">${ctx.hoy.map(fila).join("") || '<li class="vacio">Nada fijo.</li>'}</ul>${extra(isoDe(ctx.fecha))}</section>
+    <section class="bloque"><h2>Mañana, ${DIAS[manana.getDay()]}</h2><ul class="lista">${ctx.manana.map(fila).join("") || '<li class="vacio">Nada fijo.</li>'}</ul>${extra(isoDe(manana))}</section></div>`;
 }
 
 export function renderRespiro() {
@@ -169,6 +190,12 @@ export function renderAjustes(estadoTema, demo, hayPin, google) {
           <div class="chips" style="margin-top:12px"><button class="btn" data-accion="google-actualizar">Actualizar agenda</button><button class="btn sec" data-accion="google-salir">Desconectar</button></div>`
         : '<p>Conectá tu Google para que el anillo, lo urgente y la agenda salgan de tu calendario real.</p><div class="chips" style="margin-top:12px"><button class="btn" data-accion="google-conectar">Conectar con Google</button></div>'}
       <p class="vacio" style="margin-top:12px;font-size:12px">Orbe solo lee tu calendario. No escribe, no borra y no guarda tu contraseña.</p></section>
+    <section class="bloque"><h2>Horario fijo del BNA</h2>
+      <p class="vacio" style="font-size:13px;margin-bottom:12px">Rellena los días hábiles en los que tu calendario no tiene el BNA cargado. Se guarda solo en este celu.</p>
+      <form data-form="horario" style="display:grid;gap:8px">${[1, 2, 3, 4, 5].map((d) => { const h = leer("horario", {})[d] || {}; return `<label style="display:flex;align-items:center;gap:8px"><span style="width:44px;font-size:13px;color:var(--muted)">${DIAS_CORTOS[d]}</span>
+        <input type="time" name="i${d}" value="${esc(h.inicio || "")}" aria-label="Entrada ${DIAS[d]}" style="flex:1;height:42px;padding:0 10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);font-size:15px">
+        <input type="time" name="f${d}" value="${esc(h.fin || "")}" aria-label="Salida ${DIAS[d]}" style="flex:1;height:42px;padding:0 10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);font-size:15px"></label>`; }).join("")}
+        <button class="btn" style="margin-top:6px">Guardar horario</button></form></section>
     <section class="bloque"><h2>Tema</h2><div class="chips">${[["auto", "Automático"], ["claro", "Claro"], ["oscuro", "Oscuro"]].map(([k, n]) => `<button class="chip ${tema === k ? "on" : ""}" data-accion="tema-fijo" data-tema="${k}">${n}</button>`).join("")}</div>
       <p class="vacio" style="margin-top:12px;font-size:13px">Automático: claro de día y oscuro desde la puesta del sol en Buenos Aires. El botón de Inicio lo cambia hasta la próxima salida o puesta.</p></section>
     <section class="bloque"><h2>Probar modos del día</h2><div class="chips"><button class="chip ${!demo ? "on" : ""}" data-accion="demo" data-modo="">Real</button>${MODOS.map((m) => `<button class="chip ${demo === m ? "on" : ""}" data-accion="demo" data-modo="${m}">${m === "normal" ? "Normal" : m === "libre" ? "Día libre" : m === "river" ? "River" : m === "marvel" ? "Guiño Marvel" : "Noche"}</button>`).join("")}</div>

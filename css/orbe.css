@@ -73,6 +73,11 @@ a { color: inherit; }
 .w.urg .k, .w.urg .cuando { color: var(--accent); }
 .w .tit { font-size: 16px; font-weight: 600; line-height: 1.25; }
 .w .cuando { font-family: var(--serif); font-size: 26px; }
+.w .monto { font-size: 20px; font-weight: 600; letter-spacing: -.01em; }
+.hecho { width: 36px; height: 36px; margin: -8px -8px 0 0; border-radius: 18px; border: 1px solid var(--line); background: var(--bg);
+  color: var(--text); display: inline-flex; align-items: center; justify-content: center; padding: 0; }
+.hecho svg { width: 16px; height: 16px; }
+.link { border: 0; background: none; padding: 0; color: var(--muted); text-decoration: underline; font-size: inherit; }
 .barra { height: 6px; border-radius: 3px; background: var(--track); overflow: hidden; }
 .barra i { display: block; height: 100%; background: var(--gold-bar); border-radius: 3px; }
 .ojo { border: 0; background: transparent; color: var(--muted); padding: 6px; margin: -6px; display: inline-flex; }

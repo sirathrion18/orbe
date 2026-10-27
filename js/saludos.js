@@ -57,5 +57,8 @@ export const SALUDOS = {
   entrega: [
     "Hoy se entrega, {n}. Vos podés.", "Día de entrega, {n}.", "Último empujón, {f}."
   ],
+  madrugada: [
+    "Todavía despierto, {n}.", "Madrugada, {n}.", "Es tarde, {n}.", "Hora de dormir, {n}.", "Todavía en pie, {f}."
+  ],
   cumple: ["¡Feliz cumpleaños, {n}!", "Feliz cumple, {f}."]
 };

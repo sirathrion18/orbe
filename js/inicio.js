@@ -29,7 +29,11 @@ function elegirSaludo(datos, ctx, clima) {
   const hora = ctx.min / 60;
   const lluvia = clima && describirClima(clima.codigo).icono.match(/lluvia|tormenta/);
   const entregaHoy = (datos.pendientes || []).some((p) => p.tipo === "facu" && p.dias === 0);
+  if (!ctx.cumple && ctx.cumpleHoy && ctx.cumpleHoy.length && ctx.modo !== "madrugada") {
+    return "Hoy cumple " + esc(unir(ctx.cumpleHoy)) + ", <em>" + esc(datos.usuario.nombre) + "</em>.";
+  }
   if (ctx.cumple) cat = "cumple";
+  else if (ctx.modo === "madrugada") cat = "madrugada";
   else if (ctx.modo === "river") cat = "river";
   else if (ctx.modo === "marvel") cat = "marvel";
   else if (ctx.modo === "noche") cat = "noche";
@@ -39,7 +43,7 @@ function elegirSaludo(datos, ctx, clima) {
   else if (clima && clima.max <= 10 && semilla % 3 === 1) cat = "frio";
   else if (ctx.modo === "libre") cat = (ctx.dia === 0 || ctx.dia === 6) ? "finde" : "libre";
   else if (semilla % 2 === 0) cat = ["", "lunes", "martes", "miercoles", "jueves", "viernes", ""][ctx.dia] || "";
-  if (!cat || !SALUDOS[cat]) cat = hora < 13 ? "manana" : hora < 20 ? "tarde" : "noche";
+  if (!cat || !SALUDOS[cat]) cat = hora < 13 ? "manana" : "tarde";
   const lista = SALUDOS[cat];
   const plantilla = lista[(semilla * 7 + 3) % lista.length];
   const nombre = plantilla.includes("{f}") ? datos.usuario.formal : datos.usuario.nombre;
@@ -48,9 +52,15 @@ function elegirSaludo(datos, ctx, clima) {
 }
 
 // ---------- Bajada ----------
-const unir = (xs) => xs.length <= 1 ? xs.join("") : xs.slice(0, -1).join(", ") + " y " + xs[xs.length - 1];
+export const unir = (xs) => xs.length <= 1 ? xs.join("") : xs.slice(0, -1).join(", ") + " y " + xs[xs.length - 1];
 
 function bajada(ctx) {
+  if (ctx.modo === "madrugada") {
+    const p = ctx.hoy.find((b) => b.ini >= ctx.min);
+    return p ? "Hoy arrancás con " + p.titulo + " a las " + p.inicio + ". A descansar." : "Hoy no tenés nada fijo. A descansar.";
+  }
+  if (ctx.feriado && ctx.modo !== "noche") return "Feriado: " + ctx.feriado + ". El día es tuyo.";
+  if (ctx.diaLibre && ctx.modo !== "noche") return ctx.diaLibre + ". El día es tuyo.";
   if (ctx.modo === "noche") {
     const p = ctx.manana[0];
     return p ? "Mañana arranca con " + p.titulo + " a las " + p.inicio + "." : "Mañana no tenés nada fijo.";
@@ -75,12 +85,18 @@ function bajada(ctx) {
 function anillo(datos, ctx, tema) {
   const noche = ctx.modo === "noche";
   const bloques = noche ? ctx.manana : ctx.hoy;
+  // Dos carriles: si un evento se pisa con otro, va por dentro.
+  let finCarril = -1;
   const segs = bloques.map((b) => {
-    const ini = b.ini / 1440 * C + 4.5;
-    const largo = Math.max(0.5, (b.fin - b.ini) / 1440 * C - 9);
+    const carril = b.ini < finCarril ? 1 : 0;
+    if (!carril) finCarril = b.fin; else finCarril = Math.max(finCarril, b.fin);
+    const r = carril ? 86 : 100;
+    const circ = 2 * Math.PI * r;
+    const ini = b.ini / 1440 * circ + 4.5;
+    const largo = Math.max(0.5, (b.fin - b.ini) / 1440 * circ - 9);
     const pasado = !noche && b.fin <= ctx.min;
-    return `<circle class="seg" cx="130" cy="130" r="100" fill="none" stroke="${colorTipo(datos, b.tipo, tema)}" stroke-width="9"
-      stroke-linecap="round" stroke-dasharray="0 ${C}" data-largo="${largo}" stroke-dashoffset="${-ini}" ${pasado ? 'stroke-opacity=".4"' : ""}/>`;
+    return `<circle class="seg" cx="130" cy="130" r="${r}" fill="none" stroke="${colorTipo(datos, b.tipo, tema)}" stroke-width="${carril ? 7 : 9}"
+      stroke-linecap="round" stroke-dasharray="0 ${circ}" data-largo="${largo}" data-circ="${circ}" stroke-dashoffset="${-ini}" ${pasado ? 'stroke-opacity=".4"' : ""}/>`;
   }).join("");
   const marcas = [0, 6, 12, 18].map((h) => {
     const a = h / 24 * 2 * Math.PI;
@@ -129,6 +145,9 @@ function leyenda(datos, ctx, tema) {
 
 // ---------- Tira de modo ----------
 function tira(ctx) {
+  if (ctx.cumpleManana && ctx.cumpleManana.length && ctx.modo !== "river") {
+    return `<div class="tira"><div><div class="k">Mañana cumple</div><div class="t">${esc(unir(ctx.cumpleManana))}</div></div><div class="n">mañana</div></div>`;
+  }
   if (ctx.modo === "river" && ctx.partido) {
     const p = ctx.partido;
     const fin = ctx.min >= p.fin;
@@ -147,7 +166,13 @@ function tira(ctx) {
 }
 
 // ---------- Widgets ----------
-function wClima(clima) {
+function wClima(clima, ctx) {
+  if (clima && clima.manana && ctx && ctx.modo === "noche") {
+    const d = describirClima(clima.manana.codigo);
+    return `<div class="w"><div class="fila"><span class="k">Mañana</span><span style="width:22px;height:22px;display:inline-flex;color:var(--muted)">${ICONOS[d.icono]}</span></div>
+      <span class="grande">${clima.manana.max}°</span><span class="sub">${d.estado}</span>
+      <span class="minmax"><span>↑ ${clima.manana.max}°</span><span>↓ ${clima.manana.min}°</span></span></div>`;
+  }
   if (!clima) {
     return `<div class="w"><div class="fila"><span class="k">CABA</span><span style="width:22px;height:22px;display:inline-flex;color:var(--muted)">${ICONOS.nube}</span></div>
       <span class="grande">—</span><span class="sub">Sin datos del clima</span></div>`;
@@ -169,11 +194,16 @@ function wUrgente(datos, ctx) {
     }
     return `<div class="w"><span class="k">Urgente</span><span class="tit">Nada urgente</span><span class="sub">Todo en orden por ahora</span></div>`;
   }
-  const dos = lista.slice(0, 2);
-  const resto = lista.length - dos.length;
-  return `<a class="w urg" href="#/u/${esc(dos[0].universo || "finanzas")}" style="text-decoration:none"><span class="k">Urgente</span>
-    ${dos.map((p, i) => `<span class="tit" ${i ? 'style="font-size:14px;font-weight:500;color:var(--muted)"' : ""}>${esc(p.titulo)}</span>${i ? "" : `<span class="cuando">${cuandoTexto(p.dias)}</span>`}`).join("")}
-    ${resto > 0 ? `<span class="sub">+${resto} más esta semana</span>` : ""}</a>`;
+  const [p, segundo] = lista;
+  const resto = lista.length - (segundo ? 2 : 1);
+  return `<div class="w urg"><div class="fila"><span class="k">${p.dias < 0 ? "Vencido" : "Urgente"}</span>
+      <button class="hecho" data-accion="hecho" data-clave="${esc(p.clave)}" aria-label="Marcar ${esc(p.titulo)} como hecho">${ICONOS.check}</button></div>
+    <a href="#/u/${esc(p.universo || "finanzas")}" style="text-decoration:none;display:flex;flex-direction:column;gap:6px">
+      <span class="tit">${esc(p.titulo)}</span>
+      ${p.monto ? `<span class="monto">${esc(p.monto)}</span>` : ""}
+      <span class="cuando">${cuandoTexto(p.dias)}</span>
+      ${segundo ? `<span class="sub">Después: ${esc(segundo.titulo)} · ${cuandoTexto(segundo.dias)}</span>` : ""}
+      ${resto > 0 ? `<span class="sub">+${resto} más</span>` : ""}</a></div>`;
 }
 
 function wPlata(datos, ctx) {
@@ -198,6 +228,14 @@ function wPasos(datos) {
     <span class="sub">${dif >= 0 ? "+" : ""}${dif}% contra tu promedio</span></div></a>`;
 }
 
+function pieAgenda(datos) {
+  if (!datos.cuenta) return '<a href="#/ajustes">conectar con Google</a>';
+  if (!datos.agenda) return '<button class="link" data-accion="google-actualizar">leer la agenda</button>';
+  const min = Math.round((Date.now() - datos.agenda.cuando) / 60000);
+  const hace = min < 1 ? "recién" : min < 60 ? "hace " + min + " min" : min < 1440 ? "hace " + Math.round(min / 60) + " h" : "hace " + Math.round(min / 1440) + " días";
+  return "agenda " + hace + ' · <button class="link" data-accion="google-actualizar">actualizar</button>';
+}
+
 // ---------- Pantalla ----------
 export function renderInicio(datos, ctx, clima, tema) {
   const f = ctx.fecha;
@@ -218,14 +256,14 @@ export function renderInicio(datos, ctx, clima, tema) {
     </div>
     <div class="col-b">
       ${tira(ctx)}
-      <div class="widgets">${wClima(clima)}${wUrgente(datos, ctx)}${wPlata(datos, ctx)}${wPasos(datos)}</div>
+      <div class="widgets">${wClima(clima, ctx)}${wUrgente(datos, ctx)}${wPlata(datos, ctx)}${wPasos(datos)}</div>
       <div class="buscador" role="search">
         <label class="campo"><span class="sr">Buscar o escribir un comando</span>${ICONOS.buscar}
           <input id="q" type="search" autocomplete="off" placeholder="Buscar, o «gasto 3500 súper»"></label>
         <div class="resultados" id="resultados" role="listbox"></div>
       </div>
       <div class="universos">${UNIVERSOS.map((u) => `<a class="u" href="#/u/${u.id}"><i class="dot" style="background:${colorUniverso(datos, u, tema)}"></i>${esc(u.nombre)}</a>`).join("")}</div>
-      <p class="pie">${MARCA}<br>${datos.cuenta ? "conectado a Google" : '<a href="#/ajustes">conectar con Google</a>'} · clima real · <a href="#/novedades">novedades</a></p>
+      <p class="pie">${MARCA}<br>${pieAgenda(datos)} · <a href="#/novedades">novedades</a></p>
     </div>
   </div>
   <button class="fab" data-accion="idea" aria-label="Anotar una idea">${ICONOS.mas}</button>`;
@@ -234,7 +272,7 @@ export function renderInicio(datos, ctx, clima, tema) {
 // Después de pintar: animar el anillo y ubicar la banda de River en el centro del círculo.
 export function despuesInicio(app, animar = true) {
   const segs = app.querySelectorAll(".anillo .seg");
-  const dibujar = () => segs.forEach((s) => s.setAttribute("stroke-dasharray", s.dataset.largo + " " + C));
+  const dibujar = () => segs.forEach((s) => s.setAttribute("stroke-dasharray", s.dataset.largo + " " + (s.dataset.circ || C)));
   if (animar) requestAnimationFrame(() => requestAnimationFrame(dibujar));
   else { segs.forEach((s) => { s.style.transition = "none"; }); dibujar(); }
   const banda = app.querySelector(".banda");

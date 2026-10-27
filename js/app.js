@@ -241,6 +241,11 @@ document.addEventListener("click", (e) => {
   else if (a === "medita-parar") { clearInterval(timerMedita); meditar(0); const r = document.getElementById("medita-reloj"); if (r) r.textContent = "05:00"; }
   else if (a === "google-conectar" || a === "google-actualizar") conectarGoogle(a === "google-actualizar");
   else if (a === "google-salir") { G.desconectar(); recargarDatos(); avisar("Google desconectado"); }
+  else if (a === "hecho") {
+    const h = leer("hechos", []); h.push(el.dataset.clave); guardar("hechos", h.slice(-300));
+    avisar("Marcado como hecho"); pintar(true);
+  }
+  else if (a === "deshacer-hechos") { guardar("hechos", []); pintar(true); }
   else if (a === "pin-sacar") { borrar("pin"); avisar("PIN sacado"); pintar(); }
   else if (a === "exportar") {
     const blob = new Blob([JSON.stringify(todo(), null, 2)], { type: "application/json" });
@@ -275,6 +280,10 @@ document.addEventListener("submit", async (e) => {
   else if (tipo === "gasto") {
     const monto = Number(String(d.monto).replace(/\./g, "").replace(",", "."));
     if (monto > 0) { ejecutarComando({ tipo: "gasto", monto, desc: d.desc.trim() || "varios" }); pintar(); }
+  } else if (tipo === "horario") {
+    const h = {};
+    [1, 2, 3, 4, 5].forEach((dd) => { if (d["i" + dd] && d["f" + dd]) h[dd] = { inicio: d["i" + dd], fin: d["f" + dd] }; });
+    guardar("horario", h); avisar("Horario guardado"); pintar(true);
   } else if (tipo === "pin-nuevo") {
     if (!/^\d{4,}$/.test(d.pin)) { avisar("El PIN tiene que tener 4 números o más"); return; }
     guardar("pin", await hash(d.pin)); avisar("PIN puesto"); pintar();
@@ -286,6 +295,16 @@ document.addEventListener("submit", async (e) => {
 
 window.addEventListener("hashchange", () => { cerrarHoja(); clearInterval(timerMedita); pintar(); window.scrollTo(0, 0); });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") cerrarHoja(); });
+
+// Al volver a Orbe, refresca la agenda si la sesión de Google sigue abierta.
+document.addEventListener("visibilitychange", async () => {
+  if (document.visibilityState !== "visible" || !estado.datos) return;
+  pintar(true);
+  const ag = leer("agenda");
+  if (G.cuenta() && sesion("token") && (!ag || Date.now() - ag.cuando > 5 * 60000)) {
+    try { await G.leerAgenda(); await recargarDatos(); } catch (e) { /* queda lo último */ }
+  }
+});
 
 // Cada 30 segundos se actualiza Inicio (hora, anillo, modo), salvo que estés escribiendo.
 setInterval(() => {
