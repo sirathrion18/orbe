@@ -14,7 +14,9 @@ export const ALCANCES = ["openid", "email", "https://www.googleapis.com/auth/cal
 // Se suman cuando activás sincronización y finanzas: la planilla de Orbe (Sheets) y los mails de aviso (Gmail, solo lectura).
 export const SHEETS = "https://www.googleapis.com/auth/spreadsheets";
 export const GMAIL = "https://www.googleapis.com/auth/gmail.readonly";
-export const EXTRAS = [SHEETS, GMAIL];
+export const DRIVE = "https://www.googleapis.com/auth/drive.readonly";      // leer los recibos de sueldo
+export const CAL_ESCRIBIR = "https://www.googleapis.com/auth/calendar.events"; // crear eventos desde Orbe
+export const EXTRAS = [SHEETS, GMAIL, DRIVE, CAL_ESCRIBIR];
 
 // Pide a Google un pase de 1 hora con solo los permisos indicados (así el navegador nunca recibe el de Gmail).
 export async function paseDe(env, rt, alcances) {

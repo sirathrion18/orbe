@@ -5,7 +5,7 @@ import { ICONOS, MARCA } from "./iconos.js";
 import { esc, colorTipo, colorUniverso } from "./inicio.js";
 import { DIAS, DIAS_CORTOS, bloquesDe, bloquesFecha, pendientesCon, cuandoTexto, duracion, hhmm, MODOS } from "./contexto.js";
 import { leer, todo, sesion as sesionLeer } from "./almacen.js";
-import { datosFinanzas, resumenMes } from "./finanzas.js";
+import { datosFinanzas, resumenMes, topesSugeridos } from "./finanzas.js";
 import { linkHoja } from "./hoja.js";
 import { ultimaSincro, activa as sincroActiva } from "./sincro.js";
 import { RUBROS } from "./rubros.js";
@@ -146,7 +146,7 @@ const PAGINAS = {
     const fin = datosFinanzas();
     const r = resumenMes(fin, ctx.fecha);
     const oculto = leer("plataOculta", false);
-    const $ = (n) => oculto ? "••••" : "$ " + Math.round(n).toLocaleString("es-AR");
+    const $ = (n) => oculto ? "••••" : "$\u00a0" + Math.round(n).toLocaleString("es-AR");
     const venc = pendientesCon(datos, ctx.fecha).filter((x) => x.universo === "finanzas" && x.dias >= -60);
     const dia = ctx.fecha.getDay();
     const cuandoMov = (ts) => { const d = new Date(ts); return d.getDate() + "/" + (d.getMonth() + 1); };
@@ -173,9 +173,17 @@ const PAGINAS = {
       </section>`;
     }
 
-    const topes = r && r.topes.length ? `<section class="bloque"><h2>Topes del mes</h2>${r.topes.map((t) => `<div class="tope ${t.pct >= 0.8 ? "alerta" : ""}">
+    const sugeridos = topesSugeridos(fin, ctx.fecha);
+    const pasados = r ? r.topes.filter((t) => t.pct >= 1) : [];
+    const aviso = pasados.length ? `<section class="bloque aviso-suave"><p><b>${esc(pasados[0].rubro)}</b> ya va ${Math.round(pasados[0].pct * 100)}% del tope del mes: ${$(pasados[0].gastado)} de ${$(pasados[0].tope)}${r.diasRestantes ? `, y faltan ${r.diasRestantes} días` : ""}.${pasados.length > 1 ? ` También ${pasados.slice(1).map((t) => esc(t.rubro)).join(" y ")}.` : ""}</p></section>` : "";
+    const topes = r && (r.topes.length || sugeridos.length) ? `<section class="bloque"><h2>Topes del mes</h2>${r.topes.map((t) => `<div class="tope ${t.pct >= 0.8 ? "alerta" : ""}">
         <div class="fila"><span>${esc(t.rubro)}</span><span>${$(t.gastado)} de ${$(t.tope)} · ${Math.round(t.pct * 100)}%</span></div>
         <div class="barra"><i style="width:${Math.min(100, Math.round(t.pct * 100))}%"></i></div></div>`).join("")}
+        ${sugeridos.length ? `<h2 style="margin-top:18px">Sugeridos según tu historial</h2><ul class="lista">${sugeridos.map((x) => { const actual = r.topes.find((t) => t.rubro === x.rubro);
+          return `<li><span>${esc(x.rubro)}<br><small class="vacio">promedio ${$(x.promedio)}/mes${actual ? " · hoy " + $(actual.tope) : ""}</small></span>
+            ${actual && actual.tope === x.sugerido ? '<span class="estado ok">✓</span>' : `<button class="chip" data-accion="usar-tope" data-rubro="${esc(x.rubro)}" data-tope="${x.sugerido}">Usar ${$(x.sugerido)}</button>`}</li>`; }).join("")}</ul>
+          <p class="fuente-dato">Un 20% menos que tu promedio de los últimos ${sugeridos[0].meses} meses con datos.</p>` : ""}
+        ${!sugeridos.length ? '<p class="fuente-dato">Las sugerencias de topes aparecen cuando Orbe tenga un mes completo de datos (desde noviembre).</p>' : ""}
         <p class="fuente-dato">Por ahora Orbe ve las compras con tarjeta de los resúmenes y de los avisos de Mercado Pago; el resto llega con Satélite.</p></section>` : "";
 
     const revisar = r && r.revisar.length ? `<section class="bloque" style="background:var(--urg-bg)"><h2>A revisar <span class="tag">${r.revisar.length}</span></h2>
@@ -198,8 +206,8 @@ const PAGINAS = {
     const dolar = dl?.oficial ? `<section class="bloque"><h2>Dólar hoy <span class="tag">dolarapi.com</span></h2><div class="trio">
         <div><span class="k">Oficial</span><b>$ ${Math.round(dl.oficial.venta).toLocaleString("es-AR")}</b></div>
         <div><span class="k">MEP</span><b>$ ${Math.round(dl.mep?.venta || 0).toLocaleString("es-AR")}</b></div>
-        <div><span class="k">Blue</span><b>${dl.blue ? "$ " + Math.round(dl.blue.venta).toLocaleString("es-AR") : "—"}</b></div></div></section>` : "";
-    return `${bloqueEconomia(ctx, $)}${cabeza}${dolar}${revisar}${topes}${rubros}
+        <div><span class="k">Blue</span><b>${dl.blue ? "$\u00a0" + Math.round(dl.blue.venta).toLocaleString("es-AR") : "—"}</b></div></div></section>` : "";
+    return `${aviso}${bloqueEconomia(ctx, $)}${cabeza}${dolar}${revisar}${topes}${rubros}
       <section class="bloque"><h2>Vencimientos ${datos.agenda ? "" : '<span class="ejemplo">Ejemplo</span>'}</h2><ul class="lista">${venc.map((d) => `<li style="align-items:flex-start"><span style="display:flex;flex-direction:column;gap:4px;min-width:0"><span>${esc(d.titulo)}${d.vernet ? ' <span class="tag">Vernet</span>' : ""}${d.nota ? ` <span class="tag">${esc(d.nota)}</span>` : ""}</span>${d.monto ? `<b>${esc(d.monto)}</b>` : ""}<span class="der ${d.dias <= 7 && !d.vernet ? "rojo" : ""}" style="font-size:17px">${cuandoTexto(d.dias)}</span></span>
         <button class="hecho" style="margin:0" data-accion="hecho" data-clave="${esc(d.clave)}" aria-label="Marcar ${esc(d.titulo)} como hecho">${ICONOS.check}</button></li>`).join("") || '<li class="vacio">Nada pendiente.</li>'}</ul>
         ${leer("hechos", []).length ? '<button class="link" style="margin-top:12px;font-size:13px" data-accion="deshacer-hechos">Volver a mostrar los marcados como hechos</button>' : ""}</section>
@@ -285,7 +293,7 @@ const FAMILIA = { logo: "var(--sans);font-weight:600;letter-spacing:-.045em", re
   cursiva: "var(--serif);font-style:italic" };
 
 // Qué anda y qué no, parte por parte, con el motivo y el arreglo cuando lo hay.
-const PARTES = [["agenda", "Agenda"], ["sincro", "Celu y compu"], ["economia", "Planilla ECONOMÍA"], ["mails", "Mails del BNA y Mercado Pago"]];
+const PARTES = [["agenda", "Agenda"], ["sincro", "Celu y compu"], ["economia", "Planilla ECONOMÍA"], ["mails", "Mails del BNA y Mercado Pago"], ["recibos", "Recibos de sueldo (Drive)"]];
 function estadoPartes(est) {
   const hace = (t) => { const m = Math.round((Date.now() - t) / 60000); return m < 1 ? "recién" : m < 60 ? "hace " + m + " min" : "hace " + Math.round(m / 60) + " h"; };
   const filas = PARTES.filter(([k]) => est[k]).map(([k, n]) => {
@@ -321,9 +329,9 @@ export function renderAjustes(estadoTema, demo, hayPin, google) {
 
     <section class="bloque"><h2>Celu y compu sincronizados</h2>
       ${!conectado ? '<p class="vacio">Primero conectá tu Google.</p>'
-        : !p.sheets || !p.gmail ? `<p>Un solo permiso más y Orbe: sincroniza el celu y la compu (hechos, horario, ideas, súper, menú, tipografías) y lee los avisos del BNA y de Mercado Pago para Finanzas.</p>
+        : !p.sheets || !p.gmail || !p.drive || !p.calendario ? `<p>${p.sheets ? "Hay permisos nuevos para dar: leer tus recibos de sueldo en Drive y crear eventos en tu calendario desde Orbe." : "Un solo permiso más y Orbe: sincroniza el celu y la compu (hechos, horario, ideas, súper, menú, tipografías) y lee los avisos del BNA y de Mercado Pago para Finanzas."}</p>
           <div class="chips" style="margin-top:12px"><button class="btn" data-accion="activar-todo">Dar permiso</button></div>
-          <p class="vacio" style="margin-top:12px;font-size:12px">Google va a pedirte ver tus mails (solo lectura: Orbe nunca escribe ni borra) y editar planillas (Orbe solo toca su planilla «Orbe · datos»). El texto de los mails no sale del servidor de Orbe.</p>`
+          <p class="vacio" style="margin-top:12px;font-size:12px">Tildá todas las casillas en la pantalla de Google. Mails y Drive: solo lectura (Orbe nunca escribe ni borra; el texto de los mails no sale del servidor). Planillas: Orbe solo escribe en «Orbe · datos». Calendario: solo crea los eventos que vos le pidas.</p>`
         : !google.hoja ? `<p>Pegá el link de tu planilla <b>Orbe · datos</b> (está en Drive, en Herramientas de IA → Orbe). Se hace una vez en cada dispositivo.</p>
           <form class="form" data-form="hoja"><input name="link" placeholder="https://docs.google.com/spreadsheets/d/…" aria-label="Link de la planilla" required><button class="btn">Listo</button></form>`
         : `${estadoPartes(google.estadoAct)}

@@ -355,3 +355,6 @@ input[type="time"]::-webkit-date-and-time-value { text-align: left; }
 .res.resp b { font-weight: 700; }
 .res.resp { display: block; }
 .res.resp small { display: block; margin-top: 3px; }
+.aviso-suave { background: var(--urg-bg); }
+.aviso-suave p { font-size: 15px; line-height: 1.45; }
+.chip { white-space: nowrap; }

@@ -7,7 +7,7 @@ import { pendientesCon, cuandoTexto } from "./contexto.js";
 
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const normal = (t) => String(t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
-const pesos = (n) => "$ " + Math.round(n).toLocaleString("es-AR");
+const pesos = (n) => "$\u00a0" + Math.round(n).toLocaleString("es-AR");
 const MESES = MESES_AR.map((m) => normal(m));
 
 function mesPedido(q, hoy) {

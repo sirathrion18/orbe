@@ -129,3 +129,48 @@ export function resumenMes(fin, fecha) {
 }
 
 export const hayPlanilla = () => !!idHoja();
+
+// ---------- Topes sugeridos según tu historial ----------
+// Promedio mensual por rubro en los últimos meses completos, y una sugerencia un 20% más baja.
+export function topesSugeridos(fin, fecha) {
+  if (!fin) return [];
+  const actual = mesDe(fecha);
+  const porMes = {};
+  fin.movs.filter((m) => m.ts && m.moneda !== "USD" && (m.clase === "gasto" || m.clase === "gasto-tarjeta" || m.clase === "devolucion")).forEach((m) => {
+    const mes = mesDe(new Date(m.ts));
+    if (mes >= actual) return;
+    const r = m.rubro || "Otros";
+    porMes[r] = porMes[r] || {};
+    porMes[r][mes] = (porMes[r][mes] || 0) + (m.clase === "devolucion" ? -1 : 1) * (m.monto || 0) * (m.mitad ? 0.5 : 1);
+  });
+  // Solo meses completos: los que empiezan después del primer dato que tiene Orbe.
+  const primero = Math.min(...fin.movs.filter((m) => m.ts).map((m) => m.ts));
+  const completo = (mes) => { const [y, mm] = mes.split("-").map(Number); return new Date(y, mm - 1, 1).getTime() >= primero - 3 * 86400000; };
+  const meses = [...new Set(Object.values(porMes).flatMap((o) => Object.keys(o)))].filter(completo).sort().slice(-3);
+  if (!meses.length) return [];
+  return Object.entries(porMes).filter(([r]) => r !== "Otros" && r !== "Vivienda" && r !== "Educación")
+    .map(([rubro, o]) => {
+      const prom = meses.reduce((s, m) => s + (o[m] || 0), 0) / meses.length;
+      return { rubro, promedio: prom, sugerido: Math.max(5000, Math.round(prom * 0.8 / 5000) * 5000), meses: meses.length };
+    }).filter((x) => x.promedio > 10000).sort((a, b) => b.promedio - a.promedio).slice(0, 6);
+}
+
+export async function guardarTope(rubro, tope) {
+  const [filas] = await leerRangos(["TOPES!A2:C"]);
+  const i = filas.findIndex((f) => String(f[0]).toLowerCase() === rubro.toLowerCase());
+  const fila = [rubro, tope, "Sugerido por Orbe según tu historial"];
+  if (i >= 0) await escribir("TOPES!A" + (i + 2) + ":C" + (i + 2), [fila]); else await agregar("TOPES!A:C", [fila]);
+  return leerPlanilla();
+}
+
+// ---------- Tarjetas: recordatorio con cuánto pagar para no financiar ----------
+export function pendientesDeTarjetas(fin) {
+  if (!fin) return [];
+  return fin.deudas.filter((d) => /tarjeta/i.test(d.tipo) && d.saldo > 0 && /^\d{4}-\d{2}-\d{2}$/.test(String(d.vence || "")))
+    .map((d) => ({
+      titulo: "Pagar " + d.nombre, tipo: "pago-tarjeta", universo: "finanzas", fecha: String(d.vence),
+      monto: "$ " + Math.round(d.saldo).toLocaleString("es-AR"),
+      nota: "total para no financiar" + (d.cuota ? " · mínimo $ " + Math.round(d.cuota).toLocaleString("es-AR") : ""),
+      clave: ("tarjeta|" + d.nombre + "|" + d.vence).toLowerCase()
+    }));
+}

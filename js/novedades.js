@@ -1,6 +1,19 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.11.0",
+    fecha: "27/10/2026",
+    titulo: "Finanzas que se cargan solas.",
+    cambios: [
+      "Recibos de sueldo: Orbe lee los PDF de tu carpeta BNA en Drive, saca el neto y el talón complementario y anota el disponible real del mes siguiente en tu planilla, solo.",
+      "Pagar las tarjetas: 3 días antes del vencimiento aparece en lo urgente con el total para no financiar y el mínimo al lado.",
+      "Aviso suave al abrir Finanzas cuando un rubro pasa su tope.",
+      "Topes sugeridos según tu historial (20% menos que tu promedio), con un toque para usarlos. Aparecen cuando haya un mes completo de datos.",
+      "Permisos nuevos para dar una vez: leer tus recibos en Drive y crear eventos en tu calendario.",
+      "El signo $ ya no queda separado del número al cortar renglón."
+    ]
+  },
+  {
     version: "0.10.0",
     fecha: "27/10/2026",
     titulo: "River, dólar, preguntas y huella en el BNA.",

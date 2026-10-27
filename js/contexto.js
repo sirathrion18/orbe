@@ -129,7 +129,7 @@ export function urgentes(datos, ctx) {
   const lista = pendientesCon(datos, ctx.fecha).filter((p) => !p.vernet).filter((p) =>
     (p.dias < 0 && p.dias >= -30) ||
     ((p.tipo === "vencimiento" || p.tipo === "tarjeta") && p.dias <= 7) ||
-    (p.tipo === "facu" && p.dias < 3) || p.agus);
+    (p.tipo === "facu" && p.dias <= 3) || (p.tipo === "pago-tarjeta" && p.dias <= 3) || p.agus);
   if (ctx.modo === "libre") return lista.filter((p) => p.dias <= 2);
   return lista;
 }

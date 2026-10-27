@@ -6,7 +6,8 @@ import { renderInicio, despuesInicio, esc, colorUniverso } from "./inicio.js";
 import { ICONOS } from "./iconos.js";
 import { renderUniverso, renderBloqueo, renderIdeas, renderAgenda, renderRespiro, renderDatos, renderAjustes, renderNovedades, renderNoEncontrado, hojaMovimiento } from "./paginas.js";
 import { sincronizar, activa as sincroActiva } from "./sincro.js";
-import { leerPlanilla, traerMails, corregir, datosFinanzas } from "./finanzas.js";
+import { leerPlanilla, traerMails, corregir, datosFinanzas, pendientesDeTarjetas, guardarTope } from "./finanzas.js";
+import { leerRecibos } from "./recibos.js";
 import { fijarHoja, idHoja } from "./hoja.js";
 import { traerDolar, traerRiver } from "./extras.js";
 import { responder } from "./preguntas.js";
@@ -64,6 +65,9 @@ const AVISOS_GOOGLE = {
 function pintar(refresco = false) {
   const tema = aplicarTema();
   const demo = sesion("demo");
+  // Lo que se deriva de Finanzas (pagar las tarjetas) se suma a los pendientes del calendario.
+  if (!estado.datos.pendientesBase) estado.datos.pendientesBase = estado.datos.pendientes || [];
+  estado.datos.pendientes = [...estado.datos.pendientesBase, ...pendientesDeTarjetas(datosFinanzas())];
   estado.ctx = construirContexto(estado.datos, demo);
   const r = ruta();
   let html;
@@ -290,6 +294,10 @@ document.addEventListener("click", (e) => {
     const f = leer("fuentes", {}); f[el.dataset.grupo] = el.dataset.valor; guardar("fuentes", f); vibrar(); pintar(true);
   }
   else if (a === "sincronizar" || a === "fin-actualizar") actualizarTodo(true);
+  else if (a === "usar-tope") {
+    avisar("Guardando tope…");
+    guardarTope(el.dataset.rubro, Number(el.dataset.tope)).then(() => { avisar("Tope de " + el.dataset.rubro + " guardado"); pintar(true); }).catch((e) => avisar("No se pudo: " + textoError(e.message)));
+  }
   else if (a === "copiar") {
     navigator.clipboard?.writeText(el.dataset.texto).then(() => avisar("Copiado: " + el.dataset.texto), () => avisar(el.dataset.texto));
   }
@@ -464,6 +472,10 @@ async function refrescarTodo(forzar = false) {
       estadoParte("mails", null, r && (r.frenado || r.quedan) ? "trayendo el historial de a poco" : "");
     }
     catch (e) { estadoParte("mails", e.message); fallas.push(["mails", e.message]); }
+    if (G.permisos().drive && (forzar || Date.now() - (leer("recibosCuando") || 0) > 6 * 3600000)) {
+      try { const n = await leerRecibos(); guardar("recibosCuando", Date.now(), true); estadoParte("recibos"); if (n) await leerPlanilla(); }
+      catch (e) { estadoParte("recibos", e.message); fallas.push(["recibos", e.message]); }
+    }
     if (idEconomia()) {
       const eco = datosEconomia();
       if (forzar || !eco || Date.now() - eco.cuando > 10 * 60000) {
@@ -476,7 +488,7 @@ async function refrescarTodo(forzar = false) {
   return { ok: !fallas.length, fallas };
 }
 
-const NOMBRE_PARTE = { sincro: "la sincronización", mails: "los mails", economia: "ECONOMÍA", agenda: "la agenda" };
+const NOMBRE_PARTE = { sincro: "la sincronización", mails: "los mails", economia: "ECONOMÍA", agenda: "la agenda", recibos: "los recibos" };
 export function textoError(m) {
   m = String(m || "");
   if (m === "reconectar" || m.startsWith("reconectar")) return "hay que volver a conectar con Google";

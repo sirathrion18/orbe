@@ -23,5 +23,6 @@ export async function onRequestPost({ request, env }) {
   // Renueva la cookie por otros 30 días cada vez que usás Orbe.
   const nueva = await cifrar(env, { ...s, rt: t.refresh_token || s.rt });
   return json({ access_token: t.access_token, expires_in: t.expires_in, email: s.email, scope: t.scope,
-    permisos: { sheets: otorgados.some((a) => a.endsWith("/spreadsheets")), gmail: otorgados.includes(GMAIL) } }, 200, { "Set-Cookie": cookieSesion(nueva) });
+    permisos: { sheets: otorgados.some((a) => a.endsWith("/spreadsheets")), gmail: otorgados.includes(GMAIL),
+      drive: otorgados.some((a) => a.endsWith("/drive.readonly")), calendario: otorgados.some((a) => a.endsWith("/calendar.events")) } }, 200, { "Set-Cookie": cookieSesion(nueva) });
 }

@@ -261,7 +261,7 @@ function wUrgente(datos, ctx) {
       ${resto > 0 ? `<span class="sub">+${resto} más</span>` : ""}</a></div>`;
 }
 
-const pesos = (n) => "$ " + Math.round(n).toLocaleString("es-AR");
+const pesos = (n) => "$\u00a0" + Math.round(n).toLocaleString("es-AR");
 
 function wPlata(datos, ctx) {
   const r = resumenMes(datosFinanzas(), ctx.fecha);
