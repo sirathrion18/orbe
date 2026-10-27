@@ -14,6 +14,18 @@ export const duracion = (min) => {
   return m ? h + " h " + m : h + " h";
 };
 
+const isoDe = (d) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+
+// Con Google conectado, los bloques salen de tu calendario real; si no, de la rutina de ejemplo.
+export function bloquesFecha(datos, fecha) {
+  if (datos.agenda) {
+    return (datos.agenda.porDia[isoDe(fecha)] || [])
+      .map((b) => ({ ...b, ini: aMin(b.inicio), fin: aMin(b.fin) }))
+      .sort((a, b) => a.ini - b.ini);
+  }
+  return bloquesDe(datos, fecha.getDay());
+}
+
 export function bloquesDe(datos, diaSemana) {
   return (datos.rutina[String(diaSemana)] || [])
     .map((b) => ({ ...b, ini: aMin(b.inicio), fin: aMin(b.fin) }))
@@ -46,8 +58,9 @@ export function construirContexto(datos, demo) {
   }
   const dia = fecha.getDay();
   const min = fecha.getHours() * 60 + fecha.getMinutes();
-  const hoy = bloquesDe(datos, dia);
-  const manana = bloquesDe(datos, (dia + 1) % 7);
+  const base = demo ? { ...datos, agenda: null } : datos; // las pruebas usan la rutina de ejemplo
+  const hoy = bloquesFecha(base, fecha);
+  const manana = bloquesFecha(base, new Date(fecha.getTime() + 86400000));
 
   const partido = hoy.find((b) => b.tipo === "river");
   const estreno = (datos.estrenos || []).map((e) => ({ ...e, dias: diasHasta(fecha, e.fecha) }))

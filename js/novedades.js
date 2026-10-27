@@ -1,6 +1,18 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.2.0",
+    fecha: "27/10/2026",
+    titulo: "Orbe se conecta con Google.",
+    cambios: [
+      "Iniciar sesión con tu cuenta de Google desde Ajustes.",
+      "El anillo de hoy y de mañana sale de tu calendario real, con colores según el tipo de actividad.",
+      "Los eventos «Vence:» de tu calendario pasan a lo urgente y a Finanzas; las entregas, a UFASTA.",
+      "Con la sesión abierta, la agenda se actualiza sola al abrir Orbe.",
+      "Ícono renombrado para que el celu tome el logo nuevo."
+    ]
+  },
+  {
     version: "0.1.1",
     fecha: "27/10/2026",
     titulo: "Logo nuevo: la o que es anillo.",

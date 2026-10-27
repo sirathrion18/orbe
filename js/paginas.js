@@ -160,9 +160,15 @@ export function renderDatos() {
     <section class="bloque"><h2>Acciones</h2><div class="chips"><button class="btn sec" data-accion="exportar">Exportar todo</button><button class="btn peligro" data-accion="borrar-todo">Borrar todo</button></div></section></div>`;
 }
 
-export function renderAjustes(estadoTema, demo, hayPin) {
+export function renderAjustes(estadoTema, demo, hayPin, google) {
   const tema = estadoTema.modo;
   return `<div class="pagina">${volver}<h1>Ajustes</h1><p class="bajada">${MARCA} versión ${VERSION}.</p>
+    <section class="bloque"><h2>Cuenta de Google</h2>
+      ${!google.configurado ? '<p class="vacio">Falta un paso de configuración en Google Cloud para poder conectar.</p>'
+        : google.cuenta ? `<p>Conectado como <b>${esc(google.cuenta.email)}</b>.</p><p class="vacio" style="margin-top:6px;font-size:13px">${google.agenda ? "Agenda actualizada " + esc(google.agenda) + "." : "Todavía no se leyó la agenda."}</p>
+          <div class="chips" style="margin-top:12px"><button class="btn" data-accion="google-actualizar">Actualizar agenda</button><button class="btn sec" data-accion="google-salir">Desconectar</button></div>`
+        : '<p>Conectá tu Google para que el anillo, lo urgente y la agenda salgan de tu calendario real.</p><div class="chips" style="margin-top:12px"><button class="btn" data-accion="google-conectar">Conectar con Google</button></div>'}
+      <p class="vacio" style="margin-top:12px;font-size:12px">Orbe solo lee tu calendario. No escribe, no borra y no guarda tu contraseña.</p></section>
     <section class="bloque"><h2>Tema</h2><div class="chips">${[["auto", "Automático"], ["claro", "Claro"], ["oscuro", "Oscuro"]].map(([k, n]) => `<button class="chip ${tema === k ? "on" : ""}" data-accion="tema-fijo" data-tema="${k}">${n}</button>`).join("")}</div>
       <p class="vacio" style="margin-top:12px;font-size:13px">Automático: claro de día y oscuro desde la puesta del sol en Buenos Aires. El botón de Inicio lo cambia hasta la próxima salida o puesta.</p></section>
     <section class="bloque"><h2>Probar modos del día</h2><div class="chips"><button class="chip ${!demo ? "on" : ""}" data-accion="demo" data-modo="">Real</button>${MODOS.map((m) => `<button class="chip ${demo === m ? "on" : ""}" data-accion="demo" data-modo="${m}">${m === "normal" ? "Normal" : m === "libre" ? "Día libre" : m === "river" ? "River" : m === "marvel" ? "Guiño Marvel" : "Noche"}</button>`).join("")}</div>

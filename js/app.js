@@ -1,5 +1,6 @@
 // Orbe — arranque, navegación, tema, buscador y acciones.
-import { cargarDatos, cargarClima } from "./fuente.js";
+import { cargarDatos, cargarClima, mezclar } from "./fuente.js";
+import * as G from "./google.js";
 import { construirContexto } from "./contexto.js";
 import { renderInicio, despuesInicio, esc, colorUniverso } from "./inicio.js";
 import { renderUniverso, renderBloqueo, renderIdeas, renderAgenda, renderRespiro, renderDatos, renderAjustes, renderNovedades, renderNoEncontrado } from "./paginas.js";
@@ -59,7 +60,13 @@ function pintar(refresco = false) {
   else if (r === "/agenda") html = renderAgenda(estado.datos, estado.ctx, tema);
   else if (r === "/respiro") html = renderRespiro();
   else if (r === "/datos") html = renderDatos();
-  else if (r === "/ajustes") html = renderAjustes(estadoTema(), demo, !!leer("pin"));
+  else if (r === "/ajustes") {
+    const ag = leer("agenda");
+    html = renderAjustes(estadoTema(), demo, !!leer("pin"), {
+      configurado: G.configurado(), cuenta: G.cuenta(),
+      agenda: ag ? new Date(ag.cuando).toLocaleString("es-AR", { weekday: "long", hour: "2-digit", minute: "2-digit" }) : null
+    });
+  }
   else if (r === "/novedades") html = renderNovedades();
   else html = renderNoEncontrado();
 
@@ -232,6 +239,8 @@ document.addEventListener("click", (e) => {
   else if (a === "super-borrar") { const l = leer("super", []); l.splice(Number(el.dataset.i), 1); guardar("super", l); pintar(); }
   else if (a === "medita") meditar(Number(el.dataset.min));
   else if (a === "medita-parar") { clearInterval(timerMedita); meditar(0); const r = document.getElementById("medita-reloj"); if (r) r.textContent = "05:00"; }
+  else if (a === "google-conectar" || a === "google-actualizar") conectarGoogle(a === "google-actualizar");
+  else if (a === "google-salir") { G.desconectar(); recargarDatos(); avisar("Google desconectado"); }
   else if (a === "pin-sacar") { borrar("pin"); avisar("PIN sacado"); pintar(); }
   else if (a === "exportar") {
     const blob = new Blob([JSON.stringify(todo(), null, 2)], { type: "application/json" });
@@ -283,6 +292,25 @@ setInterval(() => {
   if ((ruta() === "/" || ruta() === "") && !document.querySelector(".hoja") && document.activeElement?.id !== "q") pintar(true);
 }, 30000);
 
+// ---------- Google ----------
+async function recargarDatos() {
+  const { datos } = await cargarDatos();
+  estado.datos = datos;
+  pintar(true);
+}
+
+async function conectarGoogle(yaConectado) {
+  try {
+    avisar(yaConectado ? "Actualizando…" : "Abriendo Google…");
+    if (!yaConectado || !sesion("token")) await G.conectar(yaConectado);
+    await G.leerAgenda();
+    await recargarDatos();
+    avisar("Agenda al día");
+  } catch (e) {
+    avisar(e.message === "sin-token" ? "Volvé a conectar con Google" : "No se pudo: " + e.message);
+  }
+}
+
 // ---------- Arranque ----------
 (async function arrancar() {
   try {
@@ -292,6 +320,8 @@ setInterval(() => {
     estado.clima = await Promise.race([pedido, new Promise((r) => setTimeout(() => r(null), 1500))]);
     pintar();
     if (!estado.clima) { estado.clima = await pedido; if (estado.clima) pintar(true); }
+    // Si la sesión de Google sigue abierta, refresca la agenda sin preguntar.
+    if (G.cuenta() && sesion("token")) { try { await G.leerAgenda(); await recargarDatos(); } catch (e) { /* queda lo último */ } }
   } catch (e) {
     app.innerHTML = `<div class="pagina"><h1>Ups</h1><p class="bajada">No pude cargar Orbe. Revisá la conexión y volvé a abrir.</p></div>`;
   }

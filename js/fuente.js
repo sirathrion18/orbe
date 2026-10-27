@@ -5,7 +5,23 @@ import { leer, guardar } from "./almacen.js";
 export async function cargarDatos() {
   const r = await fetch("datos/ejemplo.json", { cache: "no-cache" });
   if (!r.ok) throw new Error("No pude leer los datos");
-  return { datos: await r.json(), origen: "ejemplo" };
+  return mezclar(await r.json());
+}
+
+// Lo real reemplaza a lo de ejemplo a medida que se conecta.
+export function mezclar(datos) {
+  const agenda = leer("agenda");
+  const cuenta = leer("cuenta");
+  if (cuenta) {
+    datos.usuario = { ...datos.usuario };
+    datos.cuenta = cuenta;
+  }
+  if (agenda) {
+    datos.agenda = agenda;
+    datos.pendientesEjemplo = datos.pendientes;
+    datos.pendientes = agenda.pendientes;
+  }
+  return { datos, origen: agenda ? "google" : "ejemplo" };
 }
 
 const MEDIA_HORA = 30 * 60 * 1000;

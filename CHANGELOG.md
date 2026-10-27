@@ -1,5 +1,15 @@
 # Novedades de Orbe
 
+## v0.2.0 · 27/10/2026
+
+Orbe se conecta con Google.
+
+- Iniciar sesión con tu cuenta de Google desde Ajustes (solo lectura del calendario).
+- El anillo de hoy y de mañana sale de tu calendario real, con colores según el tipo de actividad.
+- Los eventos «Vence:» pasan a lo urgente y a Finanzas; las entregas, a UFASTA.
+- Con la sesión abierta, la agenda se actualiza sola al abrir Orbe.
+- Ícono renombrado para que el celu tome el logo nuevo.
+
 ## v0.1.1 · 27/10/2026
 
 Logo nuevo: la o que es anillo.

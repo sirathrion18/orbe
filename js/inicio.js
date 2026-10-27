@@ -225,7 +225,7 @@ export function renderInicio(datos, ctx, clima, tema) {
         <div class="resultados" id="resultados" role="listbox"></div>
       </div>
       <div class="universos">${UNIVERSOS.map((u) => `<a class="u" href="#/u/${u.id}"><i class="dot" style="background:${colorUniverso(datos, u, tema)}"></i>${esc(u.nombre)}</a>`).join("")}</div>
-      <p class="pie">${MARCA}<br>datos de ejemplo + clima real · <a href="#/novedades">novedades</a></p>
+      <p class="pie">${MARCA}<br>${datos.cuenta ? "conectado a Google" : '<a href="#/ajustes">conectar con Google</a>'} · clima real · <a href="#/novedades">novedades</a></p>
     </div>
   </div>
   <button class="fab" data-accion="idea" aria-label="Anotar una idea">${ICONOS.mas}</button>`;

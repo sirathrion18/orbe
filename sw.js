@@ -1,10 +1,10 @@
 // Orbe funciona sin internet: guarda la app y muestra lo último que tenía.
-const VERSION = "orbe-0.1.1";
+const VERSION = "orbe-0.2.0";
 const APP = [
   "./", "index.html", "manifest.webmanifest", "css/orbe.css",
-  "js/app.js", "js/almacen.js", "js/config.js", "js/contexto.js", "js/fuente.js",
+  "js/app.js", "js/almacen.js", "js/config.js", "js/contexto.js", "js/fuente.js", "js/google.js",
   "js/iconos.js", "js/inicio.js", "js/novedades.js", "js/paginas.js", "js/saludos.js", "js/sol.js",
-  "datos/ejemplo.json", "iconos/icono.svg", "iconos/icono-192.png", "iconos/icono-512.png", "iconos/icono-180.png"
+  "datos/ejemplo.json", "iconos/orbe.svg", "iconos/orbe-192.png", "iconos/orbe-512.png", "iconos/orbe-180.png"
 ];
 
 self.addEventListener("install", (e) => {
