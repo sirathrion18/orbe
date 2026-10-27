@@ -345,3 +345,13 @@ input[type="time"]::-webkit-date-and-time-value { text-align: left; }
 .girando svg { animation: girar .9s linear infinite; }
 .top .der { gap: 8px; }
 .saludo h1 .ls { display: block; white-space: nowrap; width: max-content; max-width: none; }
+.u-ico { width: 22px; height: 22px; display: inline-flex; }
+.u-ico svg { width: 22px; height: 22px; }
+.barra-inf a { font-size: 9.5px; letter-spacing: -.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-left: 1px; padding-right: 1px; }
+.tira-river { border-color: #D0242E; }
+.tira-river .k { color: #D0242E; }
+.escuchando { border-color: var(--accent) !important; color: var(--accent) !important; }
+.res.resp { color: var(--text); background: var(--tile); line-height: 1.4; }
+.res.resp b { font-weight: 700; }
+.res.resp { display: block; }
+.res.resp small { display: block; margin-top: 3px; }

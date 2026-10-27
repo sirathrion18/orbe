@@ -7,6 +7,7 @@ import { describirClima } from "./fuente.js";
 import { leer } from "./almacen.js";
 import { resumenMes, datosFinanzas } from "./finanzas.js";
 import { datosEconomia } from "./economia.js";
+import { movimientoDolar } from "./extras.js";
 
 export const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -198,6 +199,23 @@ function tira(ctx) {
     if (ctx.viaje)
       return `<div class="tira"><div><div class="k">Cuenta regresiva</div><div class="t">${esc(ctx.viaje.titulo)}</div></div><div class="n">${cuandoTexto(ctx.viaje.dias)}</div></div>`;
   }
+  // Próximo partido de River (datos de ESPN), dentro de la semana.
+  const rv = leer("river");
+  if (rv && rv.proximo) {
+    const f = new Date(rv.proximo.fecha), dias = Math.round((new Date(f.getFullYear(), f.getMonth(), f.getDate()) - new Date(ctx.fecha.getFullYear(), ctx.fecha.getMonth(), ctx.fecha.getDate())) / 86400000);
+    if (dias >= 0 && dias <= 6) {
+      const hora = String(f.getHours()).padStart(2, "0") + ":" + String(f.getMinutes()).padStart(2, "0");
+      return `<div class="tira tira-river"><div><div class="k">River ${rv.proximo.local ? "vs" : "visita a"} ${esc(rv.proximo.rival)}</div>
+        <div class="t">${dias === 0 ? "Hoy" : dias === 1 ? "Mañana" : DIAS[f.getDay()][0].toUpperCase() + DIAS[f.getDay()].slice(1)} a las ${hora}${rv.ultimo ? ` · último: ${rv.ultimo.gf}-${rv.ultimo.gc} vs ${esc(rv.ultimo.rival)}` : ""}</div></div>
+        <div class="n">${dias === 0 ? "hoy" : "en " + dias + (dias === 1 ? " día" : " días")}</div></div>`;
+    }
+  }
+  // El dólar, solo si se movió fuerte.
+  const dm = movimientoDolar();
+  if (dm && Math.abs(dm.pct) >= 2) {
+    return `<a class="tira" href="#/u/finanzas" style="text-decoration:none"><div><div class="k">Dólar MEP</div><div class="t">${dm.pct > 0 ? "Subió" : "Bajó"} ${Math.abs(dm.pct).toFixed(1).replace(".", ",")}% desde ayer</div></div>
+      <div class="n">$ ${Math.round(dm.mep).toLocaleString("es-AR")}</div></a>`;
+  }
   return "";
 }
 
@@ -318,7 +336,7 @@ export function renderInicio(datos, ctx, clima, tema) {
           <input id="q" type="search" autocomplete="off" placeholder="Buscar, o «gasto 3500 súper»"></label>
         <div class="resultados" id="resultados" role="listbox"></div>
       </div>
-      <div class="universos">${UNIVERSOS.map((u) => `<a class="u" href="#/u/${u.id}"><i class="dot" style="background:${colorUniverso(datos, u, tema)}"></i>${esc(u.nombre)}</a>`).join("")}</div>
+      <div class="universos">${UNIVERSOS.map((u) => `<a class="u" href="#/u/${u.id}"><span class="u-ico" style="color:${colorUniverso(datos, u, tema)}">${ICONOS["u_" + u.id] || ""}</span>${esc(u.nombre)}</a>`).join("")}</div>
       <p class="pie">${MARCA}<br>${pieAgenda(datos)} · <a href="#/novedades">novedades</a> · <a href="privacidad.html">privacidad</a></p>
     </div>
   </div>

@@ -1,6 +1,19 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.10.0",
+    fecha: "27/10/2026",
+    titulo: "River, dólar, preguntas y huella en el BNA.",
+    cambios: [
+      "La barra de abajo con nombres completos (Bienestar, Proyectos) y los universos de Inicio con íconos de línea.",
+      "Finanzas y BNA con huella; Bienestar queda libre. Se vuelven a bloquear apenas salís de Orbe.",
+      "River: el próximo partido aparece en Inicio la semana del partido, con cuenta regresiva y el último resultado.",
+      "Dólar oficial, MEP y blue en Finanzas; en Inicio solo si el MEP se movió 2% o más desde ayer.",
+      "El buscador responde preguntas: «cuánto gasté en rappi», «cuánto gasté en uber en septiembre», «cuánto me queda», «cuándo vence edesur», «dólar hoy», «cuándo juega river».",
+      "Ideas con dictado por voz y #etiquetas para filtrarlas."
+    ]
+  },
+  {
     version: "0.9.2",
     fecha: "27/10/2026",
     titulo: "Mails sin trabas y saludos con mate.",

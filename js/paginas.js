@@ -4,7 +4,7 @@ import { NOVEDADES } from "./novedades.js";
 import { ICONOS, MARCA } from "./iconos.js";
 import { esc, colorTipo, colorUniverso } from "./inicio.js";
 import { DIAS, DIAS_CORTOS, bloquesDe, bloquesFecha, pendientesCon, cuandoTexto, duracion, hhmm, MODOS } from "./contexto.js";
-import { leer, todo } from "./almacen.js";
+import { leer, todo, sesion as sesionLeer } from "./almacen.js";
 import { datosFinanzas, resumenMes } from "./finanzas.js";
 import { linkHoja } from "./hoja.js";
 import { ultimaSincro, activa as sincroActiva } from "./sincro.js";
@@ -194,7 +194,12 @@ const PAGINAS = {
         <div class="nota">${d.saldo != null && d.cuota ? (d.tipo === "tarjeta" ? "Mínimo " : "Cuota ") + $(d.cuota) + " · " : ""}${d.vence ? "vence " + esc(d.vence) + " · " : ""}${esc(d.nota || "")}<br>Fuente: ${esc(d.fuente || "?")}${d.al ? ", al " + esc(d.al) : ""}.</div></div>`).join("")}
         ${(() => { const caras = fin.deudas.filter((d) => d.tasa > 0 && d.saldo > 0); const costo = caras.reduce((s, d) => s + d.saldo * d.tasa / 100, 0); return costo ? `<p class="fuente-dato">Lo que cuesta no bajar las tarjetas: unos ${$(costo)} por mes de intereses, al ritmo de hoy.</p>` : ""; })()}</section>` : "";
 
-    return `${bloqueEconomia(ctx, $)}${cabeza}${revisar}${topes}${rubros}
+    const dl = leer("dolar");
+    const dolar = dl?.oficial ? `<section class="bloque"><h2>Dólar hoy <span class="tag">dolarapi.com</span></h2><div class="trio">
+        <div><span class="k">Oficial</span><b>$ ${Math.round(dl.oficial.venta).toLocaleString("es-AR")}</b></div>
+        <div><span class="k">MEP</span><b>$ ${Math.round(dl.mep?.venta || 0).toLocaleString("es-AR")}</b></div>
+        <div><span class="k">Blue</span><b>${dl.blue ? "$ " + Math.round(dl.blue.venta).toLocaleString("es-AR") : "—"}</b></div></div></section>` : "";
+    return `${bloqueEconomia(ctx, $)}${cabeza}${dolar}${revisar}${topes}${rubros}
       <section class="bloque"><h2>Vencimientos ${datos.agenda ? "" : '<span class="ejemplo">Ejemplo</span>'}</h2><ul class="lista">${venc.map((d) => `<li style="align-items:flex-start"><span style="display:flex;flex-direction:column;gap:4px;min-width:0"><span>${esc(d.titulo)}${d.vernet ? ' <span class="tag">Vernet</span>' : ""}${d.nota ? ` <span class="tag">${esc(d.nota)}</span>` : ""}</span>${d.monto ? `<b>${esc(d.monto)}</b>` : ""}<span class="der ${d.dias <= 7 && !d.vernet ? "rojo" : ""}" style="font-size:17px">${cuandoTexto(d.dias)}</span></span>
         <button class="hecho" style="margin:0" data-accion="hecho" data-clave="${esc(d.clave)}" aria-label="Marcar ${esc(d.titulo)} como hecho">${ICONOS.check}</button></li>`).join("") || '<li class="vacio">Nada pendiente.</li>'}</ul>
         ${leer("hechos", []).length ? '<button class="link" style="margin-top:12px;font-size:13px" data-accion="deshacer-hechos">Volver a mostrar los marcados como hechos</button>' : ""}</section>
@@ -228,10 +233,15 @@ export function renderBloqueo(id, conHuella, conPin) {
 // ---------- Secciones ----------
 export function renderIdeas() {
   const ideas = leer("ideas", []);
-  return `<div class="pagina">${volver}<h1>Ideas</h1><p class="bajada">Todo lo que se te cruza. Una vez por semana las ordeno y te marco las que se repiten.</p>
-    <form class="form" data-form="idea"><input name="t" placeholder="Anotá algo" aria-label="Nueva idea" required><button class="btn">Guardar</button></form>
-    <ul class="lista" style="margin-top:20px">${ideas.slice().reverse().map((i) => `<li><span>${esc(i.t)}</span><span class="tag">${esc(i.u || i.f)}</span></li>`).join("") || '<li class="vacio">Todavía no hay ideas.</li>'}</ul>
-    ${pronto("Voz y fotos", "Las notas de voz y las fotos llegan en la próxima versión.")}</div>`;
+  const tags = [...new Set(ideas.flatMap((i) => i.tags || []))].sort();
+  const filtro = sesionLeer("tagIdea");
+  const lista = ideas.slice().reverse().filter((i) => !filtro || (i.tags || []).includes(filtro));
+  const dictar = ("webkitSpeechRecognition" in window || "SpeechRecognition" in window)
+    ? `<button type="button" class="btn sec" data-accion="dictar" aria-label="Dictar una idea" style="display:inline-flex;align-items:center;gap:6px;padding:0 14px"><span style="width:18px;height:18px;display:inline-flex">${ICONOS.mic}</span><span>Dictar</span></button>` : "";
+  return `<div class="pagina">${volver}<h1>Ideas</h1><p class="bajada">Todo lo que se te cruza. Sumá #etiquetas para encontrarlas después.</p>
+    <form class="form" data-form="idea"><input name="t" placeholder="Anotá algo #etiqueta" aria-label="Nueva idea" required>${dictar}<button class="btn">Guardar</button></form>
+    ${tags.length ? `<div class="chips" style="margin-top:14px"><button class="chip ${!filtro ? "on" : ""}" data-accion="idea-tag" data-tag="">Todas</button>${tags.map((t) => `<button class="chip ${filtro === t ? "on" : ""}" data-accion="idea-tag" data-tag="${esc(t)}">#${esc(t)}</button>`).join("")}</div>` : ""}
+    <ul class="lista" style="margin-top:20px">${lista.map((i) => `<li><span>${esc(i.t)}</span><span class="tag">${esc(i.u || i.f)}</span></li>`).join("") || '<li class="vacio">Todavía no hay ideas.</li>'}</ul></div>`;
 }
 
 export function renderAgenda(datos, ctx, tema) {

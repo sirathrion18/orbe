@@ -3,10 +3,13 @@ import { cargarDatos, cargarClima, mezclar } from "./fuente.js";
 import * as G from "./google.js";
 import { construirContexto } from "./contexto.js";
 import { renderInicio, despuesInicio, esc, colorUniverso } from "./inicio.js";
+import { ICONOS } from "./iconos.js";
 import { renderUniverso, renderBloqueo, renderIdeas, renderAgenda, renderRespiro, renderDatos, renderAjustes, renderNovedades, renderNoEncontrado, hojaMovimiento } from "./paginas.js";
 import { sincronizar, activa as sincroActiva } from "./sincro.js";
 import { leerPlanilla, traerMails, corregir, datosFinanzas } from "./finanzas.js";
 import { fijarHoja, idHoja } from "./hoja.js";
+import { traerDolar, traerRiver } from "./extras.js";
+import { responder } from "./preguntas.js";
 import { fijarEconomia, leerEconomia, datosEconomia, idEconomia } from "./economia.js";
 import { huellaActiva, huellaDisponible, registrarHuella, verificarHuella, sacarHuella } from "./huella.js";
 import { UNIVERSOS, SECCIONES } from "./config.js";
@@ -127,6 +130,8 @@ function resultados(q) {
   const n = normal(q);
   const out = [];
   const cmd = comando(q);
+  const resp = responder(q, estado);
+  if (resp) out.push({ respuesta: true, texto: resp.texto, extra: resp.extra || "", href: resp.href || "#/u/finanzas" });
   if (cmd && cmd.tipo === "gasto") out.push({ cmd, texto: `Guardar gasto de $ ${cmd.monto.toLocaleString("es-AR")} · ${cmd.desc}`, extra: "Enter" });
   if (cmd && cmd.tipo === "idea") out.push({ cmd, texto: `Guardar idea: ${cmd.texto}`, extra: "Enter" });
   UNIVERSOS.forEach((u) => { if (normal(u.nombre + " " + u.palabras).includes(n)) out.push({ href: "#/u/" + u.id, texto: u.nombre, extra: "Universo" }); });
@@ -151,7 +156,9 @@ function conectarBuscador() {
     const q = input.value.trim();
     if (!q) { caja.classList.remove("on"); caja.innerHTML = ""; return; }
     lista = resultados(q); sel = 0;
-    caja.innerHTML = lista.map((r, i) => r.cmd
+    caja.innerHTML = lista.map((r, i) => r.respuesta
+      ? `<a class="res resp ${i === sel ? "sel" : ""}" role="option" data-i="${i}" href="${esc(r.href)}">${r.texto}<small>${esc(r.extra)}</small></a>`
+      : r.cmd
       ? `<button class="res cmd ${i === sel ? "sel" : ""}" role="option" data-i="${i}">${esc(r.texto)}<small>${r.extra}</small></button>`
       : `<a class="res ${i === sel ? "sel" : ""}" role="option" data-i="${i}" href="${esc(r.href)}" ${r.ext ? 'target="_blank" rel="noopener"' : ""}>${esc(r.texto)}<small>${r.extra}</small></a>`).join("");
     caja.classList.toggle("on", lista.length > 0);
@@ -189,7 +196,8 @@ function ejecutarComando(cmd) {
 
 function guardarIdea(t, u) {
   const ideas = leer("ideas", []);
-  ideas.push({ t, u, f: new Date().toLocaleDateString("es-AR") });
+  const tags = [...new Set((t.match(/#[\wáéíóúñ]+/gi) || []).map((x) => x.slice(1).toLowerCase()))];
+  ideas.push({ t, u, f: new Date().toLocaleDateString("es-AR"), tags });
   guardar("ideas", ideas);
   avisar("Idea guardada");
 }
@@ -211,7 +219,8 @@ function abrirHojaIdea() {
   const velo = document.createElement("div"); velo.className = "velo on"; velo.dataset.accion = "cerrar-hoja";
   const hoja = document.createElement("div"); hoja.className = "hoja"; hoja.setAttribute("role", "dialog"); hoja.setAttribute("aria-label", "Anotar una idea");
   hoja.innerHTML = `<h2>Una idea</h2><form data-form="idea-hoja">
-    <label class="sr" for="idea-txt">Idea</label><textarea id="idea-txt" name="t" class="campo-texto" placeholder="Lo que se te cruce" required></textarea>
+    <label class="sr" for="idea-txt">Idea</label><textarea id="idea-txt" name="t" class="campo-texto" placeholder="Lo que se te cruce. Sumá #etiquetas si querés." required></textarea>
+    ${("webkitSpeechRecognition" in window || "SpeechRecognition" in window) ? '<button type="button" class="btn sec dictar" data-accion="dictar" style="margin-top:8px;display:inline-flex;gap:8px;align-items:center"><span style="width:18px;height:18px;display:inline-flex">' + ICONOS.mic + '</span>Dictar</button>' : ""}
     <div class="grupo"><span>Universo (opcional)</span><div class="chips">${UNIVERSOS.map((u) => `<label class="chip"><input type="radio" name="u" value="${u.nombre}" class="sr">${esc(u.nombre)}</label>`).join("")}</div></div>
     <div class="grupo" style="display:flex;gap:10px"><button type="button" class="btn sec" data-accion="cerrar-hoja" style="flex:1">Cancelar</button><button class="btn" style="flex:2">Guardar</button></div></form>`;
   document.body.append(velo, hoja);
@@ -293,6 +302,18 @@ document.addEventListener("click", (e) => {
     avisar("Marcado como hecho"); pintar(true);
   }
   else if (a === "deshacer-hechos") { guardar("hechos", []); pintar(true); }
+  else if (a === "dictar") {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const campo = el.closest("form")?.querySelector("textarea, input[name=t]");
+    if (!SR || !campo) return;
+    const rec = new SR(); rec.lang = "es-AR"; rec.interimResults = false;
+    el.classList.add("escuchando"); el.lastChild.textContent = "Escuchando…";
+    rec.onresult = (ev) => { campo.value = (campo.value ? campo.value + " " : "") + ev.results[0][0].transcript; };
+    rec.onend = () => { el.classList.remove("escuchando"); el.lastChild.textContent = "Dictar"; campo.focus(); };
+    rec.onerror = () => avisar("No te escuché: probá de nuevo");
+    rec.start();
+  }
+  else if (a === "idea-tag") { sesion("tagIdea", el.dataset.tag || null); pintar(true); }
   else if (a === "huella-activar") {
     huellaDisponible().then(async (ok) => {
       if (!ok) { avisar("Este dispositivo no tiene lector de huella disponible"); return; }
@@ -380,7 +401,9 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape") cerrarHoja
 
 // Al volver a Orbe, refresca la agenda si la sesión de Google sigue abierta.
 document.addEventListener("visibilitychange", async () => {
-  if (document.visibilityState !== "visible" || !estado.datos) return;
+  // Al salir de Orbe, Finanzas y BNA se vuelven a bloquear.
+  if (document.visibilityState === "hidden") { UNIVERSOS.forEach((u) => u.bloqueo && sesion("abierto-" + u.id, null)); return; }
+  if (!estado.datos) return;
   pintar(true);
   const ag = leer("agenda");
   if (!ag || Date.now() - ag.cuando > 5 * 60000) await refrescarAgenda();
@@ -430,6 +453,7 @@ const estadoParte = (parte, error, nota) => {
 };
 
 async function refrescarTodo(forzar = false) {
+  Promise.all([traerDolar(), traerRiver()]).then(() => pintar(true)).catch(() => {});
   if (!sincroActiva()) return { ok: true };
   const fallas = [];
   try { const cambio = await sincronizar(); estadoParte("sincro"); if (cambio) pintar(true); }
