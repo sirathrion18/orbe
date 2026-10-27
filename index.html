@@ -2,6 +2,8 @@
 <html lang="es-AR" data-theme="claro">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://accounts.google.com/gsi/client; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com/gsi/style; font-src https://fonts.gstatic.com; img-src 'self' data: https://*.googleusercontent.com; connect-src 'self' https://api.open-meteo.com https://www.googleapis.com https://oauth2.googleapis.com https://accounts.google.com/gsi/; frame-src https://accounts.google.com/gsi/; manifest-src 'self'; worker-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'">
+<meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Orbe</title>
 <meta name="description" content="Orbe, un sistema operativo personal.">
@@ -15,16 +17,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/orbe.css">
-<script>
-  // Tema antes de pintar, para que no parpadee.
-  try {
-    var t = JSON.parse(localStorage.getItem("orbe.tema") || "{}");
-    var h = new Date().getHours();
-    var auto = h >= 7 && h < 19 ? "claro" : "oscuro";
-    var activo = (t.modo === "claro" || t.modo === "oscuro") && (!t.hasta || Date.now() < t.hasta) ? t.modo : auto;
-    document.documentElement.dataset.theme = activo;
-  } catch (e) {}
-</script>
+<script src="js/tema-temprano.js"></script>
 </head>
 <body>
 <main class="app" id="app">

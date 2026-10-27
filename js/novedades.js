@@ -1,6 +1,16 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.2.1",
+    fecha: "27/10/2026",
+    titulo: "Más seguridad.",
+    cambios: [
+      "Lista blanca: Orbe solo puede conectarse con Google, el servicio del clima y las tipografías. Cualquier otra conexión queda bloqueada.",
+      "Orbe no le cuenta a otros sitios desde dónde llegaste.",
+      "Conexión con Google lista para usar desde Ajustes."
+    ]
+  },
+  {
     version: "0.2.0",
     fecha: "27/10/2026",
     titulo: "Orbe se conecta con Google.",

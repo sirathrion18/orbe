@@ -1,5 +1,13 @@
 # Novedades de Orbe
 
+## v0.2.1 · 27/10/2026
+
+Más seguridad.
+
+- Lista blanca (Content Security Policy): solo Google, Open-Meteo y Google Fonts.
+- Sin referer hacia otros sitios.
+- Conexión con Google lista para usar desde Ajustes.
+
 ## v0.2.0 · 27/10/2026
 
 Orbe se conecta con Google.
