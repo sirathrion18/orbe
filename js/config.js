@@ -1,6 +1,6 @@
 // Estructura de Orbe: qué universos hay y qué trae cada uno.
 // Esto es diseño, no datos: no hay nada personal acá.
-export const VERSION = "0.9.0";
+export const VERSION = "0.9.1";
 
 // ID de cliente de Google (es público por diseño: no es una contraseña).
 // Se crea en Google Cloud con el origen https://orbe-5es.pages.dev
@@ -19,7 +19,7 @@ export const UNIVERSOS = [
   { id: "bienestar", nombre: "Bienestar", corto: "Salud", color: "tipo:gym", bloqueo: true,
     bajada: "Pasos, fútbol, gym, comida y un rato para respirar.",
     palabras: "pasos futbol gym salud meditar meditacion sueño" },
-  { id: "finanzas", nombre: "Finanzas", corto: "Plata", color: "#D99A2B", bloqueo: true,
+  { id: "finanzas", nombre: "Finanzas", corto: "Finanzas", color: "#EE7B30", bloqueo: true,
     bajada: "Tu plata al día: disponible, tarjetas, gastos y promos.",
     palabras: "plata gastos tarjetas deuda promos disponible pizarra" },
   { id: "proyectos", nombre: "Proyectos", corto: "Proy.", color: "texto",

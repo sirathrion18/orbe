@@ -1,7 +1,7 @@
 /* Orbe — estilos. Los colores son "roles": cada tema los resuelve a su manera. */
 :root {
   --bg: #FFFFFF; --text: #111113; --muted: #5F5F66; --tile: #F4F4F5; --line: #E4E4E8;
-  --track: #E6E6EA; --accent: #C8102E; --urg-bg: #FBECEE; --gold: #B97F14; --gold-bar: #D99A2B;
+  --track: #E6E6EA; --accent: #C8102E; --urg-bg: #FBECEE; --gold: #B97F14; --gold-bar: #EE7B30;
   --sheet: #FFFFFF; --shadow: 0 12px 40px rgba(17, 17, 19, .12);
   --serif: "Instrument Serif", Georgia, serif;
   --sans: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -9,7 +9,7 @@
 }
 :root[data-theme="oscuro"] {
   --bg: #0B0B0C; --text: #F2F2F0; --muted: #A1A1A6; --tile: #161618; --line: #2A2A2E;
-  --track: #26262A; --accent: #F87171; --urg-bg: #2A1517; --gold: #E8B44E; --gold-bar: #D99A2B;
+  --track: #26262A; --accent: #F87171; --urg-bg: #2A1517; --gold: #E8B44E; --gold-bar: #EE7B30;
   --sheet: #18181B; --shadow: 0 12px 40px rgba(0, 0, 0, .5);
   color-scheme: dark;
 }
@@ -338,3 +338,9 @@ input[type="time"]::-webkit-date-and-time-value { text-align: left; }
 }
 .mas summary { margin-top: 12px; font-size: 13px; color: var(--muted); cursor: pointer; list-style: none; text-decoration: underline; }
 .mas summary::-webkit-details-marker { display: none; }
+.estado { font-size: 13px; font-weight: 600; white-space: nowrap; }
+.estado.ok { color: #2E9E6A; }
+.estado.mal { color: var(--accent); }
+@keyframes girar { to { transform: rotate(360deg); } }
+.girando svg { animation: girar .9s linear infinite; }
+.top .der { gap: 8px; }

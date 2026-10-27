@@ -1,5 +1,14 @@
 # Novedades de Orbe
 
+## v0.9.1 · 27/10/2026
+
+Un botón para actualizar todo.
+
+- Botón ↻ arriba en Inicio (y «Actualizar todo» en Ajustes): trae agenda, sincronización, mails y ECONOMÍA de una.
+- Además se pone al día solo al abrir, al volver a la app y cada 5 minutos.
+- Ajustes dice qué anda y qué no, parte por parte (agenda, celu y compu, ECONOMÍA, mails), con el motivo real y el botón para arreglarlo.
+- La barra de abajo dice «Finanzas» y Finanzas pasa a naranja, para no confundirse con el azul del BNA.
+
 ## v0.9.0 · 27/10/2026
 
 Más compacto, y tu planilla ECONOMÍA adentro.

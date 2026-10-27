@@ -37,7 +37,7 @@ export async function onRequestPost({ request, env }) {
   const desde = Math.max(0, Math.floor(Number(cuerpo.desde || 0) / 1000));
 
   const { ok, t } = await paseDe(env, s.rt, [GMAIL]);
-  if (!ok) return json({ error: t.error === "invalid_grant" ? "reconectar" : "google" }, 401);
+  if (!ok) return json({ error: t.error === "invalid_grant" ? "reconectar" : "google", detalle: String(t.error_description || t.error || "").slice(0, 160) }, t.error === "invalid_grant" ? 401 : 502);
   const auth = { headers: { Authorization: "Bearer " + t.access_token } };
 
   // Lista (de más nuevo a más viejo) y la doy vuelta para procesar desde lo más viejo.
@@ -49,7 +49,9 @@ export async function onRequestPost({ request, env }) {
     if (!r.ok) {
       const txt = await r.text().catch(() => "");
       const apagada = r.status === 403 && /has not been used|is disabled|SERVICE_DISABLED|accessNotConfigured/i.test(txt);
-      return json({ error: apagada ? "api-apagada:gmail" : "gmail", status: r.status }, 502);
+      let detalle = "";
+      try { detalle = String(JSON.parse(txt).error?.message || "").slice(0, 160); } catch (e) { /* sin detalle */ }
+      return json({ error: apagada ? "api-apagada:gmail" : "gmail", status: r.status, detalle }, 502);
     }
     const j = await r.json();
     (j.messages || []).forEach((m) => ids.push(m.id));

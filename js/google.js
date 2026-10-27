@@ -69,7 +69,7 @@ export async function servidor(ruta, cuerpo) {
   const r = await fetch(ruta, { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cuerpo || {}) });
   const j = await r.json().catch(() => ({}));
   if (r.status === 401) { estadoSesion = "reconectar"; throw new Error("reconectar"); }
-  if (!r.ok) throw new Error(j.error || "servidor " + r.status);
+  if (!r.ok) throw new Error((j.error || "servidor " + r.status) + (j.status ? " " + j.status : "") + (j.detalle ? " — " + j.detalle : ""));
   return j;
 }
 

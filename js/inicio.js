@@ -281,7 +281,7 @@ function pieAgenda(datos) {
   if (!datos.agenda) return '<button class="link" data-accion="google-actualizar">leer la agenda</button>';
   const min = Math.round((Date.now() - datos.agenda.cuando) / 60000);
   const hace = min < 1 ? "recién" : min < 60 ? "hace " + min + " min" : min < 1440 ? "hace " + Math.round(min / 60) + " h" : "hace " + Math.round(min / 1440) + " días";
-  return "agenda " + hace + ' · <button class="link" data-accion="google-actualizar">actualizar</button>';
+  return "actualizado " + hace + ' · <button class="link" data-accion="actualizar-todo">actualizar todo</button>';
 }
 
 // ---------- Pantalla ----------
@@ -296,6 +296,7 @@ export function renderInicio(datos, ctx, clima, tema) {
     <div class="col-a">
       <div class="top"><span>${fechaTxt}${ctx.demo ? ' <a class="ejemplo" href="#/ajustes" style="text-decoration:none">Prueba</a>' : ""}</span>
         <span class="der"><span id="reloj">${hhmm(ctx.min)}</span>
+          <button class="icon-btn" data-accion="actualizar-todo" aria-label="Actualizar todo">${ICONOS.recargar}</button>
           <button class="icon-btn" data-accion="tema" aria-label="Pasar a modo ${tema === "oscuro" ? "claro" : "oscuro"}">${temaIcono}</button>
           <a class="icon-btn" href="#/ajustes" aria-label="Ajustes">${ICONOS.ajustes}</a></span></div>
       <div class="saludo"><h1>${elegirSaludo(datos, ctx, clima)}</h1><p>${esc(bajada(ctx))}</p></div>

@@ -79,7 +79,7 @@ function pintar(refresco = false) {
   else if (r === "/ajustes") {
     const ag = leer("agenda");
     html = renderAjustes(estadoTema(), demo, !!leer("pin"), {
-      configurado: G.configurado(), cuenta: G.cuenta(), estado: G.estadoSesion, permisos: G.permisos(), hoja: idHoja(), huella: huellaActiva(), error: leer("errorSincro"),
+      configurado: G.configurado(), cuenta: G.cuenta(), estado: G.estadoSesion, permisos: G.permisos(), hoja: idHoja(), huella: huellaActiva(), estadoAct: leer("estadoAct", {}),
       aviso: AVISOS_GOOGLE[new URLSearchParams(location.hash.split("?")[1] || "").get("google")] || null,
       agenda: ag ? new Date(ag.cuando).toLocaleString("es-AR", { weekday: "long", hour: "2-digit", minute: "2-digit" }) : null
     });
@@ -272,15 +272,15 @@ document.addEventListener("click", (e) => {
   else if (a === "super-borrar") { const l = leer("super", []); l.splice(Number(el.dataset.i), 1); guardar("super", l); pintar(); }
   else if (a === "medita") meditar(Number(el.dataset.min));
   else if (a === "medita-parar") { clearInterval(timerMedita); meditar(0); const r = document.getElementById("medita-reloj"); if (r) r.textContent = "05:00"; }
-  else if (a === "google-conectar" || a === "google-actualizar") conectarGoogle(a === "google-actualizar");
+  else if (a === "google-conectar") conectarGoogle(false);
+  else if (a === "google-actualizar" || a === "actualizar-todo") actualizarTodo(true);
   else if (a === "google-salir") { G.desconectar().then(recargarDatos); avisar("Google desconectado"); }
   else if (a === "google-reconectar") G.conectar();
   else if (a === "activar-todo") G.conectar(true);
   else if (a === "fuente") {
     const f = leer("fuentes", {}); f[el.dataset.grupo] = el.dataset.valor; guardar("fuentes", f); vibrar(); pintar(true);
   }
-  else if (a === "sincronizar") { avisar("Sincronizando…"); refrescarTodo(true).then((ok) => avisar(ok ? "Todo al día" : "No se pudo sincronizar")); }
-  else if (a === "fin-actualizar") { actualizarFinanzas(true); if (idEconomia()) leerEconomia().then(() => pintar(true)).catch(() => {}); }
+  else if (a === "sincronizar" || a === "fin-actualizar") actualizarTodo(true);
   else if (a === "copiar") {
     navigator.clipboard?.writeText(el.dataset.texto).then(() => avisar("Copiado: " + el.dataset.texto), () => avisar(el.dataset.texto));
   }
@@ -416,55 +416,82 @@ async function conectarGoogle(soloActualizar) {
 // Trae la agenda en silencio usando la sesión del servidor. Si hace falta reconectar, Inicio muestra la franja.
 async function refrescarAgenda() {
   if (!G.cuenta() && G.estadoSesion !== "desconocido") return;
-  try { await G.leerAgenda(); await recargarDatos(); }
-  catch (e) { pintar(true); }
+  try { await G.leerAgenda(); estadoParte("agenda"); await recargarDatos(); }
+  catch (e) { estadoParte("agenda", e.message); pintar(true); }
 }
 
 // ---------- Sincronización y finanzas ----------
-// Trae lo del otro dispositivo y, cada tanto, los mails nuevos de plata.
+// Todo se actualiza solo: al abrir, al volver a Orbe y cada 5 minutos. El botón ↻ fuerza todo junto.
+// El estado de cada parte queda guardado para que Ajustes diga exactamente qué anda y qué no.
+const estadoParte = (parte, error) => {
+  const e = leer("estadoAct", {});
+  e[parte] = error ? { msj: error, cuando: Date.now() } : { ok: Date.now() };
+  guardar("estadoAct", e, true);
+};
+
 async function refrescarTodo(forzar = false) {
-  if (!sincroActiva()) return false;
-  try {
-    const cambio = await sincronizar();
-    borrar("errorSincro");
-    if (cambio) pintar(true);
-    await actualizarFinanzas(false, forzar);
-    const eco = datosEconomia();
-    if (idEconomia() && (forzar || !eco || Date.now() - eco.cuando > 10 * 60000)) { await leerEconomia(); pintar(true); }
-    return true;
-  } catch (e) {
-    guardar("errorSincro", { msj: e.message, cuando: Date.now() }, true);
-    avisar(textoError(e.message));
-    if (ruta() === "/ajustes") pintar(true);
-    return false;
+  if (!sincroActiva()) return { ok: true };
+  const fallas = [];
+  try { const cambio = await sincronizar(); estadoParte("sincro"); if (cambio) pintar(true); }
+  catch (e) { estadoParte("sincro", e.message); fallas.push(["sincro", e.message]); }
+  if (!fallas.length) {
+    try { await actualizarFinanzas(forzar); estadoParte("mails"); }
+    catch (e) { estadoParte("mails", e.message); fallas.push(["mails", e.message]); }
+    if (idEconomia()) {
+      const eco = datosEconomia();
+      if (forzar || !eco || Date.now() - eco.cuando > 10 * 60000) {
+        try { await leerEconomia(); estadoParte("economia"); }
+        catch (e) { estadoParte("economia", e.message); fallas.push(["economia", e.message]); }
+      }
+    }
   }
+  pintar(true);
+  return { ok: !fallas.length, fallas };
 }
 
+const NOMBRE_PARTE = { sincro: "la sincronización", mails: "los mails", economia: "ECONOMÍA", agenda: "la agenda" };
 export function textoError(m) {
-  if (m === "reconectar") return "Hay que volver a conectar con Google";
-  if (m === "api-apagada:sheets") return "Falta prender el servicio de planillas en Google Cloud (Ajustes)";
-  if (m === "api-apagada:gmail") return "Falta prender el servicio de Gmail en Google Cloud (Ajustes)";
-  if (m === "permiso") return "Google no dio permiso: Ajustes → Dar permiso";
-  if (m === "no-existe") return "No encuentro la planilla: revisá el link en Ajustes";
-  return "No se pudo sincronizar";
+  m = String(m || "");
+  if (m === "reconectar" || m.startsWith("reconectar")) return "hay que volver a conectar con Google";
+  if (m.startsWith("api-apagada:sheets")) return "falta prender el servicio de planillas en Google Cloud";
+  if (m.startsWith("api-apagada:gmail")) return "falta prender el servicio de Gmail en Google Cloud";
+  if (m === "permiso" || m.startsWith("permiso")) return "Google no dio permiso";
+  if (m === "no-existe") return "no encuentro la planilla";
+  return m;
+}
+
+let actualizando = false;
+async function actualizarTodo(aMano) {
+  if (actualizando) return;
+  actualizando = true;
+  document.querySelectorAll('[data-accion="actualizar-todo"]').forEach((b) => b.classList.add("girando"));
+  if (aMano) avisar("Actualizando todo…");
+  const fallas = [];
+  try { await G.leerAgenda(); estadoParte("agenda"); await recargarDatos(); }
+  catch (e) { estadoParte("agenda", e.message); fallas.push(["agenda", e.message]); }
+  if (G.estadoSesion !== "reconectar") {
+    const r = await refrescarTodo(true);
+    fallas.push(...(r.fallas || []));
+  }
+  actualizando = false;
+  document.querySelectorAll(".girando").forEach((b) => b.classList.remove("girando"));
+  pintar(true);
+  if (aMano) avisar(!fallas.length ? "Todo al día" : "Al día, salvo " + fallas.map(([p, m]) => NOMBRE_PARTE[p] + " (" + textoError(m) + ")").join(" y "));
 }
 
 let finEnCurso = false;
-async function actualizarFinanzas(aMano, forzar) {
+async function actualizarFinanzas(forzar) {
   if (!sincroActiva() || finEnCurso) return;
   const fin = datosFinanzas();
-  if (!aMano && !forzar && fin && Date.now() - fin.cuando < 10 * 60000) return;
+  if (!forzar && fin && Date.now() - fin.cuando < 10 * 60000) return;
   finEnCurso = true;
   try {
-    if (aMano) avisar("Leyendo tus mails…");
-    const nuevos = G.permisos().gmail ? await traerMails() : (await leerPlanilla(), 0);
-    pintar(true);
-    if (aMano) avisar(nuevos ? nuevos + (nuevos === 1 ? " movimiento nuevo" : " movimientos nuevos") : "No hay movimientos nuevos");
-  } catch (e) {
-    guardar("errorSincro", { msj: e.message, cuando: Date.now() }, true);
-    if (aMano) avisar(textoError(e.message));
+    if (G.permisos().gmail) await traerMails(); else await leerPlanilla();
   } finally { finEnCurso = false; }
 }
+
+// Cada 5 minutos, si Orbe está a la vista, se pone al día solo.
+setInterval(() => { if (document.visibilityState === "visible" && !actualizando) actualizarTodo(false); }, 5 * 60000);
 
 // Un link con ?hoja=ID deja la planilla configurada en este dispositivo.
 function leerHojaDelLink() {

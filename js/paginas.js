@@ -274,6 +274,23 @@ const SALUDOS_F = [["revista", "Revista", "Serif"], ["cursiva", "Cursiva", "Seri
 const FAMILIA = { logo: "var(--sans);font-weight:600;letter-spacing:-.045em", revista: "var(--serif)", fina: "var(--sans);font-weight:300", mono: "ui-monospace,monospace;letter-spacing:-.06em",
   cursiva: "var(--serif);font-style:italic" };
 
+// Qué anda y qué no, parte por parte, con el motivo y el arreglo cuando lo hay.
+const PARTES = [["agenda", "Agenda"], ["sincro", "Celu y compu"], ["economia", "Planilla ECONOMÍA"], ["mails", "Mails del BNA y Mercado Pago"]];
+function estadoPartes(est) {
+  const hace = (t) => { const m = Math.round((Date.now() - t) / 60000); return m < 1 ? "recién" : m < 60 ? "hace " + m + " min" : "hace " + Math.round(m / 60) + " h"; };
+  const filas = PARTES.filter(([k]) => est[k]).map(([k, n]) => {
+    const e = est[k];
+    if (e.ok) return `<li><span>${n}</span><span class="estado ok">✓ ${hace(e.ok)}</span></li>`;
+    const apagada = /api-apagada:(sheets|gmail)/.exec(e.msj || "");
+    const sinPermiso = /insufficient|scope|permiso/i.test(e.msj || "");
+    const arreglo = sinPermiso && !apagada ? `<button class="btn" style="margin-top:8px" data-accion="activar-todo">Volver a dar permiso</button><span class="vacio" style="font-size:12px">En la pantalla de Google, tildá todas las casillas (sobre todo la de Gmail).</span>`
+      : apagada ? `<a class="chip" style="margin-top:8px;display:inline-block" target="_blank" rel="noopener" href="https://console.cloud.google.com/apis/library/${apagada[1]}.googleapis.com?project=orbe-512903">Prender el servicio de ${apagada[1] === "sheets" ? "planillas" : "Gmail"}</a>` : "";
+    return `<li style="flex-direction:column;align-items:flex-start;gap:4px"><span style="display:flex;justify-content:space-between;width:100%"><span>${n}</span><span class="estado mal">no anda</span></span>
+      <span class="vacio" style="font-size:12px;word-break:break-word">${esc(apagada ? "Falta prender el servicio en Google Cloud, una sola vez." : sinPermiso ? "Google no le dio a Orbe el permiso de leer los mails." : e.msj)}</span>${arreglo}</li>`;
+  });
+  return filas.length ? `<ul class="lista">${filas.join("")}</ul>` : '<p class="vacio">Todavía no se actualizó nada en este dispositivo.</p>';
+}
+
 export function renderAjustes(estadoTema, demo, hayPin, google) {
   const tema = estadoTema.modo;
   const f = { reloj: "logo", saludo: "revista", ...leer("fuentes", {}) };
@@ -283,7 +300,7 @@ export function renderAjustes(estadoTema, demo, hayPin, google) {
   const tarjeta = !google.configurado ? '<p class="vacio">Falta un paso de configuración en Google Cloud para poder conectar.</p>'
     : google.cuenta && google.estado === "reconectar" ? `<p>Se cortó la conexión con <b>${esc(google.cuenta.email)}</b>.</p><div class="chips" style="margin-top:12px"><button class="btn" data-accion="google-reconectar">Reconectar</button><button class="btn sec" data-accion="google-salir">Desconectar</button></div>`
     : google.cuenta ? `<p>Conectado como <b>${esc(google.cuenta.email)}</b>.</p><p class="vacio" style="margin-top:6px;font-size:13px">${google.agenda ? "Agenda actualizada " + esc(google.agenda) + "." : "Todavía no se leyó la agenda."}</p>
-        <div class="chips" style="margin-top:12px"><button class="btn" data-accion="google-actualizar">Actualizar agenda</button><button class="btn sec" data-accion="google-salir">Desconectar</button></div>`
+        <div class="chips" style="margin-top:12px"><button class="btn" data-accion="actualizar-todo">Actualizar todo</button><button class="btn sec" data-accion="google-salir">Desconectar</button></div>`
     : '<p>Conectá tu Google para que el anillo, lo urgente y la agenda salgan de tu calendario real.</p><div class="chips" style="margin-top:12px"><button class="btn" data-accion="google-conectar">Conectar con Google</button></div>';
   const muestra = (grupo, [k, n, d]) => `<button class="muestra ${f[grupo] === k ? "on" : ""}" data-accion="fuente" data-grupo="${grupo}" data-valor="${k}" aria-pressed="${f[grupo] === k}">
       <b style="font-family:${FAMILIA[k]}">${grupo === "reloj" ? "10:24" : "Buen día"}</b><small>${n} · ${d}</small></button>`;
@@ -299,13 +316,9 @@ export function renderAjustes(estadoTema, demo, hayPin, google) {
           <p class="vacio" style="margin-top:12px;font-size:12px">Google va a pedirte ver tus mails (solo lectura: Orbe nunca escribe ni borra) y editar planillas (Orbe solo toca su planilla «Orbe · datos»). El texto de los mails no sale del servidor de Orbe.</p>`
         : !google.hoja ? `<p>Pegá el link de tu planilla <b>Orbe · datos</b> (está en Drive, en Herramientas de IA → Orbe). Se hace una vez en cada dispositivo.</p>
           <form class="form" data-form="hoja"><input name="link" placeholder="https://docs.google.com/spreadsheets/d/…" aria-label="Link de la planilla" required><button class="btn">Listo</button></form>`
-        : google.error ? `<p style="color:var(--accent)"><b>No se pudo sincronizar.</b></p>
-          ${/api-apagada/.test(google.error.msj) ? `<p style="margin-top:8px">Falta prender un servicio en Google Cloud, una sola vez. Tocá cada link y después <b>Habilitar</b>:</p>
-            <div class="chips" style="margin-top:10px"><a class="chip" target="_blank" rel="noopener" href="https://console.cloud.google.com/apis/library/sheets.googleapis.com?project=orbe-512903">Planillas (Sheets)</a><a class="chip" target="_blank" rel="noopener" href="https://console.cloud.google.com/apis/library/gmail.googleapis.com?project=orbe-512903">Gmail</a></div>`
-            : `<p class="vacio" style="margin-top:6px">Motivo: ${esc(google.error.msj)}.</p>`}
-          <div class="chips" style="margin-top:12px"><button class="btn" data-accion="sincronizar">Probar de nuevo</button></div>`
-        : `<p>Sincronizado con tu planilla.${sinc ? ` <span class="vacio">Último envío: ${esc(new Date(sinc).toLocaleString("es-AR", { weekday: "long", hour: "2-digit", minute: "2-digit" }))}.</span>` : ""}</p>
-          <div class="chips" style="margin-top:12px"><button class="btn" data-accion="sincronizar">Sincronizar ahora</button><a class="chip" href="${esc(linkHoja())}" target="_blank" rel="noopener">Abrir la planilla</a></div>
+        : `${estadoPartes(google.estadoAct)}
+          <div class="chips" style="margin-top:12px"><a class="chip" href="${esc(linkHoja())}" target="_blank" rel="noopener">Abrir la planilla Orbe · datos</a></div>
+          <p class="vacio" style="margin-top:10px;font-size:12px">Se actualiza solo al abrir Orbe, al volver a la app y cada 5 minutos. Lo que cambiás se manda solo a la planilla en un par de segundos.</p>
           <p style="margin-top:16px">${idEconomia() ? "Tu planilla <b>ECONOMÍA</b> está conectada: Orbe la lee y nunca la modifica." : "Para ver tu planilla <b>ECONOMÍA</b> en Finanzas, pegá su link:"}</p>
           ${idEconomia() ? "" : '<form class="form" data-form="economia"><input name="link" placeholder="Link de ECONOMÍA" aria-label="Link de la planilla ECONOMÍA" required><button class="btn">Listo</button></form>'}`}
     </section>
