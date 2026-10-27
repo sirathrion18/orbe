@@ -21,6 +21,13 @@ export function mezclar(datos) {
     datos.pendientesEjemplo = datos.pendientes;
     datos.pendientes = agenda.pendientes;
   }
+  // Lo de tu planilla (AGUS y PROYECTOS) pisa a lo de ejemplo.
+  const listas = leer("listas");
+  if (listas) {
+    const viajes = (listas.agus || []).filter((x) => x.tipo === "viaje" && x.fecha).map((x) => ({ titulo: x.titulo, fecha: x.fecha.slice(0, 10), tipo: "viaje" }));
+    if (viajes.length) datos.fechas = viajes;
+    if ((listas.proyectos || []).length) datos.proyectos = listas.proyectos;
+  }
   return { datos, origen: agenda ? "google" : "ejemplo" };
 }
 

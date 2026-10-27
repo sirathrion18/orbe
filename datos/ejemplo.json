@@ -60,8 +60,6 @@
     { "id": "nexus", "nombre": "Nexus", "estado": "En marcha", "proximo": "Que corra sin ventana en la PC", "url": "", "repo": "" },
     { "id": "mateshka", "nombre": "Mateshka", "estado": "Activo", "proximo": "Feedback de Agus", "url": "https://sirathrion18.github.io/mateshka/", "repo": "https://github.com/sirathrion18/mateshka" },
     { "id": "linea", "nombre": "Línea Sagrada", "estado": "En pausa", "proximo": "Repensar la v1", "url": "", "repo": "https://github.com/sirathrion18/linea-sagrada" },
-    { "id": "orbe", "nombre": "Orbe", "estado": "Activo", "proximo": "Conectar Drive", "url": "https://orbe-5es.pages.dev/", "repo": "https://github.com/sirathrion18/orbe" },
-    { "id": "ntn", "nombre": "NTN", "estado": "Acceso", "proximo": "", "url": "", "repo": "" },
-    { "id": "sur", "nombre": "SUR lo-fi", "estado": "Acceso", "proximo": "", "url": "", "repo": "" }
+    { "id": "orbe", "nombre": "Orbe", "estado": "Activo", "proximo": "Conectar Drive", "url": "https://orbe-5es.pages.dev/", "repo": "https://github.com/sirathrion18/orbe" }
   ]
 }

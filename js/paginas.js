@@ -3,7 +3,9 @@ import { UNIVERSOS, PROMOS, PROMOS_SIEMPRE, VERSION } from "./config.js";
 import { NOVEDADES } from "./novedades.js";
 import { ICONOS, MARCA } from "./iconos.js";
 import { esc, colorTipo, colorUniverso } from "./inicio.js";
-import { DIAS, DIAS_CORTOS, bloquesDe, bloquesFecha, pendientesCon, cuandoTexto, duracion, hhmm, MODOS } from "./contexto.js";
+import { DIAS, DIAS_CORTOS, bloquesDe, bloquesFecha, pendientesCon, cuandoTexto, duracion, hhmm, MODOS, lunesDe, minutosDia, sumaTipo } from "./contexto.js";
+import { datosListas, proximaAnual } from "./listas.js";
+import { permisos as permisosG } from "./google.js";
 import { leer, todo, sesion as sesionLeer } from "./almacen.js";
 import { datosFinanzas, resumenMes, topesSugeridos } from "./finanzas.js";
 import { linkHoja } from "./hoja.js";
@@ -66,41 +68,108 @@ function bloqueAlias() {
 
 // ---------- Universos ----------
 const PAGINAS = {
-  agus(datos) {
+  agus(datos, ctx) {
     const lista = leer("super", []);
     const menu = leer("menu", {});
     const orden = [1, 2, 3, 4, 5, 6, 0];
-    return `
-    <section class="bloque"><h2>Lista del súper <span class="tag">compartida pronto</span></h2>
+    const l = datosListas();
+    const items = l?.agus || [];
+    const hoy0 = new Date(ctx.fecha.getFullYear(), ctx.fecha.getMonth(), ctx.fecha.getDate());
+    const diasA = (iso) => Math.round((new Date(iso.slice(0, 10) + "T00:00") - hoy0) / 86400000);
+    const fechaCorta = (iso) => { const d = new Date(iso.length > 10 ? iso : iso + "T12:00"); return DIAS_CORTOS[d.getDay()] + " " + d.getDate() + "/" + (d.getMonth() + 1) + (iso.length > 10 ? " · " + iso.slice(11, 16) : ""); };
+
+    // Cuentas regresivas: el viaje y las fechas que se repiten cada año.
+    const fechas = items.filter((x) => x.tipo === "fecha" && x.fecha).map((x) => {
+      const anual = /anual/i.test(x.nota);
+      const p = anual ? proximaAnual(x.fecha, ctx.fecha) : { fecha: new Date(x.fecha.slice(0, 10) + "T12:00"), dias: diasA(x.fecha) };
+      return { ...x, cuando: p.fecha, dias: p.dias };
+    }).filter((x) => x.dias >= 0).sort((a, b) => a.dias - b.dias);
+    const viaje = items.filter((x) => x.tipo === "viaje" && x.fecha && diasA(x.fecha) >= 0).sort((a, b) => a.fecha.localeCompare(b.fecha))[0];
+    const vuelos = items.filter((x) => x.tipo === "vuelo" && x.fecha).sort((a, b) => a.fecha.localeCompare(b.fecha));
+    const cuenta = (viaje || fechas.length) ? `<section class="bloque"><h2>Cuenta regresiva</h2>
+      ${viaje ? `<div class="regresiva"><span class="cifra">${diasA(viaje.fecha)}</span><span><b>${diasA(viaje.fecha) === 1 ? "día" : "días"} para ${esc(viaje.titulo)}</b><br><span class="vacio">${esc(viaje.nota || fechaCorta(viaje.fecha))}</span></span></div>` : ""}
+      ${fechas.length ? `<ul class="lista" style="margin-top:${viaje ? 14 : 0}px">${fechas.map((x) => `<li><span>${esc(x.titulo)}<br><small class="vacio">${x.cuando.getDate()} de ${MESES_LARGOS[x.cuando.getMonth()]}</small></span><span class="der">${cuandoTexto(x.dias)}</span></li>`).join("")}</ul>` : ""}
+      ${vuelos.length ? `<details class="mas"><summary>Vuelos (${vuelos.length})</summary><ul class="lista">${vuelos.map((v) => `<li><span>${esc(v.titulo)}<br><small class="vacio">${esc(v.nota)}</small></span><span class="der">${esc(fechaCorta(v.fecha))}</span></li>`).join("")}</ul></details>` : ""}</section>` : "";
+
+    // Planes y salidas.
+    const planes = items.filter((x) => x.tipo === "plan").sort((a, b) => (a.hecho - b.hecho) || (a.fecha || "9").localeCompare(b.fecha || "9"));
+    const tilde = (x) => `<li><label><input type="checkbox" data-accion="agus-tilde" data-fila="${x.fila}" ${x.hecho ? "checked" : ""}><span style="${x.hecho ? "text-decoration:line-through;color:var(--muted)" : ""}">${esc(x.titulo)}${x.nota ? `<br><small class="vacio">${esc(x.nota)}</small>` : ""}</span></label>${x.fecha ? `<span class="tag">${esc(fechaCorta(x.fecha))}</span>` : ""}</li>`;
+    const bPlanes = `<section class="bloque"><h2>Planes y salidas</h2>
+      <ul class="lista tps">${planes.filter((x) => !x.hecho).map(tilde).join("") || '<li class="vacio">Ningún plan anotado.</li>'}</ul>
+      ${planes.some((x) => x.hecho) ? `<details class="mas"><summary>Hechos (${planes.filter((x) => x.hecho).length})</summary><ul class="lista tps">${planes.filter((x) => x.hecho).map(tilde).join("")}</ul></details>` : ""}
+      <div class="chips" style="margin-top:12px"><button class="chip" data-accion="agus-nuevo" data-tipo="plan">+ Plan</button></div></section>`;
+
+    // Pelis y series por ver.
+    const ver = items.filter((x) => x.tipo === "peli" || x.tipo === "serie");
+    const filaVer = (x) => tilde({ ...x, nota: (x.tipo === "serie" ? "Serie" : "Peli") + (x.nota ? " · " + x.nota : "") });
+    const bVer = `<section class="bloque"><h2>Para ver</h2>
+      <ul class="lista tps">${ver.filter((x) => !x.hecho).map(filaVer).join("") || '<li class="vacio">Nada en la lista todavía.</li>'}</ul>
+      ${ver.some((x) => x.hecho) ? `<details class="mas"><summary>Vistas (${ver.filter((x) => x.hecho).length})</summary><ul class="lista tps">${ver.filter((x) => x.hecho).map(filaVer).join("")}</ul></details>` : ""}
+      <div class="chips" style="margin-top:12px"><button class="chip" data-accion="agus-nuevo" data-tipo="peli">+ Peli o serie</button></div></section>`;
+
+    const docs = items.filter((x) => x.tipo === "doc" && /^https:\/\//.test(x.url));
+    const bDocs = docs.length ? `<section class="bloque"><h2>Docs</h2><div class="chips">${docs.map((d) => `<a class="chip" href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.titulo)}</a>`).join("")}</div></section>` : "";
+
+    const sinHoja = !l ? `<section class="bloque"><h2>Planes y fechas</h2><ul class="lista">${(datos.fechas || []).map((f) => `<li><span>${esc(f.titulo)}</span><span class="der">${esc(f.fecha.split("-").reverse().join("/"))}</span></li>`).join("") || '<li class="vacio">Sin planes cargados.</li>'}</ul>
+      <p class="fuente-dato">Fechas, viaje, planes y pelis se arman en tu planilla cuando actives la sincronización en Ajustes.</p></section>` : "";
+
+    return `${cuenta}${l ? bPlanes + bVer + bDocs : sinHoja}
+    <section class="bloque"><h2>Lista del súper</h2>
       <ul class="lista">${lista.length ? lista.map((it, i) => `<li><label style="display:flex;gap:10px;align-items:center;flex:1">
         <input type="checkbox" data-accion="super-tilde" data-i="${i}" ${it.ok ? "checked" : ""} style="width:20px;height:20px">
         <span style="${it.ok ? "text-decoration:line-through;color:var(--muted)" : ""}">${esc(it.t)}</span></label>
         <button class="ojo" data-accion="super-borrar" data-i="${i}" aria-label="Sacar ${esc(it.t)}">${ICONOS.cruz}</button></li>`).join("") : '<li class="vacio">La lista está vacía.</li>'}</ul>
-      <form class="form" data-form="super"><input name="t" placeholder="Agregar algo" aria-label="Agregar a la lista" required><button class="btn">Sumar</button></form>
-      ${local}</section>
+      <form class="form" data-form="super"><input name="t" placeholder="Agregar algo" aria-label="Agregar a la lista" required><button class="btn">Sumar</button></form></section>
     <section class="bloque"><h2>Menú de la semana</h2>
       <div style="display:grid;gap:8px">${orden.map((d) => `<label style="display:flex;gap:10px;align-items:center">
         <span style="width:40px;font-size:13px;color:var(--muted)">${DIAS_CORTOS[d]}</span>
         <input class="campo-menu" data-dia="${d}" value="${esc(menu[d] || "")}" placeholder="¿Qué se come?" style="flex:1;height:42px;padding:0 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);font-size:15px"></label>`).join("")}</div>
-      ${local}</section>
-    <section class="bloque"><h2>Planes y fechas</h2><ul class="lista">${(datos.fechas || []).map((f) => `<li><span>${esc(f.titulo)}</span><span class="der">${esc(f.fecha.split("-").reverse().join("/"))}</span></li>`).join("") || '<li class="vacio">Sin planes cargados.</li>'}</ul></section>
-    ${pronto("Cuenta de Agus", "Cuando la v1 te ande a vos, Agus entra con su Google y ve solo lo compartido.")}`;
+      ${sincroActiva() ? "" : local}</section>
+    ${pronto("Cuenta de Agus", "Más adelante Agus entra con su Google y ve solo esto: súper, menú, planes, pelis y fechas.")}`;
   },
 
   bna(datos, ctx) {
-    const real = !!datos.agenda;
-    const filas = real
-      ? [0, 1, 2, 3, 4, 5, 6].map((i) => {
-          const f = new Date(ctx.fecha.getTime() + i * 86400000);
-          const b = bloquesFecha(datos, f).filter((x) => x.tipo === "bna");
-          return b.length ? `<li><span>${i === 0 ? "Hoy" : i === 1 ? "Mañana" : DIAS[f.getDay()][0].toUpperCase() + DIAS[f.getDay()].slice(1) + " " + f.getDate()}</span><span class="der">${b.map((x) => x.inicio + "–" + hhmm(x.fin)).join(", ")}</span></li>` : "";
-        }).join("")
-      : [1, 2, 3, 4, 5, 6, 0].map((d) => {
-          const b = bloquesDe(datos, d).filter((x) => x.tipo === "bna");
-          return b.length ? `<li><span>${DIAS[d][0].toUpperCase() + DIAS[d].slice(1)}</span><span class="der">${b.map((x) => x.inicio + "–" + hhmm(x.fin)).join(", ")}</span></li>` : "";
-        }).join("");
-    return `<section class="bloque"><h2>${real ? "Próximos 7 días" : 'Horarios <span class="ejemplo">Ejemplo</span>'}</h2><ul class="lista">${filas || '<li class="vacio">Sin horarios.</li>'}</ul></section>
-      ${pronto("Recibos de sueldo", "Los leo de tu carpeta de recibos en Drive y te muestro neto, descuentos y disponible real de cada mes.")}
+    const hoy0 = new Date(ctx.fecha.getFullYear(), ctx.fecha.getMonth(), ctx.fecha.getDate());
+    const nombreDia = (f) => {
+      const n = Math.round((f - hoy0) / 86400000);
+      return n === 0 ? "Hoy" : n === 1 ? "Mañana" : DIAS_CORTOS[f.getDay()] + " " + f.getDate();
+    };
+    const semana = (n) => {
+      const l = lunesDe(ctx.fecha, n);
+      const dias = [0, 1, 2, 3, 4, 5, 6].map((i) => new Date(l.getFullYear(), l.getMonth(), l.getDate() + i));
+      const s = sumaTipo(datos, l, dias[6], "bna", ctx.fecha);
+      const filas = dias.map((f) => {
+        const m = minutosDia(datos, f, "bna", ctx.fecha);
+        if (!m.hecho && !m.agenda) return "";
+        const pasado = f < hoy0;
+        const der = pasado ? `<span class="vacio">${duracion(m.hecho)}${m.estimado ? " · horario fijo" : ""}</span>`
+          : bloquesFecha(datos, f).filter((x) => x.tipo === "bna").map((x) => x.inicio + "–" + hhmm(x.fin)).join(", ");
+        return `<li style="${pasado ? "opacity:.6" : ""}"><span>${nombreDia(f)}</span><span class="der">${der}</span></li>`;
+      }).join("");
+      return `<section class="bloque"><h2>${n === 0 ? "Esta semana" : "Semana que viene"} <span class="tag">${duracion(s.hecho + s.agenda)}</span></h2>
+        <ul class="lista">${filas || '<li class="vacio">Sin horarios.</li>'}</ul></section>`;
+    };
+    // Horas: lo trabajado y lo que falta, de la semana y del mes.
+    const sem = sumaTipo(datos, lunesDe(ctx.fecha, 0), new Date(lunesDe(ctx.fecha, 0).getTime() + 6 * 86400000), "bna", ctx.fecha);
+    const pm = new Date(ctx.fecha.getFullYear(), ctx.fecha.getMonth(), 1), um = new Date(ctx.fecha.getFullYear(), ctx.fecha.getMonth() + 1, 0);
+    const mes = sumaTipo(datos, pm, um, "bna", ctx.fecha);
+    const h = (min) => (Math.round(min / 6) / 10).toLocaleString("es-AR") + " h";
+    const horas = `<section class="bloque"><h2>Horas</h2><div class="trio">
+        <div><span class="k">Semana</span><b>${h(sem.hecho)}</b><span class="fuente-dato" style="margin:0">de ${h(sem.hecho + sem.agenda)}</span></div>
+        <div><span class="k">${MESES_LARGOS[ctx.fecha.getMonth()]}</span><b>${h(mes.hecho)}</b><span class="fuente-dato" style="margin:0">de ${h(mes.hecho + mes.agenda)}</span></div>
+        <div><span class="k">Días</span><b>${mes.diasHechos}</b><span class="fuente-dato" style="margin:0">de ${mes.dias} en el mes</span></div></div>
+      <p class="fuente-dato">Trabajadas hasta ahora, sobre el total con lo que queda en tu agenda${mes.estimado ? ". Los días sin evento en el calendario se cuentan con tu horario fijo" : ""}.</p></section>`;
+    // Sueldo: lo que Orbe leyó de tus recibos (hoja MES).
+    const oculto = leer("plataOculta", false);
+    const $ = (n) => oculto ? "••••" : "$\u00a0" + Math.round(n).toLocaleString("es-AR");
+    const meses = (datosFinanzas()?.meses || []).slice().sort((a, b) => b.mes.localeCompare(a.mes)).slice(0, 3);
+    const nombreMes = (m) => { const [y, mm] = m.split("-").map(Number); return MESES_LARGOS[mm - 1] + (y !== ctx.fecha.getFullYear() ? " " + y : ""); };
+    const sueldo = meses.length ? `<section class="bloque"><h2>Sueldo <span class="tag">de tus recibos</span></h2><ul class="lista">${meses.map((m) =>
+      `<li><span>Para vivir en ${nombreMes(m.mes)}<br><small class="vacio">${esc(m.fuente)}</small></span><span class="der">${$(m.disponible)}</span></li>`).join("")}</ul>
+      <p class="fuente-dato">Disponible real = neto − talón complementario. Lo leo de tu carpeta BNA en Drive.</p></section>`
+      : pronto("Sueldo", "Cuando des permiso de Drive en Ajustes, leo tus recibos de la carpeta BNA y te muestro el disponible real de cada mes.");
+    return `${semana(0)}${semana(1)}${horas}${sueldo}
+      ${pronto("Productividad", "El lugar ya está y queda detrás de tu huella. Lo armamos cuando me cuentes qué números querés ver.")}
       <section class="bloque"><h2>Lo que nunca entra</h2><p class="vacio">Clientes, procedimientos e informes del banco quedan afuera de Orbe, siempre.</p></section>`;
   },
 
@@ -138,33 +207,50 @@ const PAGINAS = {
       <section class="bloque"><h2>Accesos</h2><div class="chips"><a class="chip" href="https://ead01.ufasta.edu.ar" target="_blank" rel="noopener">Aula virtual</a><a class="chip" href="https://www.ufasta.edu.ar" target="_blank" rel="noopener">Sitio de UFASTA</a></div></section>`;
   },
 
-  bienestar(datos) {
-    const p = datos.pasos;
-    const max = Math.max(...p.semana);
-    const hoyDia = new Date().getDay();
-    const etiquetas = p.semana.map((_, i) => DIAS_CORTOS[(hoyDia - (p.semana.length - 1 - i) + 70) % 7]);
-    const mejor = p.semana.indexOf(max);
-    const dif = Math.round((p.hoy / p.promedio - 1) * 100);
-    const futbol = [0, 1, 2, 3, 4, 5, 6].flatMap((d) => bloquesDe(datos, d).filter((x) => x.tipo === "futbol"));
-    const notas = leer("futbol", []);
-    return `<section class="bloque"><h2>Pasos <span class="ejemplo">Ejemplo</span></h2>
-        <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><span style="font-family:var(--serif);font-size:44px">${p.hoy.toLocaleString("es-AR")}</span>
-        <span class="vacio">${dif >= 0 ? "+" : ""}${dif}% contra tu promedio de ${p.promedio.toLocaleString("es-AR")}</span></div>
-        <div class="barras">${p.semana.map((v, i) => `<div class="${i === p.semana.length - 1 ? "hoy" : ""}"><i style="height:${Math.round(v / max * 100)}%"></i>${etiquetas[i]}</div>`).join("")}</div>
-        <p class="prom">Tu mejor día de la semana fue el ${etiquetas[mejor].toLowerCase()}, con ${max.toLocaleString("es-AR")} pasos.</p></section>
-      <section class="bloque"><h2>Logros</h2><ul class="lista">
-        <li><span>Récord de la semana</span><span class="der">${max.toLocaleString("es-AR")}</span></li>
-        <li><span>Días arriba de tu promedio</span><span class="der">${p.semana.filter((v) => v > p.promedio).length} de 7</span></li></ul></section>
-      <section class="bloque"><h2>Fútbol</h2><p>${futbol.length} partido${futbol.length === 1 ? "" : "s"} por semana en tu agenda.</p>
-        <form class="form" data-form="futbol"><input name="t" placeholder="¿Cómo jugaste hoy?" aria-label="Nota del partido" required><button class="btn">Anotar</button></form>
-        ${notas.length ? `<ul class="lista" style="margin-top:14px">${notas.slice(-3).reverse().map((n) => `<li><span>${esc(n.t)}</span><span class="tag">${esc(n.f)}</span></li>`).join("")}</ul>` : ""}
-        <p class="vacio" style="margin-top:12px;font-size:12px">Con el reloj se suman distancia, velocidad y ritmo cardíaco.</p></section>
+  bienestar(datos, ctx) {
+    const l0 = lunesDe(ctx.fecha, 0), d0 = new Date(l0.getTime() + 6 * 86400000);
+    const meta = (tipo, nombre) => {
+      const s = sumaTipo(datos, l0, d0, tipo, ctx.fecha);
+      const ok = s.diasHechos >= 1;
+      // Próximo en agenda esta semana, si todavía no se cumplió.
+      let prox = "";
+      if (!ok) for (let d = new Date(ctx.fecha.getFullYear(), ctx.fecha.getMonth(), ctx.fecha.getDate()); d <= d0; d.setDate(d.getDate() + 1)) {
+        if (minutosDia(datos, new Date(d), tipo, ctx.fecha).agenda) { prox = DIAS[d.getDay()]; break; }
+      }
+      return `<div class="meta ${ok ? "ok" : ""}"><span class="k">${nombre}</span><b>${s.diasHechos} / 1</b>
+        <span class="fuente-dato" style="margin:0">${ok ? "Cumplido" : prox ? "En agenda el " + prox : "Sin nada en agenda"}</span></div>`;
+    };
+    // Las últimas 3 semanas completas.
+    const cumplidas = [1, 2, 3].filter((n) => {
+      const l = lunesDe(ctx.fecha, -n), d = new Date(l.getTime() + 6 * 86400000);
+      return sumaTipo(datos, l, d, "gym", ctx.fecha).diasHechos >= 1 && sumaTipo(datos, l, d, "futbol", ctx.fecha).diasHechos >= 1;
+    }).length;
+    const pm = new Date(ctx.fecha.getFullYear(), ctx.fecha.getMonth(), 1);
+    const hoy0 = new Date(ctx.fecha.getFullYear(), ctx.fecha.getMonth(), ctx.fecha.getDate());
+    const gymMes = sumaTipo(datos, pm, hoy0, "gym", ctx.fecha).diasHechos, futMes = sumaTipo(datos, pm, hoy0, "futbol", ctx.fecha).diasHechos;
+    const semanaHtml = `<section class="bloque"><h2>Esta semana <span class="tag">meta: 1 gym + 1 fútbol</span></h2>
+      <div class="metas">${meta("gym", "Gym")}${meta("futbol", "Fútbol")}</div>
+      <p class="fuente-dato">En ${MESES_LARGOS[ctx.fecha.getMonth()]}: ${gymMes} de gym y ${futMes} de fútbol. Cumpliste ${cumplidas} de las últimas 3 semanas. Sale de tu calendario.</p></section>`;
+
+    // Fútbol: registro de cada partido en tu planilla.
+    const l = datosListas();
+    const ps = (l?.futbol || []).slice().sort((a, b) => b.fecha.localeCompare(a.fecha));
+    const R = { G: "Ganamos", E: "Empate", P: "Perdimos" };
+    const cuenta = (r) => ps.filter((p) => p.resultado === r).length;
+    const goles = ps.reduce((s, p) => s + p.goles, 0);
+    const futbol = l ? `<section class="bloque"><h2>Fútbol</h2>
+      ${ps.length ? `<div class="trio"><div><span class="k">Partidos</span><b>${ps.length}</b></div><div><span class="k">G · E · P</span><b>${cuenta("G")} · ${cuenta("E")} · ${cuenta("P")}</b></div><div><span class="k">Goles</span><b>${goles}</b></div></div>
+        <ul class="lista" style="margin-top:14px">${ps.slice(0, 5).map((p) => `<li><span>${R[p.resultado] || "Jugado"}${p.goles ? ` · ${p.goles} gol${p.goles === 1 ? "" : "es"}` : ""}${p.nota ? `<br><small class="vacio">${esc(p.nota)}</small>` : ""}</span><span class="tag">${esc(p.fecha.slice(8, 10) + "/" + p.fecha.slice(5, 7))}</span></li>`).join("")}</ul>`
+        : '<p class="vacio">Todavía no anotaste partidos.</p>'}
+      <div class="chips" style="margin-top:12px"><button class="chip" data-accion="partido-nuevo">+ Anotar partido</button></div></section>`
+      : `<section class="bloque"><h2>Fútbol</h2><p class="vacio">El registro de partidos vive en tu planilla: activá la sincronización en Ajustes.</p></section>`;
+
+    return `${semanaHtml}${futbol}
       <section class="bloque"><h2>Meditación</h2><div class="medita"><span class="reloj" id="medita-reloj">05:00</span>
         <div class="chips">${[3, 5, 10].map((m) => `<button class="chip" data-accion="medita" data-min="${m}">${m} min</button>`).join("")}<button class="chip" data-accion="medita-parar">Parar</button></div></div></section>
       <section class="bloque"><h2>Comida</h2><p>El menú de la semana vive en el universo compartido.</p><div class="chips" style="margin-top:12px"><a class="chip" href="#/u/agus">Ver menú con Agus</a></div></section>
-      ${pronto("Gym", "La rutina personalizada la armamos más adelante.")}
-      ${pronto("Sueño", "Llega con el reloj.")}
-      ${pronto("Pasos reales", "Una mini app Android lee Health Connect en tu Xiaomi y los sube a tu Drive.")}`;
+      ${pronto("Pasos y sueño", "Llegan con Satélite, la mini app Android que lee Health Connect de tu celu y del reloj.")}
+      ${pronto("Rutina de gym", "La armamos más adelante.")}`;
   },
 
   finanzas(datos, ctx) {
@@ -244,9 +330,19 @@ const PAGINAS = {
   },
 
   proyectos(datos) {
-    return (datos.proyectos || []).map((p) => `<section class="bloque"><h2>${esc(p.nombre)} <span class="tag">${esc(p.estado)}</span></h2>
-      ${p.proximo ? `<p><span class="vacio">Próximo paso:</span> ${esc(p.proximo)}</p>` : ""}
-      <div class="chips" style="margin-top:${p.proximo ? 12 : 0}px">${p.url ? `<a class="chip" href="${esc(p.url)}" target="_blank" rel="noopener">Abrir</a>` : ""}${p.repo ? `<a class="chip" href="${esc(p.repo)}" target="_blank" rel="noopener">Repo</a>` : ""}${!p.url && !p.repo ? '<span class="vacio">Acceso por cargar</span>' : ""}</div></section>`).join("");
+    const l = datosListas();
+    const gh = l?.github || {};
+    const lista = (l?.proyectos?.length ? l.proyectos : (datos.proyectos || []).map((p) => ({ ...p, proximos: p.proximo ? [p.proximo] : [] })))
+      .filter((p) => !/^(ntn|sur)$/i.test(p.id));
+    const hace = (iso) => { const d = Math.round((Date.now() - new Date(iso)) / 86400000); return d <= 0 ? "hoy" : d === 1 ? "ayer" : "hace " + d + " días"; };
+    const repoUrl = (r) => !r ? "" : /^https?:/.test(r) ? r : "https://github.com/" + r;
+    return lista.map((p) => {
+      const g = gh[p.repo];
+      const ultimo = g?.fecha ? `<p class="fuente-dato" style="margin-top:0">Último cambio ${hace(g.fecha)}: ${esc(g.mensaje)}</p>` : g?.privado ? '<p class="fuente-dato" style="margin-top:0">Repo privado: sin datos de cambios.</p>' : "";
+      return `<section class="bloque"><h2>${esc(p.nombre)} <span class="tag">${esc(p.estado)}</span></h2>${ultimo}
+      ${p.proximos.length ? `<p class="vacio" style="font-size:12px;margin-top:10px">Próximos pasos</p><ul class="pasos">${p.proximos.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+      <div class="chips" style="margin-top:12px">${p.url ? `<a class="chip" href="${esc(p.url)}" target="_blank" rel="noopener">Abrir</a>` : ""}${p.repo ? `<a class="chip" href="${esc(repoUrl(p.repo))}" target="_blank" rel="noopener">Repo</a>` : ""}${l?.proyectos?.length ? `<button class="chip" data-accion="proyecto-pasos" data-id="${esc(p.id)}">Editar pasos</button>` : ""}</div></section>`;
+    }).join("") + (l ? "" : '<p class="fuente-dato">Con la sincronización activa, la lista vive en la hoja PROYECTOS de tu planilla y se ve el último cambio de cada repo.</p>');
   }
 };
 
@@ -293,7 +389,15 @@ export function renderAgenda(datos, ctx, tema) {
   const manana = new Date(ctx.fecha.getTime() + 86400000);
   return `<div class="pagina">${volver}<h1>Agenda</h1><p class="bajada">${ag ? "De tu Google Calendar." : "Rutina de ejemplo: conectá Google en Ajustes para ver la tuya."}</p>
     <section class="bloque"><h2>Hoy, ${DIAS[ctx.dia]}</h2><ul class="lista">${ctx.hoy.map(fila).join("") || '<li class="vacio">Nada fijo.</li>'}</ul>${extra(isoDe(ctx.fecha))}</section>
-    <section class="bloque"><h2>Mañana, ${DIAS[manana.getDay()]}</h2><ul class="lista">${ctx.manana.map(fila).join("") || '<li class="vacio">Nada fijo.</li>'}</ul>${extra(isoDe(manana))}</section></div>`;
+    <section class="bloque"><h2>Mañana, ${DIAS[manana.getDay()]}</h2><ul class="lista">${ctx.manana.map(fila).join("") || '<li class="vacio">Nada fijo.</li>'}</ul>${extra(isoDe(manana))}</section>
+    ${ag ? (permisosG().calendario ? `<section class="bloque"><h2>Nuevo evento</h2><form data-form="evento" class="evento">
+        <input class="campo-hora" name="titulo" required placeholder="Qué es (Gym, Fútbol, Cena con Agus…)" aria-label="Título" style="text-align:left">
+        <div class="fila-evento"><input class="campo-hora" type="date" name="fecha" required value="${isoDe(ctx.fecha)}" aria-label="Día">
+        <input class="campo-hora" type="time" name="hora" required aria-label="Hora">
+        <select class="campo-hora" name="dur" aria-label="Duración">${[[30, "30 min"], [60, "1 h"], [90, "1 h 30"], [120, "2 h"], [180, "3 h"]].map(([v, t]) => `<option value="${v}" ${v === 60 ? "selected" : ""}>${t}</option>`).join("")}</select></div>
+        <button class="btn">Agendar en tu calendario</button></form>
+        <p class="fuente-dato">Va a tu calendario principal de Google. Las palabras Gym, Fútbol, BNA o UFASTA le dan su color en Orbe.</p></section>`
+      : `<section class="bloque"><h2>Nuevo evento</h2><p class="vacio">Para agendar desde Orbe falta el permiso de escribir en tu calendario.</p><div class="chips" style="margin-top:12px"><button class="chip" data-accion="activar-todo">Dar permiso</button></div></section>`) : ""}</div>`;
 }
 
 export function renderRespiro() {
@@ -318,7 +422,7 @@ const FAMILIA = { logo: "var(--sans);font-weight:600;letter-spacing:-.045em", re
   cursiva: "var(--serif);font-style:italic" };
 
 // Qué anda y qué no, parte por parte, con el motivo y el arreglo cuando lo hay.
-const PARTES = [["agenda", "Agenda"], ["sincro", "Celu y compu"], ["economia", "Planilla ECONOMÍA"], ["mails", "Mails del BNA y Mercado Pago"], ["recibos", "Recibos de sueldo (Drive)"], ["facu", "Campus de UFASTA"]];
+const PARTES = [["agenda", "Agenda"], ["sincro", "Celu y compu"], ["economia", "Planilla ECONOMÍA"], ["mails", "Mails del BNA y Mercado Pago"], ["recibos", "Recibos de sueldo (Drive)"], ["facu", "Campus de UFASTA"], ["listas", "Agus, fútbol y proyectos"]];
 function estadoPartes(est) {
   const hace = (t) => { const m = Math.round((Date.now() - t) / 60000); return m < 1 ? "recién" : m < 60 ? "hace " + m + " min" : "hace " + Math.round(m / 60) + " h"; };
   const filas = PARTES.filter(([k]) => est[k]).map(([k, n]) => {
@@ -443,4 +547,31 @@ export function hojaAsignar(tp, materias) {
     <div class="grupo"><span>¿De qué materia es?</span><div class="chips">${materias.map((m) => `<label class="chip"><input type="radio" class="sr" name="materia" value="${esc(m.materia)}" required>${esc(m.materia)}</label>`).join("")}</div></div>
     <div class="grupo"><span>Fecha de entrega (opcional)</span><input class="campo-hora" type="date" name="fecha" value="${esc(tp.fecha)}"></div>
     <div class="grupo" style="display:flex;gap:10px"><button type="button" class="btn sec" data-accion="cerrar-hoja" style="flex:1">Cancelar</button><button class="btn" style="flex:2">Guardar</button></div></form>`;
+}
+
+// Hojas de Agus, fútbol y proyectos.
+const pie = (txt) => `<div class="grupo" style="display:flex;gap:10px"><button type="button" class="btn sec" data-accion="cerrar-hoja" style="flex:1">Cancelar</button><button class="btn" style="flex:2">${txt}</button></div>`;
+export function hojaAgus(tipo) {
+  const ver = tipo === "peli" || tipo === "serie";
+  return `<h2>${ver ? "Para ver" : "Un plan"}</h2><form data-form="agus-nuevo">
+    ${ver ? `<div class="grupo"><span>Qué es</span><div class="chips"><label class="chip on"><input type="radio" class="sr" name="tipo" value="peli" checked>Peli</label><label class="chip"><input type="radio" class="sr" name="tipo" value="serie">Serie</label></div></div>` : '<input type="hidden" name="tipo" value="plan">'}
+    <div class="grupo"><span>${ver ? "Título" : "Qué plan"}</span><input class="campo-hora" name="titulo" required placeholder="${ver ? "Dune: Parte Dos" : "Cena en Chui"}" style="text-align:left"></div>
+    ${ver ? "" : '<div class="grupo"><span>Cuándo (opcional)</span><input class="campo-hora" type="date" name="fecha"></div>'}
+    <div class="grupo"><span>Nota (opcional)</span><input class="campo-hora" name="nota" placeholder="${ver ? "Netflix, la recomendó Juan" : "reservar antes"}" style="text-align:left"></div>
+    ${pie("Agregar")}</form>`;
+}
+export function hojaPartido() {
+  const hoy = new Date();
+  const iso = hoy.getFullYear() + "-" + String(hoy.getMonth() + 1).padStart(2, "0") + "-" + String(hoy.getDate()).padStart(2, "0");
+  return `<h2>Partido</h2><form data-form="partido">
+    <div class="grupo"><span>Resultado</span><div class="chips"><label class="chip"><input type="radio" class="sr" name="resultado" value="G" required>Ganamos</label><label class="chip"><input type="radio" class="sr" name="resultado" value="E">Empate</label><label class="chip"><input type="radio" class="sr" name="resultado" value="P">Perdimos</label></div></div>
+    <div class="grupo" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><label><span class="sr">Día</span><input class="campo-hora" type="date" name="fecha" value="${iso}" required></label>
+      <label><span class="sr">Goles</span><input class="campo-hora" type="number" name="goles" min="0" max="20" value="0" inputmode="numeric" aria-label="Goles"></label></div>
+    <div class="grupo"><span>¿Cómo jugaste?</span><input class="campo-hora" name="nota" placeholder="Bien atrás, cansado al final" style="text-align:left"></div>
+    ${pie("Anotar")}</form>`;
+}
+export function hojaPasos(p) {
+  return `<h2>${esc(p.nombre)}</h2><form data-form="proyecto-pasos" data-id="${esc(p.id)}">
+    <div class="grupo"><span>Próximos pasos (uno por renglón)</span><textarea class="campo-texto" name="pasos">${esc(p.proximos.join("\n"))}</textarea></div>
+    ${pie("Guardar")}</form>`;
 }

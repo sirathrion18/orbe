@@ -1,4 +1,5 @@
 // Pantalla de Inicio: saludo, anillo del día, widgets, buscador y universos.
+import { proximaAnual } from "./listas.js";
 import { SALUDOS } from "./saludos.js";
 import { UNIVERSOS } from "./config.js";
 import { ICONOS, TELA, MARCA } from "./iconos.js";
@@ -185,6 +186,12 @@ function tira(ctx, datos) {
   }
   if (ctx.cumpleManana && ctx.cumpleManana.length && ctx.modo !== "river") {
     return `<div class="tira"><div><div class="k">Mañana cumple</div><div class="t">${esc(unir(ctx.cumpleManana))}</div></div><div class="n">mañana</div></div>`;
+  }
+  // Aniversario o cumple de Agus: aviso desde 3 días antes.
+  const fa = (leer("listas")?.agus || []).filter((x) => x.tipo === "fecha" && x.fecha && /anual/i.test(x.nota))
+    .map((x) => ({ ...x, ...proximaAnual(x.fecha, ctx.fecha) })).filter((x) => x.dias <= 3).sort((a, b) => a.dias - b.dias)[0];
+  if (fa && ctx.modo !== "river") {
+    return `<a class="tira" href="#/u/agus" style="text-decoration:none"><div><div class="k">Se viene</div><div class="t">${esc(fa.titulo)}</div></div><div class="n">${cuandoTexto(fa.dias)}</div></a>`;
   }
   if (ctx.modo === "river" && ctx.partido) {
     const p = ctx.partido;

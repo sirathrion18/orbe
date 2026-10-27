@@ -1,6 +1,19 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.13.0",
+    fecha: "27/10/2026",
+    titulo: "BNA, Agus, Bienestar y Proyectos con datos reales.",
+    cambios: [
+      "BNA: esta semana y la que viene, horas trabajadas de la semana y del mes (del calendario, con tu horario fijo para los días sin evento) y el disponible de tus últimos recibos. Productividad ya tiene su lugar, detrás de la huella.",
+      "Agus: cuenta regresiva al viaje con los vuelos, aniversario y cumple (y aviso en Inicio 3 días antes), planes y salidas, pelis y series para ver con tildes, y los docs de los dos.",
+      "Bienestar: la meta de la semana (1 gym + 1 fútbol) sale sola de tu calendario, con el resumen del mes. Registro de partidos con resultado, goles y cómo jugaste.",
+      "Proyectos: el último cambio de cada repo en GitHub y los próximos pasos, editables desde Orbe. NTN y SUR salieron de la lista.",
+      "Agenda: nuevo evento directo a tu Google Calendar.",
+      "Todo esto vive en tu planilla (hojas AGUS, FUTBOL y PROYECTOS). Las fechas y vuelos de arranque salen de «Orbe · semillas», en tu Drive, no del código."
+    ]
+  },
+  {
     version: "0.12.0",
     fecha: "27/10/2026",
     titulo: "UFASTA al día (adiós, Facu al día).",

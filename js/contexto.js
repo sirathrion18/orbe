@@ -137,3 +137,51 @@ export function urgentes(datos, ctx) {
 export const cuandoTexto = (dias) =>
   dias < -1 ? "venció hace " + -dias + " días" : dias === -1 ? "venció ayer" :
   dias === 0 ? "hoy" : dias === 1 ? "mañana" : "en " + dias + " días";
+
+// Lunes de la semana de una fecha (las semanas de Orbe van de lunes a domingo).
+export function lunesDe(fecha, semanas = 0) {
+  const d = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate());
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7) + semanas * 7);
+  return d;
+}
+
+// Minutos de un tipo (bna, gym, futbol) en un día, separados en hechos y por venir. Lo pasado sale del
+// historial del calendario; lo de hoy en adelante, de la agenda (el horario fijo rellena el BNA).
+export function minutosDia(datos, fecha, tipo, ahora) {
+  const h0 = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
+  const ag = datos.agenda;
+  if (ag && fecha < h0) {
+    const dia = isoDe(fecha);
+    let min = (ag.historial?.[dia] || []).filter((x) => x.tipo === tipo).reduce((s, x) => s + x.min, 0);
+    let estimado = false;
+    if (!min && tipo === "bna" && !ag.feriados?.[dia] && !ag.libres?.[dia]) {
+      const h = leer("horario", {})[fecha.getDay()];
+      if (h && h.inicio && h.fin) { min = aMin(h.fin) - aMin(h.inicio); estimado = true; }
+    }
+    return { hecho: min, agenda: 0, estimado };
+  }
+  const esHoy = fecha.getTime() === h0.getTime();
+  const ya = ahora.getHours() * 60 + ahora.getMinutes();
+  const r = { hecho: 0, agenda: 0, estimado: false };
+  bloquesFecha(datos, fecha).filter((b) => b.tipo === tipo).forEach((b) => {
+    const m = Math.max(0, b.fin - b.ini);
+    if (!ag && fecha < h0) r.hecho += m;
+    else if (esHoy && b.fin <= ya) r.hecho += m;
+    else r.agenda += m;
+  });
+  return r;
+}
+
+// Suma de un tipo entre dos fechas (incluidas): minutos hechos, minutos por venir y días con algo.
+export function sumaTipo(datos, desde, hasta, tipo, ahora) {
+  const r = { hecho: 0, agenda: 0, dias: 0, diasHechos: 0, estimado: false };
+  for (let d = new Date(desde); d <= hasta; d.setDate(d.getDate() + 1)) {
+    const m = minutosDia(datos, new Date(d), tipo, ahora);
+    if (!m.hecho && !m.agenda) continue;
+    r.dias++;
+    if (m.hecho) r.diasHechos++;
+    r.hecho += m.hecho; r.agenda += m.agenda;
+    if (m.estimado) r.estimado = true;
+  }
+  return r;
+}

@@ -4,7 +4,8 @@ import * as G from "./google.js";
 import { construirContexto } from "./contexto.js";
 import { renderInicio, despuesInicio, esc, colorUniverso } from "./inicio.js";
 import { ICONOS } from "./iconos.js";
-import { renderUniverso, renderBloqueo, renderIdeas, renderAgenda, renderRespiro, renderDatos, renderAjustes, renderNovedades, renderNoEncontrado, hojaMovimiento, hojaTp, hojaMateria, hojaAsignar } from "./paginas.js";
+import { renderUniverso, renderBloqueo, renderIdeas, renderAgenda, renderRespiro, renderDatos, renderAjustes, renderNovedades, renderNoEncontrado, hojaMovimiento, hojaTp, hojaMateria, hojaAsignar, hojaAgus, hojaPartido, hojaPasos } from "./paginas.js";
+import { HOJAS_LISTAS, leerListas, datosListas, traerGithub, agregarAgus, tildarAgus, anotarPartido, guardarProximos } from "./listas.js";
 import { sincronizar, activa as sincroActiva } from "./sincro.js";
 import { leerPlanilla, traerMails, corregir, datosFinanzas, pendientesDeTarjetas, guardarTope } from "./finanzas.js";
 import { leerRecibos } from "./recibos.js";
@@ -306,6 +307,15 @@ document.addEventListener("click", (e) => {
   else if (a === "tp-nuevo") abrirHoja(hojaTp(el.dataset.materia, datosFacu().materias), "Nuevo TP");
   else if (a === "materia-editar") abrirHoja(hojaMateria(datosFacu().materias.find((m) => m.materia === el.dataset.materia)), "Editar materia");
   else if (a === "tp-materia") abrirHoja(hojaAsignar(datosFacu().tps.find((t) => t.id === el.dataset.id), datosFacu().materias), "Asignar materia");
+  else if (a === "agus-tilde") {
+    tildarAgus(Number(el.dataset.fila), el.checked).then(() => { vibrar(); pintar(true); }).catch((e) => avisar("No se pudo: " + textoError(e.message)));
+  }
+  else if (a === "agus-nuevo") abrirHoja(hojaAgus(el.dataset.tipo), "Agregar");
+  else if (a === "partido-nuevo") abrirHoja(hojaPartido(), "Anotar partido");
+  else if (a === "proyecto-pasos") {
+    const p = datosListas()?.proyectos.find((x) => x.id === el.dataset.id);
+    if (p) abrirHoja(hojaPasos(p), "Próximos pasos");
+  }
   else if (a === "agendar-estudio") {
     const ini = new Date(Number(el.dataset.ini)), fin = new Date(Number(el.dataset.fin));
     G.crearEvento({ titulo: "Estudiar: " + el.dataset.titulo, inicio: ini, fin, descripcion: "Rato de estudio sugerido por Orbe" })
@@ -421,6 +431,26 @@ document.addEventListener("submit", async (e) => {
       await corregir(id, { clase: d.clase, rubro: d.rubro || "", mitad: !!d.mitad }, !!d.aprender);
       avisar("Guardado en tu planilla"); pintar(true);
     } catch (err) { avisar("No se pudo guardar: " + err.message); }
+  } else if (tipo === "agus-nuevo") {
+    cerrarHoja(); avisar("Guardando…");
+    agregarAgus(d.tipo || "plan", d.titulo.trim(), d.fecha || "", (d.nota || "").trim())
+      .then(() => { avisar("Agregado"); pintar(true); }).catch((err) => avisar("No se pudo: " + textoError(err.message)));
+  } else if (tipo === "partido") {
+    cerrarHoja(); avisar("Guardando…");
+    anotarPartido(d.fecha, d.resultado, d.goles, (d.nota || "").trim())
+      .then(() => { avisar("Partido anotado"); pintar(true); }).catch((err) => avisar("No se pudo: " + textoError(err.message)));
+  } else if (tipo === "proyecto-pasos") {
+    cerrarHoja(); avisar("Guardando…");
+    guardarProximos(f.dataset.id, String(d.pasos || "").split("\n").map((x) => x.replace(/;/g, ",").trim()).filter(Boolean))
+      .then(async () => { await recargarDatos(); avisar("Guardado"); }).catch((err) => avisar("No se pudo: " + textoError(err.message)));
+  } else if (tipo === "evento") {
+    const [y, m, dd] = d.fecha.split("-").map(Number), [hh, mi] = d.hora.split(":").map(Number);
+    const ini = new Date(y, m - 1, dd, hh, mi), fin = new Date(ini.getTime() + Number(d.dur || 60) * 60000);
+    avisar("Agendando…");
+    try {
+      await G.crearEvento({ titulo: d.titulo.trim(), inicio: ini, fin });
+      f.reset(); avisar("Agendado en tu calendario"); await G.leerAgenda(); await recargarDatos();
+    } catch (err) { avisar(err.message === "permiso" ? "Falta el permiso de calendario: Ajustes → Dar permiso" : "No se pudo agendar"); }
   } else if (tipo === "pin-nuevo") {
     if (!/^\d{4,}$/.test(d.pin)) { avisar("El PIN tiene que tener 4 números o más"); return; }
     guardar("pin", await hash(d.pin)); avisar("PIN puesto"); pintar();
@@ -492,8 +522,13 @@ async function refrescarTodo(forzar = false) {
   const fallas = [];
   try { const cambio = await sincronizar(); estadoParte("sincro"); if (cambio) pintar(true); }
   catch (e) { estadoParte("sincro", e.message); fallas.push(["sincro", e.message]); }
-  if (!fallas.length && Date.now() - (leer("hojasCuando") || 0) > 20 * 3600000) {
+  if (!fallas.length && (forzar || Date.now() - (leer("hojasCuando") || 0) > 20 * 3600000)) {
     try { await asegurarHojas(HOJAS_EXTRA); guardar("hojasCuando", Date.now(), true); } catch (e) { /* se reintenta otro día */ }
+  }
+  // Agus, fútbol y proyectos: viven en tu planilla; GitHub se consulta como mucho una vez por hora.
+  if (!fallas.length && (forzar || !datosListas() || Date.now() - datosListas().cuando > 10 * 60000)) {
+    try { await leerListas(); estadoParte("listas"); await recargarDatos(); traerGithub().then(() => pintar(true)); }
+    catch (e) { estadoParte("listas", e.message); fallas.push(["listas", e.message]); }
   }
   if (!fallas.length && (forzar || !datosFacu() || Date.now() - datosFacu().cuando > 3 * 3600000)) {
     try { await traerCampus(); estadoParte("facu"); }
@@ -522,8 +557,8 @@ async function refrescarTodo(forzar = false) {
 }
 
 // Hojas que Orbe crea solo en tu planilla si todavía no están.
-const HOJAS_EXTRA = { ...HOJAS_FACU };
-const NOMBRE_PARTE = { facu: "el campus de UFASTA", sincro: "la sincronización", mails: "los mails", economia: "ECONOMÍA", agenda: "la agenda", recibos: "los recibos" };
+const HOJAS_EXTRA = { ...HOJAS_FACU, ...HOJAS_LISTAS };
+const NOMBRE_PARTE = { facu: "el campus de UFASTA", sincro: "la sincronización", mails: "los mails", economia: "ECONOMÍA", agenda: "la agenda", recibos: "los recibos", listas: "Agus, fútbol y proyectos" };
 export function textoError(m) {
   m = String(m || "");
   if (m === "reconectar" || m.startsWith("reconectar")) return "hay que volver a conectar con Google";

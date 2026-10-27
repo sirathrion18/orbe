@@ -362,3 +362,19 @@ input[type="time"]::-webkit-date-and-time-value { text-align: left; }
 .tps li label { display: flex; gap: 10px; align-items: flex-start; flex: 1; min-width: 0; }
 .tps input[type="checkbox"] { width: 20px; height: 20px; flex: none; margin-top: 1px; }
 .materia p { font-size: 15px; }
+
+/* v0.13: Agus, Bienestar, Proyectos, Agenda */
+.regresiva { display: flex; align-items: center; gap: 16px; }
+.regresiva .cifra { font-size: 56px; }
+.metas { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.meta { display: flex; flex-direction: column; gap: 4px; padding: 14px; border-radius: 14px; border: 1px solid var(--line); }
+.meta .k { font-size: 10px; font-weight: 600; letter-spacing: .1em; color: var(--muted); text-transform: uppercase; }
+.meta b { font-family: var(--serif); font-weight: 400; font-size: 28px; line-height: 1.1; }
+.meta.ok { border-color: var(--text); }
+.meta.ok b::after { content: " ✓"; font-size: 20px; }
+ul.pasos { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 4px; font-size: 15px; }
+form.evento { display: grid; gap: 10px; }
+.fila-evento { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.fila-evento input[type=date] { grid-column: 1 / -1; }
+@media (min-width: 560px) { .fila-evento { grid-template-columns: 1.4fr 1fr 1fr; } .fila-evento input[type=date] { grid-column: auto; } }
+@media (prefers-reduced-motion: no-preference) { .meta { transition: border-color .3s; } }

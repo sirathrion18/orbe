@@ -108,7 +108,7 @@ export async function leerAgenda() {
   const cals = (lista.items || []).filter((c) => c.selected !== false || /alarma/i.test(c.summary || ""));
   if (!cals.some((c) => c.id === FERIADOS_AR)) cals.push({ id: FERIADOS_AR, summary: "Feriados" });
   if (!cals.some((c) => c.id.includes("#contacts@"))) cals.push({ id: "addressbook#contacts@group.v.calendar.google.com", summary: "Cumpleaños" });
-  const porDia = {}, avisos = {}, feriados = {}, libres = {}, cumples = {}, pendientes = new Map(), alarmas = new Set();
+  const porDia = {}, avisos = {}, feriados = {}, libres = {}, cumples = {}, pendientes = new Map(), alarmas = new Set(), historial = {};
   await Promise.all(cals.map(async (c) => {
     const url = "https://www.googleapis.com/calendar/v3/calendars/" + encodeURIComponent(c.id) +
       "/events?singleEvents=true&orderBy=startTime&maxResults=500&timeMin=" + encodeURIComponent(desde) + "&timeMax=" + encodeURIComponent(hasta);
@@ -145,9 +145,14 @@ export async function leerAgenda() {
       }
       const ini = new Date(e.start.dateTime), fin = new Date(e.end.dateTime);
       if (esAlarmas || /^\s*(⏰\s*)?alarma\b/i.test(titulo)) { alarmas.add(ini.getTime()); return; }
-      if (fin < hoy) return;
       const dia = iso(ini);
       const minutos = (fin - ini) / 60000;
+      if (fin < hoy) {
+        // Lo pasado se guarda resumido para las cuentas del mes (horas del BNA, gym y fútbol).
+        const t = tipoDe(titulo + " " + (c.summary || "") + " " + c.id);
+        if (minutos > 15 && t !== "otro") (historial[dia] = historial[dia] || []).push({ tipo: t, min: minutos });
+        return;
+      }
       if (minutos <= 15) { (avisos[dia] = avisos[dia] || []).push({ titulo, inicio: hhmm(ini) }); return; } // recordatorios: fuera del anillo
       const tipo = tipoDe(titulo + " " + (c.summary || "") + " " + c.id);
       const finTxt = iso(fin) === dia ? hhmm(fin) : "23:59";
@@ -155,7 +160,7 @@ export async function leerAgenda() {
     });
   }));
   const agenda = { cuando: Date.now(), porDia, avisos, feriados, libres, cumples, pendientes: [...pendientes.values()],
-    alarmas: [...alarmas].sort((a, b) => a - b) };
+    alarmas: [...alarmas].sort((a, b) => a - b), historial };
   guardar("agenda", agenda);
   return agenda;
 }
