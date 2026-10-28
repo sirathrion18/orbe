@@ -37,7 +37,7 @@ const config = () => leer("presuConfig", { cobros: [], ajustes: [] });
 
 // ---------- El período ----------
 // Fecha de cobro de un mes: la de tu calendario de cobros; si no está, el 28 (o el hábil anterior si cae en finde).
-function cobroDe(anio, mes) {
+export function cobroDe(anio, mes) {
   const k = anio + "-" + dos(mes + 1);
   const c = config().cobros.find((x) => x.fecha.startsWith(k));
   if (c) { const [y, m, d] = c.fecha.split("-").map(Number); return { fecha: new Date(y, m - 1, d), extras: c.extras }; }

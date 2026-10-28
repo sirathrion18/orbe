@@ -1,5 +1,5 @@
 // Tu planilla de siempre ("ECONOMÍA"): Orbe la lee tal como la cargás y la muestra más clara.
-// No escribe nada en ella. Entiende tres hojas: la del año (meses en columnas), DIVISIÓN (lo compartido con Agus)
+// Solo escribe la fila «Suscripciones» de Egresos, y solo si lo aprobaste (ver suscripciones.js). Entiende tres hojas: la del año (meses en columnas), DIVISIÓN (lo compartido con Agus)
 // y ALIAS CBU (tus cuentas y las promos por día).
 import { api } from "./google.js";
 import { leer, guardar } from "./almacen.js";

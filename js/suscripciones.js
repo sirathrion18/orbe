@@ -1,6 +1,9 @@
 // Suscripciones recurrentes (en dólares o en pesos), con su renovación y un aviso en Urgente unos días antes.
 // Los datos los cargás vos en Finanzas y se guardan en tu planilla (sincronizados), nunca en el código.
 import { leer, guardar } from "./almacen.js";
+import { api } from "./google.js";
+import { idEconomia, MESES_AR } from "./economia.js";
+import { periodo } from "./presupuesto.js";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const CLAVE = "suscripciones";
@@ -39,6 +42,7 @@ export function guardarSuscripcion(d, id) {
   };
   if (!s.nombre || !/^\d{4}-\d{2}-\d{2}$/.test(s.renueva || "")) return null;
   const i = l.findIndex((x) => x.id === s.id);
+  s.desde = (i >= 0 && l[i].desde) || iso(new Date());
   if (i >= 0) l[i] = s; else l.push(s);
   guardar(CLAVE, l);
   return s;
@@ -86,7 +90,8 @@ export function bloqueSuscripciones(hoy = new Date()) {
   return `<section class="bloque sus"><h2>Suscripciones</h2>
     ${l.length ? `<ul class="sus-lista">${filas}</ul>` : '<p class="vacio">Cargá lo que se renueva solo cada mes (como Claude o Spotify) y Orbe te avisa en Urgente unos días antes.</p>'}
     <div class="chips" style="margin-top:12px"><button class="chip" data-accion="sus-editar" data-id="">+ Suscripción</button></div>
-    ${l.some((s) => s.moneda === "USD") && !leer("dolar")?.tarjeta ? '<p class="fuente-dato">El equivalente en pesos aparece cuando Orbe lee el dólar tarjeta.</p>' : ""}</section>`;
+    ${l.some((s) => s.moneda === "USD") && !leer("dolar")?.tarjeta ? '<p class="fuente-dato">El equivalente en pesos aparece cuando Orbe lee el dólar tarjeta.</p>' : ""}
+    ${leer("ecoSusNo") ? "" : bloqueEconomiaSus()}</section>`;
 }
 
 export function hojaSuscripcion(id) {
@@ -102,4 +107,95 @@ export function hojaSuscripcion(id) {
       <label class="campo-sus"><span>Nota (opcional)</span><textarea name="nota" class="campo-texto" style="height:84px" placeholder="Cómo se cambia o se cancela">${esc(s.nota)}</textarea></label>
       <div class="grupo" style="display:flex;gap:10px">${id ? `<button type="button" class="btn sec" data-accion="sus-borrar" data-id="${esc(id)}" style="flex:1">Borrar</button>` : `<button type="button" class="btn sec" data-accion="cerrar-hoja" style="flex:1">Cancelar</button>`}<button class="btn" style="flex:2">Guardar</button></div>
     </form>`;
+}
+
+// ---------- Cobros y ECONOMÍA ----------
+// El día que renueva, el cobro se anota en pesos con el dólar tarjeta de ese día (si Orbe no se abrió ese día,
+// con el del primer día que se abra después). Va a la columna de ECONOMÍA del período de ese cobro.
+export function renovacionDelMes(s, anio, mes) {
+  const dia = deIso(s.renueva).getDate();
+  return new Date(anio, mes, Math.min(dia, new Date(anio, mes + 1, 0).getDate()), 12);
+}
+export function anotarCobros(hoy = new Date()) {
+  const cobros = leer("susCobros", {});
+  const tasa = leer("dolar")?.tarjeta?.venta;
+  const h = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate(), 12);
+  let cambio = false;
+  todas().forEach((s) => {
+    let ult = renovacionDelMes(s, h.getFullYear(), h.getMonth());
+    if (ult > h) ult = renovacionDelMes(s, h.getFullYear(), h.getMonth() - 1);
+    if (ult < deIso(s.desde || s.renueva)) return; // antes de que la cargaras
+    const k = s.id + "|" + iso(ult);
+    if (cobros[k] || (s.moneda === "USD" && !tasa)) return;
+    const p = periodo(ult);
+    cobros[k] = { id: s.id, nombre: s.nombre, fecha: iso(ult), ars: s.moneda === "USD" ? Math.round(s.monto * tasa) : s.monto,
+      tasa: s.moneda === "USD" ? tasa : null, col: p.clave, escrito: false };
+    cambio = true;
+  });
+  if (cambio) guardar("susCobros", cobros);
+  return cobros;
+}
+const porColumna = () => {
+  const out = {};
+  Object.values(leer("susCobros", {})).forEach((c) => { const x = (out[c.col] = out[c.col] || { total: 0, pendiente: false, items: [] }); x.total += c.ars; x.items.push(c); if (!c.escrito) x.pendiente = true; });
+  return out;
+};
+export const hayParaEconomia = () => Object.values(porColumna()).some((x) => x.pendiente);
+const letra = (i) => { let s = ""; i++; while (i) { const r = (i - 1) % 26; s = String.fromCharCode(65 + r) + s; i = Math.floor((i - 1) / 26); } return s; };
+const normal = (t) => String(t ?? "").trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+// Escribe el total del mes en la fila «Suscripciones» de Egresos (la crea dentro del rango del TOTAL si no está).
+// Devuelve qué hizo y, si el TOTAL no la suma, lo avisa en vez de tocar tus fórmulas.
+export async function escribirEnEconomia() {
+  const id = idEconomia();
+  if (!id) return { estado: "sin-economia" };
+  const cols = Object.entries(porColumna()).filter(([, x]) => x.pendiente);
+  if (!cols.length) return { estado: "al-dia" };
+  const BASE = "https://sheets.googleapis.com/v4/spreadsheets/" + id;
+  const meta = await api(BASE + "?fields=sheets(properties(title,sheetId))");
+  const hechos = [], avisos = [];
+  for (const [col, x] of cols) {
+    const [anio, mes] = col.split("-").map(Number);
+    const hoja = (meta.sheets || []).find((h) => h.properties.title.trim() === String(anio));
+    if (!hoja) { avisos.push(`No hay hoja ${anio} en ECONOMÍA: lo de ${MESES_AR[mes - 1].toLowerCase()} queda anotado en Orbe.`); continue; }
+    const t = "'" + hoja.properties.title.replace(/'/g, "''") + "'";
+    const leerHoja = async () => (await api(BASE + "/values/" + encodeURIComponent(t + "!A1:Z60") + "?valueRenderOption=FORMULA")).values || [];
+    let filas = await leerHoja();
+    const c = (filas[0] || []).map(normal).indexOf(MESES_AR[mes - 1]);
+    if (c < 0) { avisos.push(`La hoja ${anio} no tiene la columna ${MESES_AR[mes - 1]}.`); continue; }
+    let r = filas.findIndex((f) => normal(f[0]) === "SUSCRIPCIONES");
+    if (r < 0) {
+      const iEgr = filas.findIndex((f) => normal(f[0]) === "EGRESOS"), iTot = filas.findIndex((f) => normal(f[0]) === "TOTAL");
+      if (iEgr < 0 || iTot <= iEgr) { avisos.push(`No encontré Egresos y TOTAL en la hoja ${anio}.`); continue; }
+      // Se mete antes del último concepto: así queda adentro del rango que suma el TOTAL.
+      const ins = iTot - iEgr > 2 ? iTot - 1 : iTot;
+      await api(BASE + ":batchUpdate", "POST", { requests: [{ insertDimension: { range: { sheetId: hoja.properties.sheetId, dimension: "ROWS", startIndex: ins, endIndex: ins + 1 }, inheritFromBefore: true } }] });
+      await api(BASE + "/values/" + encodeURIComponent(t + "!A" + (ins + 1)) + "?valueInputOption=RAW", "PUT", { values: [["Suscripciones"]] });
+      filas = await leerHoja();
+      r = ins;
+    }
+    await api(BASE + "/values/" + encodeURIComponent(t + "!" + letra(c) + (r + 1)) + "?valueInputOption=RAW", "PUT", { values: [[x.total]] });
+    // ¿El TOTAL la suma? Si es una fórmula con un rango que la incluye, sí; si no, se avisa.
+    const tot = filas.find((f) => normal(f[0]) === "TOTAL");
+    const fx = String(tot?.[c] ?? "");
+    const rango = fx.match(/[A-Z]+(\d+):[A-Z]+(\d+)/);
+    if (!/^=/.test(fx) || !rango || r + 1 < Number(rango[1]) || r + 1 > Number(rango[2])) avisos.push(`Revisá el TOTAL de ${MESES_AR[mes - 1].toLowerCase()}: no parece sumar la fila Suscripciones.`);
+    const cobros = leer("susCobros", {});
+    x.items.forEach((it) => { const k = it.id + "|" + it.fecha; if (cobros[k]) cobros[k].escrito = true; });
+    guardar("susCobros", cobros);
+    hechos.push(`${MESES_AR[mes - 1].toLowerCase()} ${anio}: $ ${x.total.toLocaleString("es-AR")}`);
+  }
+  return { estado: "ok", hechos, avisos };
+}
+
+// Lo que Orbe va a escribir, para pedir el OK la primera vez.
+export function bloqueEconomiaSus() {
+  if (!idEconomia() || !hayParaEconomia()) return "";
+  const cols = Object.entries(porColumna()).filter(([, x]) => x.pendiente);
+  const det = cols.map(([col, x]) => { const [a, m] = col.split("-").map(Number); return `${MESES_AR[m - 1].toLowerCase()} ${a}: <b>$ ${x.total.toLocaleString("es-AR")}</b> (${x.items.map((i) => esc(i.nombre) + (i.tasa ? " a $ " + Math.round(i.tasa).toLocaleString("es-AR") + " el dólar tarjeta del " + fechaTxt(deIso(i.fecha)) : "")).join(", ")})`; }).join("<br>");
+  if (leer("ecoSusOk")) return `<p class="fuente-dato">Pendiente de pasar a ECONOMÍA: ${det}. Se escribe solo al actualizar.</p>`;
+  return `<div class="eco-ok"><p><b>¿Lo paso a ECONOMÍA?</b> Orbe va a sumar la fila «Suscripciones» en los Egresos de tu planilla (si no está), adentro del rango que suma el TOTAL, y escribir:</p>
+    <p class="det">${det}</p>
+    <div class="chips"><button class="btn" data-accion="eco-sus-ok">Sí, escribir en ECONOMÍA</button><button class="chip" data-accion="eco-sus-no">Ahora no</button></div>
+    <p class="fuente-dato">Es lo único que Orbe escribe en ECONOMÍA. Desde ahí lo hace solo cada vez que renueva algo.</p></div>`;
 }

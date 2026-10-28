@@ -20,6 +20,7 @@ import { datosEconomia, linkEconomia, idEconomia } from "./economia.js";
 import { ultimaEdicion, htmlEdicion } from "./semanal.js";
 import { GUINOS, guinosPrendidos } from "./guinos.js";
 import { bloqueSuscripciones } from "./suscripciones.js";
+import { renderMes } from "./agendames.js";
 
 const MESES_LARGOS = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 
@@ -515,7 +516,11 @@ export function renderAgenda(datos, ctx, tema) {
   };
   const isoDe = (d) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
   const manana = new Date(ctx.fecha.getTime() + 86400000);
-  return `<div class="pagina">${volver}<h1>Agenda</h1><p class="bajada">${ag ? "De tu Google Calendar." : "Rutina de ejemplo: conectá Google en Ajustes para ver la tuya."}</p>
+  const tabA = sesionLeer("agendaTab") || "dia";
+  const pestA = `<div class="pestanas" role="tablist">${[["dia", "Hoy y mañana"], ["mes", "Mes"]].map(([id, t]) =>
+    `<button class="pestana ${tabA === id ? "on" : ""}" role="tab" aria-selected="${tabA === id}" data-accion="agenda-tab" data-tab="${id}">${t}</button>`).join("")}</div>`;
+  if (tabA === "mes") return `<div class="pagina">${volver}<h1>Agenda</h1><p class="bajada">Tu Google Calendar, más los partidos de River, vencimientos, cobros, renovaciones y cumpleaños.</p>${pestA}${renderMes(datos, ctx, tema, !!ag)}</div>`;
+  return `<div class="pagina">${volver}<h1>Agenda</h1><p class="bajada">${ag ? "De tu Google Calendar." : "Rutina de ejemplo: conectá Google en Ajustes para ver la tuya."}</p>${pestA}
     <section class="bloque"><h2>Hoy, ${DIAS[ctx.dia]}</h2><ul class="lista">${ctx.hoy.map(fila).join("") || '<li class="vacio">Nada fijo.</li>'}</ul>${extra(isoDe(ctx.fecha))}</section>
     <section class="bloque"><h2>Mañana, ${DIAS[manana.getDay()]}</h2><ul class="lista">${ctx.manana.map(fila).join("") || '<li class="vacio">Nada fijo.</li>'}</ul>${extra(isoDe(manana))}</section>
     ${ag ? (permisosG().calendario ? `<section class="bloque"><h2>Nuevo evento</h2><form data-form="evento" class="evento">
@@ -550,7 +555,7 @@ const FAMILIA = { logo: "var(--sans);font-weight:600;letter-spacing:-.045em", re
   cursiva: "var(--serif);font-style:italic" };
 
 // Qué anda y qué no, parte por parte, con el motivo y el arreglo cuando lo hay.
-const PARTES = [["agenda", "Agenda"], ["sincro", "Celu y compu"], ["economia", "Planilla ECONOMÍA"], ["mails", "Mails del BNA y Mercado Pago"], ["recibos", "Recibos de sueldo (Drive)"], ["facu", "Campus de UFASTA"], ["listas", "Agus, fútbol y proyectos"], ["prod", "Productividad del BNA"], ["semanal", "El Semanal (Drive)"], ["resumen", "Resumen para El Semanal"]];
+const PARTES = [["agenda", "Agenda"], ["sincro", "Celu y compu"], ["economia", "Planilla ECONOMÍA"], ["mails", "Mails del BNA y Mercado Pago"], ["recibos", "Recibos de sueldo (Drive)"], ["facu", "Campus de UFASTA"], ["listas", "Agus, fútbol y proyectos"], ["prod", "Productividad del BNA"], ["semanal", "El Semanal (Drive)"], ["resumen", "Resumen para El Semanal"], ["rivercal", "Calendario «River»"]];
 function estadoPartes(est) {
   const hace = (t) => { const m = Math.round((Date.now() - t) / 60000); return m < 1 ? "recién" : m < 60 ? "hace " + m + " min" : "hace " + Math.round(m / 60) + " h"; };
   const filas = PARTES.filter(([k]) => est[k]).map(([k, n]) => {
@@ -620,15 +625,15 @@ export function renderAjustes(estadoTema, demo, hayPin, google) {
 
     <section class="bloque"><h2>Celu y compu sincronizados</h2>
       ${!conectado ? '<p class="vacio">Primero conectá tu Google.</p>'
-        : !p.sheets || !p.gmail || !p.drive || !p.calendario ? `<p>${p.sheets ? "Hay permisos nuevos para dar: leer tus recibos de sueldo en Drive y crear eventos en tu calendario desde Orbe." : "Un solo permiso más y Orbe: sincroniza el celu y la compu (hechos, horario, ideas, súper, menú, tipografías) y lee los avisos del BNA y de Mercado Pago para Finanzas."}</p>
+        : !p.sheets || !p.gmail || !p.drive || !p.calendario || !p.calPropios ? `<p>${p.sheets ? "Hay permisos nuevos para dar: " + [!p.drive ? "leer tus recibos de sueldo en Drive" : "", !p.calendario ? "crear eventos en tu calendario desde Orbe" : "", !p.calPropios ? "crear y mantener el calendario «River» con los partidos" : ""].filter(Boolean).join(", ") + "." : "Un solo permiso más y Orbe: sincroniza el celu y la compu (hechos, horario, ideas, súper, menú, tipografías) y lee los avisos del BNA y de Mercado Pago para Finanzas."}</p>
           <div class="chips" style="margin-top:12px"><button class="btn" data-accion="activar-todo">Dar permiso</button></div>
-          <p class="vacio" style="margin-top:12px;font-size:12px">Tildá todas las casillas en la pantalla de Google. Mails y Drive: solo lectura (Orbe nunca escribe ni borra; el texto de los mails no sale del servidor). Planillas: Orbe solo escribe en «Orbe · datos». Calendario: solo crea los eventos que vos le pidas.</p>`
+          <p class="vacio" style="margin-top:12px;font-size:12px">Tildá todas las casillas en la pantalla de Google. Mails y Drive: solo lectura (Orbe nunca escribe ni borra; el texto de los mails no sale del servidor). Planillas: Orbe escribe en «Orbe · datos» y, si lo aprobás, en la fila «Suscripciones» de ECONOMÍA. Calendario: solo crea los eventos que vos le pidas y el calendario «River», que mantiene él.</p>`
         : !google.hoja ? `<p>Pegá el link de tu planilla <b>Orbe · datos</b> (está en Drive, en Herramientas de IA → Orbe). Se hace una vez en cada dispositivo.</p>
           <form class="form" data-form="hoja"><input name="link" placeholder="https://docs.google.com/spreadsheets/d/…" aria-label="Link de la planilla" required><button class="btn">Listo</button></form>`
         : `${estadoPartes(google.estadoAct)}
           <div class="chips" style="margin-top:12px"><a class="chip" href="${esc(linkHoja())}" target="_blank" rel="noopener">Abrir la planilla Orbe · datos</a></div>
           <p class="vacio" style="margin-top:10px;font-size:12px">Se actualiza solo al abrir Orbe, al volver a la app y cada 5 minutos. Lo que cambiás se manda solo a la planilla en un par de segundos.</p>
-          <p style="margin-top:16px">${idEconomia() ? "Tu planilla <b>ECONOMÍA</b> está conectada: Orbe la lee y nunca la modifica." : "Para ver tu planilla <b>ECONOMÍA</b> en Finanzas, pegá su link:"}</p>
+          <p style="margin-top:16px">${idEconomia() ? "Tu planilla <b>ECONOMÍA</b> está conectada: Orbe la lee y solo escribe la fila «Suscripciones», si se lo aprobaste en Finanzas." : "Para ver tu planilla <b>ECONOMÍA</b> en Finanzas, pegá su link:"}</p>
           ${idEconomia() ? "" : '<form class="form" data-form="economia"><input name="link" placeholder="Link de ECONOMÍA" aria-label="Link de la planilla ECONOMÍA" required><button class="btn">Listo</button></form>'}`}
     </section>
 
@@ -731,28 +736,45 @@ export function hojaPasos(p) {
 // River: todo lo del club en una página (se entra desde la tarjeta de Inicio).
 export function renderRiver(ctx) {
   const rv = leer("river");
-  const vuelta = `${volver}<h1>River</h1><p class="bajada">Próximos partidos, resultados y la tabla. Datos públicos de ESPN.</p>`;
+  const vuelta = `${volver}<h1>River</h1><p class="bajada">Partidos, tabla y Promiedos. Datos públicos de ESPN.</p>`;
   if (!rv || (!rv.proximo && !rv.ultimo)) return `<div class="pagina">${vuelta}<section class="bloque"><p class="vacio">Todavía no llegaron los datos. Tocá ↻ en Inicio.</p></section></div>`;
+  const tab = sesionLeer("riverTab") || "partidos";
+  const pest = `<div class="pestanas" role="tablist">${[["partidos", "Partidos"], ["tabla", "Tabla"], ["promiedos", "Promiedos"]].map(([id, t]) =>
+    `<button class="pestana ${tab === id ? "on" : ""}" role="tab" aria-selected="${tab === id}" data-accion="river-tab" data-tab="${id}">${t}</button>`).join("")}</div>`;
   const p = rv.proximo;
-  const d = p && datosPartido(p, ctx.fecha);
-  const hero = p ? `<section class="w river ancho hero ${p.clasico ? "clasico" : ""}"><span class="k">${p.clasico ? "Superclásico" : "Próximo partido"} · ${esc(torneoCorto(p.torneo))}</span>
+  const R = (u) => u.gf > u.gc ? "G" : u.gf < u.gc ? "P" : "E";
+  let cuerpo = "";
+  if (tab === "partidos") {
+    const d = p && datosPartido(p, ctx.fecha);
+    const hero = p ? `<section class="w river ancho hero ${p.clasico ? "clasico" : ""}"><span class="k">${p.clasico ? "Superclásico" : "Próximo partido"} · ${esc(torneoCorto(p.torneo))}</span>
       <span class="tit">${esc(d.titulo)}</span><span class="sub">${d.dia} · ${d.hora}${p.estadio ? " · " + esc(estadioCorto(p.estadio)) : ""}</span>
       <span class="banda-river">${regresiva(p.fecha, true)}</span></section>` : "";
-  const prox = (rv.proximos || []).slice(1);
-  const R = (u) => u.gf > u.gc ? "G" : u.gf < u.gc ? "P" : "E";
-  const ult = rv.ultimos || (rv.ultimo ? [rv.ultimo] : []);
-  const t = rv.tabla && rv.tabla.pos ? rv.tabla : null;
-  return `<div class="pagina">${vuelta}${hero}
-    ${prox.length ? `<section class="bloque"><h2>Lo que sigue</h2><ul class="lista">${prox.map((x) => { const dx = datosPartido(x, ctx.fecha); return `<li><span>${x.clasico ? "<b>Superclásico</b> · " : ""}${x.local ? "vs " : "en cancha de "}${esc(x.rival)}<br><small class="vacio">${esc(torneoCorto(x.torneo))}</small></span><span class="tag">${dx.dia} · ${dx.hora}</span></li>`; }).join("")}</ul></section>` : ""}
-    ${ult.length ? `<section class="bloque"><h2>Últimos resultados</h2><ul class="lista">${ult.map((x) => `<li><span><span class="res res-${R(x)}">${R(x)}</span> ${x.gf}-${x.gc}${x.penales ? ` (${x.penales[0]}-${x.penales[1]} pen.)` : ""} ${x.local ? "vs" : "en cancha de"} ${esc(x.rival)}<br><small class="vacio">${esc(torneoCorto(x.torneo))}</small></span><span class="tag">${new Date(x.fecha).getDate()}/${new Date(x.fecha).getMonth() + 1}</span></li>`).join("")}</ul></section>` : ""}
-    ${t ? `<section class="bloque"><h2>Tabla <span class="tag">${esc(t.zona)}</span></h2><div class="trio">
-      <div><span class="k">Posición</span><b>${t.pos}° de ${t.equipos}</b></div><div><span class="k">Puntos</span><b>${t.pts}</b></div><div><span class="k">PJ · G-E-P</span><b>${t.pj} · ${t.g}-${t.e}-${t.p}</b></div></div>
-      <p class="fuente-dato">${esc(torneoCorto(t.torneo))}. Diferencia de gol: ${t.dg > 0 ? "+" : ""}${t.dg}.</p></section>` : ""}
-    <section class="bloque promiedos"><h2>Promiedos</h2>
+    const prox = (rv.proximos || []).slice(1);
+    const ult = rv.ultimos || (rv.ultimo ? [rv.ultimo] : []);
+    const fechaLarga = (x) => { const f = new Date(x.fecha); return `<span class="fx-fecha"><span class="fx-dia">${DIAS[f.getDay()].slice(0, 3)}</span><span class="fx-num">${f.getDate()}/${f.getMonth() + 1}</span></span>`; };
+    const sinc = leer("riverCalSinc");
+    const cal = permisosG().calPropios
+      ? `<p class="fuente-dato riv-cal">${sinc ? `Los ${sinc.partidos} próximos partidos están en tu calendario «River» de Google y se actualizan solos.` : "Se suman a tu calendario «River» de Google en la próxima actualización."}</p>`
+      : `<div class="riv-cal-pedir"><p>Para que los partidos aparezcan solos en tu Google Calendar (en un calendario «River» aparte), falta un permiso.</p><button class="chip" data-accion="activar-todo">Dar permiso</button></div>`;
+    cuerpo = `${hero}
+    ${prox.length ? `<section class="bloque"><h2>Lo que sigue</h2><ul class="fixture">${prox.map((x) => { const dx = datosPartido(x, ctx.fecha); return `<li>${fechaLarga(x)}<span class="fx-rival">${x.clasico ? "<b>Superclásico</b> · " : ""}${x.local ? "vs " : "en cancha de "}${esc(String(x.rival).replace(/ Juniors$/, ""))}<small>${esc(torneoCorto(x.torneo))}${x.estadio ? " · " + esc(estadioCorto(x.estadio)) : ""}</small></span><span class="fx-hora">${dx.hora}</span></li>`; }).join("")}</ul>${cal}</section>` : `<section class="bloque">${cal}</section>`}
+    ${ult.length ? `<section class="bloque"><h2>Últimos resultados</h2><ul class="lista">${ult.map((x) => `<li><span><span class="res res-${R(x)}">${R(x)}</span> ${x.gf}-${x.gc}${x.penales ? ` (${x.penales[0]}-${x.penales[1]} pen.)` : ""} ${x.local ? "vs" : "en cancha de"} ${esc(x.rival)}<br><small class="vacio">${esc(torneoCorto(x.torneo))}</small></span><span class="tag">${new Date(x.fecha).getDate()}/${new Date(x.fecha).getMonth() + 1}</span></li>`).join("")}</ul></section>` : ""}`;
+  } else if (tab === "tabla") {
+    const t = rv.tabla && rv.tabla.pos ? rv.tabla : null;
+    const grupos = t?.grupos || [];
+    cuerpo = !t ? '<section class="bloque"><p class="vacio">ESPN todavía no publicó la tabla. Probá más tarde.</p></section>'
+      : `<section class="bloque"><div class="trio"><div><span class="k">Posición</span><b>${t.pos}° de ${t.equipos}</b></div><div><span class="k">Puntos</span><b>${t.pts}</b></div><div><span class="k">PJ · G-E-P</span><b>${t.pj} · ${t.g}-${t.e}-${t.p}</b></div></div>
+        <p class="fuente-dato">${esc(torneoCorto(t.torneo))}${t.zona ? " · " + esc(t.zona) : ""}. Diferencia de gol: ${t.dg > 0 ? "+" : ""}${t.dg}.</p></section>
+      ${grupos.map((g) => `<section class="bloque"><h2>${esc(g.nombre || "Tabla")}</h2><table class="tabla-pos"><thead><tr><th>#</th><th class="eq">Equipo</th><th>PJ</th><th>DG</th><th>Pts</th></tr></thead><tbody>
+        ${g.filas.map((f) => `<tr class="${f.river ? "river" : ""}"><td>${f.pos ?? ""}</td><td class="eq">${esc(f.equipo)}</td><td>${f.pj ?? ""}</td><td>${f.dg > 0 ? "+" : ""}${f.dg ?? ""}</td><td><b>${f.pts ?? ""}</b></td></tr>`).join("")}</tbody></table></section>`).join("")}`;
+  } else {
+    cuerpo = `<section class="bloque promiedos"><h2>Promiedos</h2>
       ${ctx.modo === "river" ? '<a class="btn ancho-completo" href="https://www.promiedos.com.ar/team/river-plate/igi" target="_blank" rel="noopener" style="margin-bottom:10px">Seguir el partido en Promiedos</a>' : ""}
       <div class="chips"><a class="chip" href="https://www.promiedos.com.ar/team/river-plate/igi" target="_blank" rel="noopener">River: fixture y plantel</a><a class="chip" href="https://www.promiedos.com.ar/" target="_blank" rel="noopener">Partidos de hoy</a></div>
       <p class="fuente-dato">Promiedos no tiene una API pública: Orbe te lleva directo a sus páginas (o a la app, si la tenés).</p></section>
-    <section class="bloque"><h2>Accesos</h2><div class="chips"><a class="chip" href="https://www.cariverplate.com.ar" target="_blank" rel="noopener">Sitio oficial</a><a class="chip" href="https://www.espn.com.ar/futbol/equipo/_/id/16/river-plate" target="_blank" rel="noopener">River en ESPN</a></div></section></div>`;
+    <section class="bloque"><h2>Accesos</h2><div class="chips"><a class="chip" href="https://www.cariverplate.com.ar" target="_blank" rel="noopener">Sitio oficial</a><a class="chip" href="https://www.espn.com.ar/futbol/equipo/_/id/16/river-plate" target="_blank" rel="noopener">River en ESPN</a></div></section>`;
+  }
+  return `<div class="pagina">${vuelta}${pest}${cuerpo}</div>`;
 }
 
 // ---------- BNA · Productividad ----------

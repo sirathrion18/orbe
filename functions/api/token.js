@@ -24,5 +24,5 @@ export async function onRequestPost({ request, env }) {
   const nueva = await cifrar(env, { ...s, rt: t.refresh_token || s.rt });
   return json({ access_token: t.access_token, expires_in: t.expires_in, email: s.email, scope: t.scope,
     permisos: { sheets: otorgados.some((a) => a.endsWith("/spreadsheets")), gmail: otorgados.includes(GMAIL),
-      drive: otorgados.some((a) => a.endsWith("/drive.readonly")), calendario: otorgados.some((a) => a.endsWith("/calendar.events")) } }, 200, { "Set-Cookie": cookieSesion(nueva) });
+      drive: otorgados.some((a) => a.endsWith("/drive.readonly")), calendario: otorgados.some((a) => a.endsWith("/calendar.events")), calPropios: otorgados.some((a) => a.endsWith("/calendar.app.created")) } }, 200, { "Set-Cookie": cookieSesion(nueva) });
 }

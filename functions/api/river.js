@@ -28,16 +28,23 @@ async function json(url) {
   return r.json();
 }
 
+// La tabla: todos los grupos que publique ESPN (zonas, anual), completos, con River marcado.
 async function tabla() {
   try {
     const t = await json("https://site.api.espn.com/apis/v2/sports/soccer/arg.1/standings");
-    for (const g of t.children || []) {
-      const e = (g.standings?.entries || []).find((x) => x.team?.id === RIVER);
-      if (!e) continue;
-      const s = Object.fromEntries((e.stats || []).map((x) => [x.name, x.value]));
-      return { torneo: t.name || "Liga", zona: g.name || "", pos: s.rank, pts: s.points, pj: s.gamesPlayed, g: s.wins, e: s.ties, p: s.losses, dg: s.pointDifferential,
-        equipos: (g.standings?.entries || []).length };
-    }
+    const grupos = (t.children || []).map((g) => ({
+      nombre: g.name || g.abbreviation || "",
+      filas: (g.standings?.entries || []).map((e) => {
+        const s = Object.fromEntries((e.stats || []).map((x) => [x.name, x.value]));
+        return { pos: s.rank, equipo: e.team?.shortDisplayName || e.team?.displayName || "", river: e.team?.id === RIVER,
+          pts: s.points, pj: s.gamesPlayed, g: s.wins, e: s.ties, p: s.losses, dg: s.pointDifferential };
+      }).sort((a, b) => (a.pos || 99) - (b.pos || 99))
+    })).filter((g) => g.filas.length);
+    const conRiver = grupos.find((g) => g.filas.some((f) => f.river));
+    if (!conRiver) return null;
+    const r = conRiver.filas.find((f) => f.river);
+    return { torneo: t.name || "Liga", zona: conRiver.nombre, pos: r.pos, pts: r.pts, pj: r.pj, g: r.g, e: r.e, p: r.p, dg: r.dg,
+      equipos: conRiver.filas.length, grupos };
   } catch (e) { /* sin tabla */ }
   return null;
 }
@@ -51,7 +58,7 @@ export async function onRequestGet() {
   listas.flat().filter(Boolean).forEach((p) => { if (!vistos.has(p.id) || p.jugado) vistos.set(p.id, p); });
   const todos = [...vistos.values()];
   if (!todos.length) return new Response(JSON.stringify({ error: "espn" }), { status: 502, headers: { "Content-Type": "application/json" } });
-  const proximos = todos.filter((p) => !p.jugado && new Date(p.fecha).getTime() > ahora - 3 * 3600000).sort((x, y) => new Date(x.fecha) - new Date(y.fecha)).slice(0, 6);
+  const proximos = todos.filter((p) => !p.jugado && new Date(p.fecha).getTime() > ahora - 3 * 3600000).sort((x, y) => new Date(x.fecha) - new Date(y.fecha)).slice(0, 10);
   const ultimos = todos.filter((p) => p.jugado && p.gf !== null).sort((x, y) => new Date(y.fecha) - new Date(x.fecha)).slice(0, 6);
   return new Response(JSON.stringify({ proximo: proximos[0] || null, ultimo: ultimos[0] || null, proximos, ultimos, tabla: posiciones, cuando: ahora }), {
     headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "public, max-age=1800" }

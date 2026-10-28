@@ -187,3 +187,51 @@ export async function crearEvento({ titulo, inicio, fin, descripcion }) {
     start: { dateTime: inicio.toISOString() }, end: { dateTime: fin.toISOString() }
   });
 }
+
+// ---------- Un mes entero (para la vista Mes de la Agenda) ----------
+// Trae todos los calendarios visibles del mes, más los cumpleaños. Se guarda por mes para abrir sin señal.
+export async function leerMes(anio, mes) {
+  const desde = new Date(anio, mes, 1).toISOString();
+  const hasta = new Date(anio, mes + 1, 1).toISOString();
+  const lista = await api("https://www.googleapis.com/calendar/v3/users/me/calendarList?minAccessRole=reader");
+  const cals = (lista.items || []).filter((c) => c.selected !== false && !/alarma/i.test(c.summary || ""));
+  if (!cals.some((c) => c.id === FERIADOS_AR)) cals.push({ id: FERIADOS_AR, summary: "Feriados" });
+  if (!cals.some((c) => c.id.includes("#contacts@"))) cals.push({ id: "addressbook#contacts@group.v.calendar.google.com", summary: "Cumpleaños" });
+  const dias = {};
+  const sumar = (d, x) => { (dias[d] = dias[d] || []).push(x); };
+  await Promise.all(cals.map(async (c) => {
+    let ev;
+    try {
+      ev = await api("https://www.googleapis.com/calendar/v3/calendars/" + encodeURIComponent(c.id) +
+        "/events?singleEvents=true&orderBy=startTime&maxResults=500&timeMin=" + encodeURIComponent(desde) + "&timeMax=" + encodeURIComponent(hasta));
+    } catch (e) { return; }
+    const esFeriados = c.id.includes("#holiday@"), esCumples = c.id.includes("#contacts@");
+    (ev.items || []).forEach((e) => {
+      if (e.status === "cancelled") return;
+      const titulo = (e.summary || "(sin título)").trim();
+      if (e.start.date) {
+        const tipo = esFeriados ? "feriado" : (esCumples || e.eventType === "birthday" || /^cumple/i.test(titulo)) ? "cumple" : tipoDe(titulo + " " + (c.summary || ""));
+        const nombre = tipo === "cumple" ? titulo.replace(/^(cumpleaños de|cumple de|cumple)\s*/i, "").replace(/^feliz cumpleaños,?\s*/i, "") : titulo;
+        const [y, m, d] = e.start.date.split("-").map(Number);
+        const [y2, m2, d2] = e.end.date.split("-").map(Number);
+        for (let t = new Date(y, m - 1, d); t < new Date(y2, m2 - 1, d2); t.setDate(t.getDate() + 1)) {
+          if (t.getMonth() === mes) sumar(iso(t), { titulo: nombre, tipo, todoElDia: true });
+        }
+        return;
+      }
+      const ini = new Date(e.start.dateTime), fin = new Date(e.end.dateTime);
+      if ((fin - ini) / 60000 <= 15 && !/river/i.test(c.summary || "")) return; // recordatorios sueltos
+      sumar(iso(ini), { titulo, tipo: tipoDe(titulo + " " + (c.summary || "") + " " + c.id), inicio: hhmm(ini), fin: hhmm(fin), a: ini.getTime() });
+    });
+  }));
+  // Lo mismo en dos calendarios (o el partido en «River» y en el principal) se muestra una sola vez.
+  Object.keys(dias).forEach((d) => { const vistos = new Set(); dias[d] = dias[d].filter((x) => { const k = x.titulo + "|" + (x.inicio || ""); if (vistos.has(k)) return false; vistos.add(k); return true; }); });
+  Object.values(dias).forEach((l) => l.sort((x, y) => (x.todoElDia ? -1 : 0) - (y.todoElDia ? -1 : 0) || (x.a || 0) - (y.a || 0)));
+  const clave = anio + "-" + String(mes + 1).padStart(2, "0");
+  const meses = leer("agendaMeses", {});
+  meses[clave] = { cuando: Date.now(), dias };
+  // Se guardan los últimos 4 meses consultados.
+  Object.keys(meses).sort((a, b) => meses[b].cuando - meses[a].cuando).slice(4).forEach((k) => delete meses[k]);
+  guardar("agendaMeses", meses, true);
+  return meses[clave];
+}

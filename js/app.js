@@ -27,6 +27,9 @@ import { escribirResumen } from "./resumen.js";
 import { leer, guardar, borrar, todo, borrarTodo, sesion } from "./almacen.js";
 import { sol } from "./sol.js";
 import { guinoActivo } from "./guinos.js";
+import { sincronizarRiver } from "./rivercal.js";
+import { anotarCobros, escribirEnEconomia } from "./suscripciones.js";
+import { mesActual, claveMes, mesViejo } from "./agendames.js";
 import { pendientesDeSuscripciones, hojaSuscripcion, guardarSuscripcion, borrarSuscripcion } from "./suscripciones.js";
 import { renderChecklists, formChecklist, crear as crearChecklist, tildar as tildarChk, sumarItem, sacarItem, usarDeNuevo, borrarChecklist, itemsDeTexto, usarColores } from "./checklists.js";
 
@@ -100,7 +103,7 @@ function pintar(refresco = false) {
   else if (r === "/urgente") html = renderUrgente(estado.datos, estado.ctx);
   else if (r === "/checklists") { usarColores((u) => colorUniverso(estado.datos, u, tema)); html = renderChecklists(); }
   else if (r === "/ideas") html = renderIdeas();
-  else if (r === "/agenda") html = renderAgenda(estado.datos, estado.ctx, tema);
+  else if (r === "/agenda") { html = renderAgenda(estado.datos, estado.ctx, tema); if (sesion("agendaTab") === "mes") setTimeout(traerMes, 0); }
   else if (r === "/respiro") html = renderRespiro();
   else if (r === "/river") html = renderRiver(estado.ctx);
   else if (r === "/datos") html = renderDatos();
@@ -177,6 +180,15 @@ function barraInferior(r, tema) {
     const on = it.id ? r === "/u/" + it.id : (r === "/" || r === "");
     return `<a href="${it.href}" class="uf ${on ? "on" : ""}" ${on ? 'aria-current="page"' : ""} aria-label="${esc(it.nombre)}" data-nombre="${esc(it.nombre)}"><span class="u-ico" style="color:${it.color}">${it.ico}</span>${nombres ? `<small>${esc(it.nombre)}</small>` : ""}</a>`;
   }).join("")}</nav>`;
+}
+
+// Agenda › Mes: trae el mes de Google si no está o tiene más de media hora.
+let trayendoMes = null;
+function traerMes() {
+  const m = mesActual(estado.ctx);
+  if (!G.cuenta() || G.estadoSesion === "reconectar" || !mesViejo(m) || trayendoMes === claveMes(m)) return;
+  trayendoMes = claveMes(m);
+  G.leerMes(m.anio, m.mes).then(() => { if (ruta() === "/agenda") pintar(true); }).catch(() => {}).finally(() => { trayendoMes = null; });
 }
 
 // ---------- Buscador ----------
@@ -409,6 +421,21 @@ document.addEventListener("click", (e) => {
     avisar("Volvió a la lista"); pintar(true);
   }
   else if (a === "cerrar-hoja") cerrarHoja();
+  else if (a === "river-tab") { sesion("riverTab", el.dataset.tab); pintar(true); }
+  else if (a === "agenda-tab") { sesion("agendaTab", el.dataset.tab); pintar(true); if (el.dataset.tab === "mes") traerMes(); }
+  else if (a === "mes-nav") {
+    const m = mesActual(estado.ctx); const d = new Date(m.anio, m.mes + Number(el.dataset.d), 1);
+    sesion("agendaMes", claveMes({ anio: d.getFullYear(), mes: d.getMonth() })); sesion("agendaSel", null); pintar(true); traerMes();
+  }
+  else if (a === "mes-dia") { sesion("agendaSel", el.dataset.d); pintar(true); document.querySelector(".mes-det")?.scrollIntoView({ behavior: "smooth", block: "nearest" }); }
+  else if (a === "eco-sus-ok") {
+    guardar("ecoSusOk", true); avisar("Escribiendo en ECONOMÍA…");
+    escribirEnEconomia().then(async (r) => {
+      if (r.estado === "ok") { avisar(r.avisos?.length ? r.avisos[0] : "Listo: " + r.hechos.join(", ")); await leerEconomia().catch(() => {}); }
+      pintar(true);
+    }).catch((err) => { avisar("No se pudo: " + textoError(err.message)); pintar(true); });
+  }
+  else if (a === "eco-sus-no") { guardar("ecoSusNo", true); avisar("Queda anotado solo en Orbe"); pintar(true); }
   else if (a === "sus-editar") abrirHoja(hojaSuscripcion(el.dataset.id || ""), "Suscripción");
   else if (a === "sus-borrar") {
     if (el.dataset.seguro !== "1") { el.dataset.seguro = "1"; el.textContent = "Tocá de nuevo"; return; }
@@ -762,7 +789,13 @@ const estadoParte = (parte, error, nota) => {
 };
 
 async function refrescarTodo(forzar = false) {
-  Promise.all([traerDolar(), traerRiver(), traerTransporte()]).then(() => pintar(true)).catch(() => {});
+  Promise.all([traerDolar(), traerRiver(), traerTransporte()]).then(async () => {
+    anotarCobros();
+    // Partidos al calendario «River» (si diste el permiso); nunca frena el resto.
+    try { const r = await sincronizarRiver(forzar); if (r.estado === "ok") estadoParte("rivercal", null, r.partidos + " partidos" + (r.creados || r.cambiados ? ` · ${r.creados} nuevos, ${r.cambiados} actualizados` : "")); }
+    catch (e) { estadoParte("rivercal", e.message); }
+    pintar(true);
+  }).catch(() => {});
   if (!sincroActiva()) return { ok: true };
   const fallas = [];
   try { const cambio = await sincronizar(); estadoParte("sincro"); if (cambio) pintar(true); }
@@ -816,6 +849,11 @@ async function refrescarTodo(forzar = false) {
         catch (e) { estadoParte("economia", e.message); fallas.push(["economia", e.message]); }
       }
     }
+  }
+  // Suscripciones a ECONOMÍA: solo si lo aprobaste, y solo la fila «Suscripciones».
+  if (!fallas.length && idEconomia() && leer("ecoSusOk")) {
+    try { const r = await escribirEnEconomia(); if (r.estado === "ok") { (r.avisos || []).forEach((a) => avisar(a)); await leerEconomia(); } }
+    catch (e) { estadoParte("economia", e.message); }
   }
   // Lo que Orbe le pasa a El Semanal: los números ya calculados, en la planilla «Orbe · resumen para El Semanal».
   if (!fallas.length && !sesion("demo")) {

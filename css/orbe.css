@@ -821,3 +821,57 @@ textarea.chk-lineas { height: 202px; padding: 6px 14px 6px 46px; line-height: 32
 .banda-pag { top: 120px; left: calc(50% - 850px); }
 .banda-pag ~ .pagina { position: relative; }
 .promiedos .btn { display: block; text-align: center; text-decoration: none; }
+
+/* ---------- v0.26 · River con pestañas ---------- */
+.fixture { list-style: none; margin: 0; padding: 0; }
+.fixture li { display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 0; }
+.fixture li + li { border-top: 1px solid var(--line); }
+.fx-fecha { display: flex; flex-direction: column; align-items: center; line-height: 1.1; }
+.fx-dia { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #E2001A; }
+.fx-num { font-family: var(--serif); font-size: 19px; }
+.fx-rival { font-size: 15px; font-weight: 600; line-height: 1.25; min-width: 0; }
+.fx-rival small { display: block; font-size: 12px; font-weight: 400; color: var(--muted); margin-top: 2px; }
+.fx-hora { font-family: var(--serif); font-size: 20px; white-space: nowrap; }
+.riv-cal { margin-top: 10px; }
+.riv-cal-pedir { margin-top: 12px; padding: 12px 14px; border-radius: 14px; background: var(--urg-bg); display: flex; flex-direction: column; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.4; }
+.tabla-pos { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+.tabla-pos th { font-size: 11px; font-weight: 600; color: var(--muted); text-align: right; padding: 0 6px 8px; }
+.tabla-pos td { text-align: right; padding: 8px 6px; border-top: 1px solid var(--line); }
+.tabla-pos th:first-child, .tabla-pos td:first-child { text-align: center; width: 28px; padding-left: 0; }
+.tabla-pos .eq { text-align: left; width: 100%; max-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tabla-pos tr.river td { background: #E2001A; color: #FFFFFF; font-weight: 600; border-top-color: #E2001A; }
+.tabla-pos tr.river td:first-child { border-radius: 10px 0 0 10px; }
+.tabla-pos tr.river td:last-child { border-radius: 0 10px 10px 0; }
+
+/* ---------- v0.26 · Agenda › Mes ---------- */
+.mes-cab { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.bloque.mes .mes-cab h2 { margin: 0; font-family: var(--serif); font-size: 28px; font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--text); }
+.mes-cab .icon-btn { font-size: 22px; line-height: 1; }
+.mes-sem, .mes-grilla { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.mes-sem span { text-align: center; font-size: 11px; font-weight: 600; color: var(--muted); padding-bottom: 4px; }
+.dm { display: flex; flex-direction: column; align-items: center; gap: 4px; min-height: 52px; padding: 6px 2px 5px; border: 0; border-radius: 12px;
+  background: var(--bg); color: var(--text); font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.dm.vacia { background: transparent; }
+.dm b { font-size: 14px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.dm.finde b { color: var(--muted); }
+.dm.hoy b { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; margin: -3px 0; border-radius: 12px; background: var(--accent); color: #FFFFFF; font-weight: 700; }
+.dm.sel { box-shadow: inset 0 0 0 2px var(--text); }
+.dm:focus-visible { outline: 2px solid var(--text); outline-offset: 1px; }
+.marcas { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; max-width: 100%; }
+.marcas i { width: 6px; height: 6px; border-radius: 3px; }
+.marcas small { font-size: 9px; line-height: 6px; color: var(--muted); }
+.mes-ref { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 12px; font-size: 11px; color: var(--muted); }
+.mes-ref span { display: inline-flex; align-items: center; gap: 5px; }
+.mes-ref i { width: 7px; height: 7px; border-radius: 4px; }
+.bloque.mes-det h2 { font-family: var(--serif); font-size: 22px; font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--text); }
+.bloque.mes-det h2::first-letter { text-transform: uppercase; }
+.mes-lista { list-style: none; margin: 0; padding: 0; }
+.mes-lista li { display: flex; align-items: center; gap: 10px; padding: 9px 0; font-size: 15px; }
+.mes-lista li + li { border-top: 1px solid var(--line); }
+.mes-lista .t { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.mes-lista .h { flex: none; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+@media (min-width: 920px) { .dm { min-height: 76px; } .marcas i { width: 7px; height: 7px; } }
+
+/* ---------- v0.26 · Suscripciones → ECONOMÍA ---------- */
+.eco-ok { margin-top: 14px; padding: 14px; border-radius: 14px; border: 1.5px solid var(--line); background: var(--bg); display: flex; flex-direction: column; gap: 10px; font-size: 14px; line-height: 1.45; }
+.eco-ok .det { color: var(--text); }

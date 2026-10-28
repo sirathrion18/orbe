@@ -1,6 +1,17 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.26.0",
+    fecha: "28/10/2026",
+    titulo: "River completo, calendario «River», Agenda del mes y suscripciones a ECONOMÍA.",
+    cambios: [
+      "River con pestañas: Partidos (el próximo con su cuenta regresiva, lo que sigue con día, fecha, hora y estadio, y los últimos resultados), Tabla (la tabla completa de ESPN, con River marcado en rojo) y Promiedos.",
+      "Calendario «River» en tu Google Calendar: Orbe lo crea una vez y le carga los próximos partidos. Si cambia una fecha o una hora, lo actualiza solo, y ningún partido se repite. Pide un permiso nuevo (Ajustes › Dar permiso).",
+      "Agenda › Mes: la grilla del mes con tu Google Calendar, los partidos de River, vencimientos y TPs, el cobro, las renovaciones y los cumpleaños, cada cosa con su color. Tocás un día y ves el detalle; con ‹ › cambiás de mes.",
+      "Suscripciones → ECONOMÍA: el día que renueva una suscripción en dólares, Orbe la pasa a pesos con el dólar tarjeta de ese día. La primera vez te pide el OK y después escribe solo el total del mes en la fila «Suscripciones» de Egresos, adentro del rango que suma el TOTAL. Es lo único que Orbe escribe en ECONOMÍA.",
+    ],
+  },
+  {
     version: "0.25.0",
     fecha: "28/10/2026",
     titulo: "Guiños, día de River en toda la app, Promiedos y suscripciones.",

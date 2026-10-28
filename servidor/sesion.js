@@ -16,7 +16,8 @@ export const SHEETS = "https://www.googleapis.com/auth/spreadsheets";
 export const GMAIL = "https://www.googleapis.com/auth/gmail.readonly";
 export const DRIVE = "https://www.googleapis.com/auth/drive.readonly";      // leer los recibos de sueldo
 export const CAL_ESCRIBIR = "https://www.googleapis.com/auth/calendar.events"; // crear eventos desde Orbe
-export const EXTRAS = [SHEETS, GMAIL, DRIVE, CAL_ESCRIBIR];
+export const CAL_PROPIOS = "https://www.googleapis.com/auth/calendar.app.created"; // el calendario «River» que crea y mantiene Orbe
+export const EXTRAS = [SHEETS, GMAIL, DRIVE, CAL_ESCRIBIR, CAL_PROPIOS];
 
 // Pide a Google un pase de 1 hora con solo los permisos indicados (así el navegador nunca recibe el de Gmail).
 export async function paseDe(env, rt, alcances) {
