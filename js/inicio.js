@@ -308,7 +308,7 @@ function wUrgente(datos, ctx) {
   const resto = lista.length - (segundo ? 2 : 1);
   return `<div class="w urg alto"><div class="fila"><span class="k">${p.dias < 0 ? "Vencido" : "Urgente"}</span>
       <button class="hecho" data-accion="hecho" data-clave="${esc(p.clave)}" aria-label="Marcar ${esc(p.titulo)} como hecho">${ICONOS.check}</button></div>
-    <a href="#/u/${esc(p.universo || "finanzas")}" style="text-decoration:none;display:flex;flex-direction:column;gap:6px">
+    <a href="${esc(p.ruta || "#/u/" + (p.universo || "finanzas"))}" style="text-decoration:none;display:flex;flex-direction:column;gap:6px">
       <span class="tit">${esc(p.titulo)}</span>
       ${p.monto ? `<span class="monto">${esc(p.monto)}</span>` : ""}
       <span class="cuando">${cuandoTexto(p.dias)}</span>

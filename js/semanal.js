@@ -59,6 +59,27 @@ function dibujoSeguro(svg) {
   return partes.length ? { viewBox: vb, partes: partes.join("") } : null;
 }
 
+// Los pendientes con fecha que la revista encontró en tus mails (facturas, trámites), para el widget Urgente.
+// Vienen en un bloque de datos (no se ejecuta) que la edición deja en su <head>.
+function urgentesDe(doc) {
+  try {
+    const j = JSON.parse(doc.querySelector('script#orbe-urgentes[type="application/json"]')?.textContent || "[]");
+    return (Array.isArray(j) ? j : []).filter((u) => u && typeof u.titulo === "string" && /^\d{4}-\d{2}-\d{2}$/.test(u.vence || ""))
+      .slice(0, 12).map((u) => ({ titulo: u.titulo.slice(0, 90), vence: u.vence, monto: typeof u.monto === "string" ? u.monto.slice(0, 30) : "",
+        nota: typeof u.nota === "string" ? u.nota.slice(0, 90) : "", link: /^https:\/\/mail\.google\.com\//.test(u.link || "") ? u.link : "" }));
+  } catch (e) { return []; }
+}
+
+export function pendientesDeSemanal(e = ultimaEdicion(), hoy = new Date()) {
+  if (!e?.urgentes?.length) return [];
+  const h = hoy.getFullYear() + "-" + String(hoy.getMonth() + 1).padStart(2, "0") + "-" + String(hoy.getDate()).padStart(2, "0");
+  // Hasta que vencen (o los tildás): lo que ya pasó deja de aparecer.
+  return e.urgentes.filter((u) => u.vence >= h).map((u) => ({
+    titulo: u.titulo, tipo: "vencimiento", universo: "semanal", ruta: "#/semanal", fecha: u.vence, monto: u.monto,
+    nota: (u.nota ? u.nota + " · " : "") + e.nombre + (e.numero ? " N.º " + e.numero : ""), clave: ("semanal|" + u.titulo + "|" + u.vence).toLowerCase()
+  }));
+}
+
 export function leerEdicion(html, archivo, tipo) {
   const doc = new DOMParser().parseFromString(html, "text/html");
   const meta = (n) => doc.querySelector(`meta[name="orbe:${n}"]`)?.getAttribute("content")?.trim() || "";
@@ -72,6 +93,7 @@ export function leerEdicion(html, archivo, tipo) {
     desde: meta("desde"), hasta: meta("hasta") || (tipo === "semanal" ? fecha : ""),
     volanta: meta("volanta") || texto(".portada .volanta"),
     dibujo: tipo === "semanal" ? dibujoSeguro(doc.querySelector('svg[viewBox="0 0 840 130"]')) : null,
+    urgentes: urgentesDe(doc),
     creada: archivo.createdTime, bajada: Date.now()
   };
 }

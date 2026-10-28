@@ -1,6 +1,18 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.21.0",
+    fecha: "28/10/2026",
+    titulo: "El Semanal lee de Orbe.",
+    cambios: [
+      "El Semanal ahora sale de los datos de Orbe: Orbe deja lo que ya calculó (plata, agenda, productividad, facu, River, Amorcitos, bienestar y proyectos) en una planilla chiquita de tu Drive, «Orbe · resumen para El Semanal», y la revista del domingo la lee en vez de rearmar todo de cero.",
+      "Orbe la actualiza sola cuando lo abrís (como mucho cada 2 horas). Si el domingo está vieja, la revista usa lo que hay, completa lo que falta con tus mails y te dice al pie qué salió de dónde.",
+      "Los pendientes con fecha que El Semanal encuentra en tus mails (facturas, expensas, trámites) aparecen en el Urgente de Inicio hasta que vencen o los tildás.",
+      "La revista usa los mismos colores que Orbe y su contexto (horarios, proyectos, Amorcitos) sale de Orbe, así no se desactualiza.",
+      "Secciones nuevas en la revista: BNA (tu productividad y tus horas), Bienestar, Amorcitos y Proyectos con estética TVA. «Tu plata» muestra el diario de Orbe al lado del disponible del recibo."
+    ]
+  },
+  {
     version: "0.20.0",
     fecha: "28/10/2026",
     titulo: "El Semanal dentro de Orbe.",

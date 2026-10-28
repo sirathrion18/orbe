@@ -22,7 +22,8 @@ import { responder } from "./preguntas.js";
 import { fijarEconomia, leerEconomia, datosEconomia, idEconomia } from "./economia.js";
 import { huellaActiva, huellaDisponible, registrarHuella, verificarHuella, sacarHuella } from "./huella.js";
 import { UNIVERSOS, SECCIONES } from "./config.js";
-import { actualizarSemanal, htmlEdicion, marcarLeida } from "./semanal.js";
+import { actualizarSemanal, htmlEdicion, marcarLeida, pendientesDeSemanal } from "./semanal.js";
+import { escribirResumen } from "./resumen.js";
 import { leer, guardar, borrar, todo, borrarTodo, sesion } from "./almacen.js";
 import { sol } from "./sol.js";
 
@@ -76,7 +77,7 @@ function pintar(refresco = false) {
   const demo = sesion("demo");
   // Lo que se deriva de Finanzas (pagar las tarjetas) se suma a los pendientes del calendario.
   if (!estado.datos.pendientesBase) estado.datos.pendientesBase = estado.datos.pendientes || [];
-  estado.datos.pendientes = [...estado.datos.pendientesBase, ...pendientesDeTarjetas(datosFinanzas()), ...pendientesDeTps(datosFacu())];
+  estado.datos.pendientes = [...estado.datos.pendientesBase, ...pendientesDeTarjetas(datosFinanzas()), ...pendientesDeTps(datosFacu()), ...pendientesDeSemanal()];
   estado.ctx = construirContexto(estado.datos, demo);
   const r = ruta();
   let html;
@@ -682,6 +683,11 @@ async function refrescarTodo(forzar = false) {
         catch (e) { estadoParte("economia", e.message); fallas.push(["economia", e.message]); }
       }
     }
+  }
+  // Lo que Orbe le pasa a El Semanal: los números ya calculados, en la planilla «Orbe · resumen para El Semanal».
+  if (!fallas.length && !sesion("demo")) {
+    try { estado.ctx = construirContexto(estado.datos, sesion("demo")); await escribirResumen(estado.datos, estado.ctx, forzar); estadoParte("resumen"); }
+    catch (e) { estadoParte("resumen", e.message); }
   }
   pintar(true);
   return { ok: !fallas.length, fallas };
