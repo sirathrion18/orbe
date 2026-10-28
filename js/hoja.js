@@ -82,15 +82,29 @@ export async function asegurarHojas(spec) {
   return faltan;
 }
 
-// Filas de arranque privadas: una planilla «Orbe · semillas» en tu Drive (necesita el permiso de leer Drive).
+// Filas de arranque privadas: una planilla «Orbe · semillas» en tu Drive. Si Orbe ya sabe su ID (link con ?semillas=),
+// la lee directo como planilla; si no, la busca por nombre en Drive (eso necesita el servicio de Drive prendido).
+export function fijarSemillas(texto) {
+  const t = String(texto || "").trim();
+  const m = t.match(/\/d\/([\w-]{20,})/) || t.match(/^([\w-]{20,})$/);
+  if (!m) return false;
+  guardar("semillas", m[1], true);
+  return true;
+}
 async function leerSemillas(hojas) {
   try {
-    const q = encodeURIComponent("name = 'Orbe · semillas' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false");
-    const f = (await api("https://www.googleapis.com/drive/v3/files?fields=files(id)&q=" + q)).files || [];
-    if (!f[0]) return {};
-    const r = await api(BASE + f[0].id + "/values:batchGet?valueRenderOption=UNFORMATTED_VALUE&" + hojas.map((h) => "ranges=" + encodeURIComponent(h + "!A2:Z")).join("&"));
+    let id = leer("semillas");
+    if (!id) {
+      const q = encodeURIComponent("name = 'Orbe · semillas' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false");
+      const f = (await api("https://www.googleapis.com/drive/v3/files?fields=files(id)&q=" + q)).files || [];
+      if (!f[0]) { guardar("semillasError", "no-existe", true); return {}; }
+      id = f[0].id;
+      guardar("semillas", id, true);
+    }
+    const r = await api(BASE + id + "/values:batchGet?valueRenderOption=UNFORMATTED_VALUE&" + hojas.map((h) => "ranges=" + encodeURIComponent(h + "!A2:Z")).join("&"));
+    guardar("semillasError", null, true);
     return Object.fromEntries(hojas.map((h, i) => [h, (r.valueRanges?.[i]?.values || []).map((fila) => fila.map((v) => typeof v === "number" && v > 30000 && v < 80000 ? aFecha(v) : v))]));
-  } catch (e) { return {}; }
+  } catch (e) { guardar("semillasError", e.message, true); return {}; }
 }
 
 // El LEEME de la planilla: suma la explicación de las hojas nuevas, en el mismo estilo («HOJA: qué guarda»),

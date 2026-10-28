@@ -11,7 +11,7 @@ import { sincronizar, activa as sincroActiva } from "./sincro.js";
 import { leerPlanilla, traerMails, corregir, datosFinanzas, pendientesDeTarjetas, guardarTope } from "./finanzas.js";
 import { leerRecibos } from "./recibos.js";
 import { datosFacu, traerCampus, leerFacu, tildarTp, nuevoTp, guardarMateria, asignarTp, pendientesDeTps, HOJAS_FACU } from "./facu.js";
-import { asegurarHojas, asegurarLeeme } from "./hoja.js";
+import { asegurarHojas, asegurarLeeme, fijarSemillas } from "./hoja.js";
 import { fijarHoja, idHoja } from "./hoja.js";
 import { traerDolar, traerRiver, traerTransporte } from "./extras.js";
 import { responder } from "./preguntas.js";
@@ -617,6 +617,8 @@ export function textoError(m) {
   if (m === "reconectar" || m.startsWith("reconectar")) return "hay que volver a conectar con Google";
   if (m.startsWith("api-apagada:sheets")) return "falta prender el servicio de planillas en Google Cloud";
   if (m.startsWith("api-apagada:gmail")) return "falta prender el servicio de Gmail en Google Cloud";
+  if (m.startsWith("api-apagada:drive")) return "falta prender el servicio de Drive en Google Cloud";
+  if (m.startsWith("api-apagada:calendar")) return "falta prender el servicio de Calendar en Google Cloud";
   if (m === "permiso" || m.startsWith("permiso")) return "Google no dio permiso";
   if (m === "no-existe") return "no encuentro la planilla";
   return m;
@@ -662,6 +664,7 @@ function leerHojaDelLink() {
   let ok = false;
   if (q.get("hoja") && fijarHoja(q.get("hoja"))) ok = true;
   if (q.get("economia") && fijarEconomia(q.get("economia"))) ok = true;
+  if (q.get("semillas") && fijarSemillas(q.get("semillas"))) { ok = true; guardar("hojasCuando", 0, true); }
   if (ok) avisar("Planillas conectadas");
   return ok;
 }

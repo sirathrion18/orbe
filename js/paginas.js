@@ -434,10 +434,10 @@ function estadoPartes(est) {
   const filas = PARTES.filter(([k]) => est[k]).map(([k, n]) => {
     const e = est[k];
     if (e.ok) return `<li><span>${n}${e.nota ? `<br><small class="vacio">${esc(e.nota)}</small>` : ""}</span><span class="estado ok">✓ ${hace(e.ok)}</span></li>`;
-    const apagada = /api-apagada:(sheets|gmail)/.exec(e.msj || "");
+    const apagada = /api-apagada:(sheets|gmail|drive|calendar)/.exec(e.msj || "");
     const sinPermiso = /insufficient|scope|permiso/i.test(e.msj || "");
     const arreglo = sinPermiso && !apagada ? `<button class="btn" style="margin-top:8px" data-accion="activar-todo">Volver a dar permiso</button><span class="vacio" style="font-size:12px">En la pantalla de Google, tildá todas las casillas (sobre todo la de Gmail).</span>`
-      : apagada ? `<a class="chip" style="margin-top:8px;display:inline-block" target="_blank" rel="noopener" href="https://console.cloud.google.com/apis/library/${apagada[1]}.googleapis.com?project=orbe-512903">Prender el servicio de ${apagada[1] === "sheets" ? "planillas" : "Gmail"}</a>` : "";
+      : apagada ? `<a class="chip" style="margin-top:8px;display:inline-block" target="_blank" rel="noopener" href="https://console.cloud.google.com/apis/library/${apagada[1] === "calendar" ? "calendar-json" : apagada[1]}.googleapis.com?project=orbe-512903">Prender el servicio de ${({ sheets: "planillas", gmail: "Gmail", drive: "Drive", calendar: "Calendar" })[apagada[1]]}</a>` : "";
     return `<li style="flex-direction:column;align-items:flex-start;gap:4px"><span style="display:flex;justify-content:space-between;width:100%"><span>${n}</span><span class="estado mal">no anda</span></span>
       <span class="vacio" style="font-size:12px;word-break:break-word">${esc(apagada ? "Falta prender el servicio en Google Cloud, una sola vez." : sinPermiso ? "Google no le dio a Orbe el permiso de leer los mails." : e.msj)}</span>${arreglo}</li>`;
   });
@@ -613,8 +613,11 @@ const diaLargo = (iso) => { const d = new Date(iso + "T12:00"); return DIAS[d.ge
 function bloqueProductividad(ctx) {
   const p = datosProd();
   if (!sincroActiva()) return `<section class="bloque"><h2>Productividad</h2><p class="vacio">Vive en tu planilla «Orbe · datos»: activá la sincronización en Ajustes.</p></section>`;
-  if (!p || !p.tareas.length) return `<section class="bloque"><h2>Productividad</h2><p>Faltan tus pesos y metas. Salen de «Orbe · semillas», tu planilla privada en Drive, y para leerla Orbe necesita el permiso de Drive.</p>
-    <div class="chips" style="margin-top:12px"><button class="chip" data-accion="activar-todo">Dar permiso de Drive</button><button class="chip" data-accion="actualizar-todo">Ya lo di: actualizar</button></div>
+  const errSem = leer("semillasError");
+  if (!p || !p.tareas.length) return `<section class="bloque"><h2>Productividad</h2><p>Faltan tus pesos y metas. Salen de «Orbe · semillas», tu planilla privada en Drive.</p>
+    ${errSem && /api-apagada:drive/.test(errSem) ? '<p class="fuente-dato">No la pude buscar: el servicio de Drive está apagado en tu proyecto de Google. Abrí el link de las semillas que te pasé, o prendé Drive.</p><div class="chips" style="margin-top:8px"><a class="chip" target="_blank" rel="noopener" href="https://console.cloud.google.com/apis/library/drive.googleapis.com?project=orbe-512903">Prender Drive</a></div>'
+      : errSem ? `<p class="fuente-dato">No la pude leer (${esc(errSem)}).</p>` : ""}
+    <div class="chips" style="margin-top:12px"><button class="chip" data-accion="activar-todo">Dar permiso de Drive</button><button class="chip" data-accion="actualizar-todo">Actualizar</button></div>
     <p class="fuente-dato">También podés cargarlos a mano en la hoja PESOS_PRODUCTIVIDAD.</p></section>`;
   const hoy = isoHoy(ctx.fecha);
   const fecha = sesionLeer("prodFecha") || hoy;

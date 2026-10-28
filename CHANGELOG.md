@@ -1,5 +1,12 @@
 # Novedades de Orbe
 
+## v0.15.1 · 28/10/2026
+
+Arreglo de las semillas y del aviso de Drive.
+
+- Orbe ahora lee tus semillas (pesos, octubre y lo de Agus) aunque el servicio de Drive esté apagado: alcanza con abrir una vez el link de las semillas.
+- El error «api-apagada:calendar» en realidad era Drive: ahora dice qué servicio falta y Ajustes trae el botón para prenderlo.
+
 ## v0.15.0 · 28/10/2026
 
 Productividad en el BNA.

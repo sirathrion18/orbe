@@ -1,6 +1,15 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.15.1",
+    fecha: "28/10/2026",
+    titulo: "Arreglo de las semillas y del aviso de Drive.",
+    cambios: [
+      "Orbe ahora lee tus semillas (pesos, octubre y lo de Agus) aunque el servicio de Drive esté apagado: alcanza con abrir una vez el link de las semillas.",
+      "El error «api-apagada:calendar» en realidad era Drive: ahora dice qué servicio falta y Ajustes trae el botón para prenderlo."
+    ]
+  },
+  {
     version: "0.15.0",
     fecha: "28/10/2026",
     titulo: "Productividad en el BNA.",

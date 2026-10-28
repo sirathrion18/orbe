@@ -55,7 +55,7 @@ export async function api(url, metodo = "GET", cuerpo) {
     const txt = await r.text().catch(() => "");
     // Servicio apagado en Google Cloud: hay que habilitarlo una vez en el proyecto.
     if (r.status === 403 && /has not been used|is disabled|SERVICE_DISABLED|accessNotConfigured/i.test(txt)) {
-      throw new Error("api-apagada:" + (/sheets/i.test(url) ? "sheets" : /gmail/i.test(url) ? "gmail" : "calendar"));
+      throw new Error("api-apagada:" + (/sheets/i.test(url) ? "sheets" : /gmail/i.test(url) ? "gmail" : /\/drive\//i.test(url) ? "drive" : "calendar"));
     }
     if (r.status === 403) throw new Error("permiso");
     if (r.status === 404) throw new Error("no-existe");
