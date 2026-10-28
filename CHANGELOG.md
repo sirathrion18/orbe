@@ -1,5 +1,12 @@
 # Novedades de Orbe
 
+## v0.28.1 · 28/10/2026
+
+Escuchas y pruebas de llamados con puntos.
+
+- BNA › Hoy: las escuchas son las de Calidad / Mystery (MS). Cada una que sumás con el contador suma sus puntos a Productividad (2,5 c/u según tu planilla).
+- Los lunes y martes, que entrás a la mañana, se precarga también «Prueba de llamados» con contador, que suma a su tarea de Productividad.
+
 ## v0.28.0 · 28/10/2026
 
 Guiños más seguidos, tablas y copas de River, y ajustes del BNA.

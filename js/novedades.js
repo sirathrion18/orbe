@@ -1,6 +1,15 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.28.1",
+    fecha: "28/10/2026",
+    titulo: "Escuchas y pruebas de llamados con puntos.",
+    cambios: [
+      "BNA › Hoy: las escuchas son las de Calidad / Mystery (MS). Cada una que sumás con el contador suma sus puntos a Productividad (2,5 c/u según tu planilla).",
+      "Los lunes y martes, que entrás a la mañana, se precarga también «Prueba de llamados» con contador, que suma a su tarea de Productividad.",
+    ],
+  },
+  {
     version: "0.28.0",
     fecha: "28/10/2026",
     titulo: "Guiños más seguidos, tablas y copas de River, y ajustes del BNA.",

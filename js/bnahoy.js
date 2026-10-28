@@ -11,14 +11,16 @@ const DIAS = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "
 const f1 = (x) => (Math.round(x * 10) / 10).toLocaleString("es-AR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
 // El mínimo, con los mismos nombres que tu archivo de productividad de informes.
-const BASE = (companero) => [
+const BASE = (companero, diaSemana) => [
   { t: "Descarga casuística APC / Tel / RRSS", modo: "carga" },
   { t: "Armado de casuística", modo: "carga" },
   { t: "Diario CAT", modo: companero ? "control" : "carga" },
   { t: "Diario Evoltis", modo: companero ? "control" : "carga" },
   { t: "Diario NS", modo: "carga" },
-  // Siempre son varias: va con contador.
-  { t: "Escucha de llamados", modo: "libre", contador: true, cuenta: 0 }
+  // Siempre son varias: van con contador. Las escuchas son las de Calidad / Mystery (MS).
+  { t: "Escucha de llamados (MS)", modo: "libre", contador: true, cuenta: 0, suma: "ms" },
+  // Prueba de llamados: solo lunes y martes, que entrás a la mañana.
+  ...(diaSemana === 1 || diaSemana === 2 ? [{ t: "Prueba de llamados", modo: "libre", contador: true, cuenta: 0, suma: "prueba" }] : [])
 ];
 const MODOS = { carga: "Carga", control: "Control", libre: "Sin puntos" };
 
@@ -58,7 +60,7 @@ export function diaDe(fecha = isoHoy()) {
   if (d) return d;
   const ded = deducirCompanero(fecha);
   const companero = ded.v;
-  const nuevo = { companero, deducido: true, razon: ded.razon, items: [...BASE(companero), ...aprendidos(fecha)].map((x) => ({ id: nuevoId(), ...x, hecho: null })), nota: "" };
+  const nuevo = { companero, deducido: true, razon: ded.razon, items: [...BASE(companero, new Date(fecha + "T12:00").getDay()), ...aprendidos(fecha)].map((x) => ({ id: nuevoId(), ...x, hecho: null })), nota: "" };
   // Se guarda al primer vistazo, así los renglones mantienen su identidad al tacharlos.
   guardarDia(fecha, nuevo);
   return nuevo;
@@ -67,7 +69,12 @@ export function diaDe(fecha = isoHoy()) {
 // Tachar o destachar: suma o resta una carga o un control en Productividad.
 const tareaDe = (modo) => (datosProd()?.tareas || []).find((t) => t.grupo === modo)?.tarea;
 // Las escuchas suman a la tarea de tu planilla que hable de escuchas o pruebas de llamados (si hay una).
-const tareaEscucha = () => (datosProd()?.tareas || []).find((t) => /escucha/i.test(t.tarea))?.tarea || (datosProd()?.tareas || []).find((t) => /llamad/i.test(t.tarea))?.tarea;
+// Escuchas → la tarea de Calidad / Mystery (MS); prueba de llamados → «Prueba de llamados». Salen de tu planilla de pesos.
+function tareaContador(it) {
+  const ts = datosProd()?.tareas || [];
+  if (it.suma === "prueba" || /prueba de llamad/i.test(it.t)) return ts.find((t) => /prueba de llamad/i.test(t.tarea))?.tarea;
+  return ts.find((t) => /mystery|calidad/i.test(t.tarea))?.tarea || ts.find((t) => t.grupo === "ms")?.tarea;
+}
 export function contar(fecha, id, delta, alTerminar) {
   const d = diaDe(fecha);
   const it = d.items.find((i) => i.id === id);
@@ -75,7 +82,7 @@ export function contar(fecha, id, delta, alTerminar) {
   const antes = it.cuenta || 0;
   it.cuenta = Math.max(0, antes + delta);
   if (it.cuenta === 0) it.hecho = null;
-  const tarea = tareaEscucha();
+  const tarea = tareaContador(it);
   if (tarea && it.cuenta !== antes) cambiar(fecha, tarea, it.cuenta - antes, alTerminar);
   guardarDia(fecha, d);
   return it;
@@ -102,7 +109,7 @@ export function tachar(fecha, id, alTerminar) {
 export function fijarCompanero(fecha, valor) {
   const d = diaDe(fecha);
   d.companero = valor; d.deducido = false;
-  const base = BASE(valor);
+  const base = BASE(valor, new Date(fecha + "T12:00").getDay());
   d.items = d.items.map((i) => {
     if (i.hecho || i.extra) return i;
     const b = base.find((x) => x.t === i.t);
@@ -134,8 +141,8 @@ function renglon(fecha, it) {
   return `<li class="lb ${it.hecho ? "tachado" : ""}">
     <button class="lb-item" data-accion="hoy-tachar" data-f="${fecha}" data-id="${esc(it.id)}" aria-pressed="${!!it.hecho}" aria-label="${it.hecho ? "Destachar" : "Tachar"}: ${esc(it.t)}">
       <span class="lb-txt">${esc(it.t)}<svg class="birome" viewBox="0 0 200 12" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M2 7c18-3 34 2 52-1s32-3 50 0 34 2 50-1 28-1 44 1" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></span>
-      ${it.contador ? "" : `<span class="lb-modo m-${it.modo}">${it.modo === "libre" ? "" : MODOS[it.modo]}</span>`}</button>
-    ${it.contador ? `<span class="lb-cont"><button data-accion="hoy-contar" data-f="${fecha}" data-id="${esc(it.id)}" data-d="-1" aria-label="Una escucha menos">−</button><b aria-live="polite">${it.cuenta || 0}</b><button data-accion="hoy-contar" data-f="${fecha}" data-id="${esc(it.id)}" data-d="1" aria-label="Una escucha más">+</button></span>` : ""}
+      ${it.contador ? `<span class="lb-modo m-control">${it.suma === "prueba" || /prueba/i.test(it.t) ? "Prueba" : "MS"}</span>` : `<span class="lb-modo m-${it.modo}">${it.modo === "libre" ? "" : MODOS[it.modo]}</span>`}</button>
+    ${it.contador ? `<span class="lb-cont"><button data-accion="hoy-contar" data-f="${fecha}" data-id="${esc(it.id)}" data-d="-1" aria-label="Una menos">−</button><b aria-live="polite">${it.cuenta || 0}</b><button data-accion="hoy-contar" data-f="${fecha}" data-id="${esc(it.id)}" data-d="1" aria-label="Una más">+</button></span>` : ""}
     ${it.hecho || it.contador ? "" : `<button class="lb-sacar" data-accion="hoy-sacar" data-f="${fecha}" data-id="${esc(it.id)}" aria-label="Sacar ${esc(it.t)}">${ICONOS.cruz}</button>`}</li>`;
 }
 
