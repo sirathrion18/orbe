@@ -63,8 +63,10 @@ export async function asegurarHojas(spec) {
         if (!filas.length) continue;
         const act = actuales[conSemilla.indexOf(t)];
         const k = spec[t].clave;
-        const llave = (f) => k.map((i) => String(f[i] ?? "").slice(0, i === 0 ? 10 : 200).trim()).join("|");
-        const ya = new Set(k ? act.map((f) => llave([aFecha(f[0]), ...f.slice(1)])) : []);
+        // Las dos puntas se comparan igual: fechas (serial, d/m/aaaa o ISO) pasan a ISO; años, meses («2026-10») y textos quedan como están.
+        const norm = (v) => { const s = String(v ?? "").trim(); return /^\d{5}(\.\d+)?$|^\d{1,2}\/\d{1,2}\/\d{4}|^\d{4}-\d{2}-\d{2}/.test(s) ? aFecha(s).slice(0, 10) : s; };
+        const llave = (f) => k.map((i) => norm(f[i])).join("|");
+        const ya = new Set(k ? act.map(llave) : []);
         const faltan2 = !act.length ? filas : k ? filas.filter((f) => !ya.has(llave(f))) : [];
         if (faltan2.length) await agregar(t + "!A:Z", faltan2);
       }
@@ -110,7 +112,7 @@ async function leerSemillas(hojas) {
       try { titulos = ((await api(BASE + id + "?fields=sheets.properties.title")).sheets || []).map((x) => x.properties.title); } catch (e) { continue; }
       const hay = faltan.filter((h) => titulos.includes(h));
       if (!hay.length) continue;
-      const r = await api(BASE + id + "/values:batchGet?valueRenderOption=UNFORMATTED_VALUE&" + hay.map((h) => "ranges=" + encodeURIComponent(h + "!A2:Z")).join("&"));
+      const r = await api(BASE + id + "/values:batchGet?valueRenderOption=UNFORMATTED_VALUE&dateTimeRenderOption=FORMATTED_STRING&" + hay.map((h) => "ranges=" + encodeURIComponent(h + "!A2:Z")).join("&"));
       hay.forEach((h, i) => { out[h] = r.valueRanges?.[i]?.values || []; });
     }
     guardar("semillasError", null, true);

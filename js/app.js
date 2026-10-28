@@ -8,6 +8,7 @@ import { renderRiver, renderUniverso, renderBloqueo, renderIdeas, renderAgenda, 
 import { HOJAS_PRESU, leerConfigPresu, cruzar, responder as responderPresu, confirmarIngreso } from "./presupuesto.js";
 import { agregarManual } from "./finanzas.js";
 import { HOJAS_ESC, leerEscalafon, cargarConformado, datosEsc } from "./escalafon.js";
+import { HOJAS_ANALISIS, importarHistorico, reclasificar, leerHistorico, datosHist } from "./analisis.js";
 import { HOJAS_PROD, leerProd, datosProd, compararOficial, mandar as mandarProd, hayPendientes as prodPendiente, cambiar as prodCambiar, fijar as prodFijar, aplicarPreset, guardarPesos, cantidadesDe, isoHoy } from "./productividad.js";
 import { HOJAS_LISTAS, leerListas, datosListas, traerGithub, agregarAgus, tildarAgus, anotarPartido, guardarProximos } from "./listas.js";
 import { sincronizar, activa as sincroActiva } from "./sincro.js";
@@ -356,6 +357,13 @@ document.addEventListener("click", (e) => {
     responderPresu(el.dataset.id, el.dataset.r).then(() => { vibrar(); pintar(true); }).catch((e) => avisar("No se pudo: " + textoError(e.message)));
   }
   else if (a === "presu-confirmar") { confirmarIngreso(el.dataset.clave, Number(el.dataset.monto)); avisar("Ingreso confirmado"); pintar(true); }
+  else if (a === "fin-tab") { sesion("finTab", el.dataset.tab); if (el.dataset.tab === "analisis" && !datosHist() && sincroActiva()) leerHistorico().then(() => pintar(true)).catch(() => {}); pintar(true); }
+  else if (a === "hist-importar") {
+    el.disabled = true;
+    importarHistorico((t) => avisar(t)).then((r) => { avisar(`Listo: ${r.archivos} archivos, ${r.filas} movimientos`); pintar(true); })
+      .catch((e) => { avisar("No se pudo: " + textoError(e.message)); pintar(true); });
+  }
+  else if (a === "hist-clasif") reclasificar(Number(el.dataset.i), el.dataset.cat).then(() => { vibrar(); pintar(true); }).catch((e) => avisar("No se pudo: " + textoError(e.message)));
   else if (a === "bna-tab") { sesion("bnaTab", el.dataset.tab); pintar(true); }
   else if (a === "prod-mas" || a === "prod-menos") {
     prodCambiar(sesion("prodFecha") || isoHoy(), el.dataset.tarea, a === "prod-mas" ? 1 : -1, () => pintar(true));
@@ -664,7 +672,7 @@ async function refrescarTodo(forzar = false) {
 }
 
 // Hojas que Orbe crea solo en tu planilla si todavía no están.
-const HOJAS_EXTRA = { ...HOJAS_FACU, ...HOJAS_LISTAS, ...HOJAS_PROD, ...HOJAS_PRESU, ...HOJAS_ESC };
+const HOJAS_EXTRA = { ...HOJAS_FACU, ...HOJAS_LISTAS, ...HOJAS_PROD, ...HOJAS_PRESU, ...HOJAS_ESC, ...HOJAS_ANALISIS };
 // Lo que dice el LEEME de tu planilla sobre cada hoja que Orbe fue sumando (mismo estilo que las demás).
 const LEEME = [
   "MATERIAS: tus materias de UFASTA, con pistas para reconocer los mails del campus, profe, aula, links y notas.",
@@ -679,6 +687,7 @@ const LEEME = [
   "ESCALAFON: la grilla base de la rama Administrativa (cargo, coeficiente, sueldo, ROE, devolución de aportes) del mes de referencia; «tuyo» marca tu cargo.",
   "CONFORMADOS: el sueldo mínimo (Auxiliar E) de cada mes. Con cada uno nuevo, toda la grilla sube en la misma proporción.",
   "BANCARIO: la fórmula del Día del Bancario de cada año: suma fija + valor por coeficiente.",
+  "HISTORICO: cada movimiento de tus extractos de la caja de ahorro y de tus resúmenes de tarjeta (fecha, cuenta, concepto, monto, saldo, categoría y de qué archivo salió). Lo arma Orbe leyendo tus PDF de Drive; podés corregir la categoría a mano.",
   "PESOS_PRODUCTIVIDAD: cuánto vale cada tarea (puntos por unidad) y cuántos minutos lleva; grupo carga, control, ms (MS y cambio de cartera), otras o meta. Las filas «meta» dicen desde qué fecha vale cada meta diaria y los minutos efectivos."
 ];
 const NOMBRE_PARTE = { facu: "el campus de UFASTA", sincro: "la sincronización", mails: "los mails", economia: "ECONOMÍA", agenda: "la agenda", recibos: "los recibos", listas: "Agus, fútbol y proyectos", prod: "la productividad" };

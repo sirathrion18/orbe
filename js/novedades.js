@@ -1,6 +1,18 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.19.0",
+    fecha: "28/10/2026",
+    titulo: "Análisis económico con tu historial.",
+    cambios: [
+      "Finanzas › Análisis: todo tu historial de extractos de cuenta y resúmenes de tarjeta, leído desde tus carpetas de Drive (EXTRACTOS HISTÓRICO y RESUMENES TC) con un botón.",
+      "Cuatro gráficos: el sueldo contra el descuento complementario, en qué se va la plata mes a mes, el saldo de la caja de ahorro y las promos y reintegros.",
+      "Cada extracto se controla solo: Orbe revisa que los saldos cierren renglón a renglón y te avisa si alguno no da.",
+      "Las transferencias grandes te las pregunta con botones (alquiler y servicios, a mis cuentas, ahorro, otro gasto), y lo que contestás queda guardado en la hoja HISTORICO.",
+      "Las semillas de cobros, ajustes y escalafón ahora viven en «Orbe · semillas 2», en tu Drive; las fechas se leen como texto para que no se dupliquen filas."
+    ]
+  },
+  {
     version: "0.18.0",
     fecha: "28/10/2026",
     titulo: "Escalafón en BNA.",

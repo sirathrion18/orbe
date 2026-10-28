@@ -6,6 +6,7 @@ import { esc, colorTipo, colorUniverso, datosPartido, resultadoTxt, torneoCorto,
 import { DIAS, DIAS_CORTOS, bloquesDe, bloquesFecha, pendientesCon, cuandoTexto, duracion, hhmm, MODOS, lunesDe, minutosDia, sumaTipo } from "./contexto.js";
 import { datosListas, proximaAnual } from "./listas.js";
 import { presupuesto } from "./presupuesto.js";
+import { analisis, datosHist } from "./analisis.js";
 import { datosEsc, cargoEn, conformadoDe, tuCargo, proximoCargo, grillaVsRecibo, estimadoNeto } from "./escalafon.js";
 import { datosProd, resumenDia, banda, PRESETS, presetPuntos, historial, mesesConDatos, isoHoy, metaDe, HISTORICO, OFICIAL, hayPendientes } from "./productividad.js";
 import { permisos as permisosG } from "./google.js";
@@ -368,7 +369,11 @@ const PAGINAS = {
         <div><span class="k">Oficial</span><b>$ ${Math.round(dl.oficial.venta).toLocaleString("es-AR")}</b></div>
         <div><span class="k">MEP</span><b>$ ${Math.round(dl.mep?.venta || 0).toLocaleString("es-AR")}</b></div>
         <div><span class="k">Blue</span><b>${dl.blue ? "$\u00a0" + Math.round(dl.blue.venta).toLocaleString("es-AR") : "—"}</b></div></div></section>` : "";
-    return `${aviso}${bloquePeriodo(ctx, $)}${bloqueEconomia(ctx, $)}${cabeza}${dolar}${revisar}${topes}${rubros}
+    const tabF = sesionLeer("finTab") || "periodo";
+    const pestF = `<div class="pestanas" role="tablist">${[["periodo", "Este período"], ["analisis", "Análisis"]].map(([id, t]) =>
+      `<button class="pestana ${tabF === id ? "on" : ""}" role="tab" aria-selected="${tabF === id}" data-accion="fin-tab" data-tab="${id}">${t}</button>`).join("")}</div>`;
+    if (tabF === "analisis") return pestF + bloqueAnalisis($);
+    return `${pestF}${aviso}${bloquePeriodo(ctx, $)}${bloqueEconomia(ctx, $)}${cabeza}${dolar}${revisar}${topes}${rubros}
       <section class="bloque"><h2>Vencimientos ${datos.agenda ? "" : '<span class="ejemplo">Ejemplo</span>'}</h2><ul class="lista">${venc.map((d) => `<li style="align-items:flex-start"><span style="display:flex;flex-direction:column;gap:4px;min-width:0"><span>${esc(d.titulo)}${d.vernet ? ' <span class="tag">Vernet</span>' : ""}${d.nota ? ` <span class="tag">${esc(d.nota)}</span>` : ""}</span>${d.monto ? `<b>${esc(d.monto)}</b>` : ""}<span class="der ${d.dias <= 7 && !d.vernet ? "rojo" : ""}" style="font-size:17px">${cuandoTexto(d.dias)}</span></span>
         <button class="hecho" style="margin:0" data-accion="hecho" data-clave="${esc(d.clave)}" aria-label="Marcar ${esc(d.titulo)} como hecho">${ICONOS.check}</button></li>`).join("") || '<li class="vacio">Nada pendiente.</li>'}</ul>
         ${leer("hechos", []).length ? '<button class="link" style="margin-top:12px;font-size:13px" data-accion="deshacer-hechos">Volver a mostrar los marcados como hechos</button>' : ""}</section>
@@ -799,4 +804,49 @@ function bloqueEscalafon(ctx, $) {
     <form class="form" data-form="conformado" style="margin-top:14px;flex-wrap:wrap"><input type="month" name="mes" required value="${isoHoy(ctx.fecha).slice(0, 7)}" aria-label="Mes" style="flex:1 1 140px">
       <input name="monto" inputmode="decimal" required placeholder="Conformado nuevo" aria-label="Conformado" style="flex:1 1 140px"><button class="btn">Cargar</button></form>
     <p class="fuente-dato">Cuando sale un acuerdo nuevo, cargás el conformado (el sueldo de Auxiliar E) y toda la grilla se recalcula. Valores estimados ±0,5%, como las grillas que circulan.</p></section>`;
+}
+
+// ---------- Finanzas · Análisis (histórico) ----------
+const COLORES_R = ["#4F7DF3", "#EE7B30", "#1F9D55", "#C8102E", "#8A5CF6", "#D99A00", "#9AA0A6"];
+const mesCorto = (m) => { const [y, mm] = m.split("-").map(Number); return MESES_C[mm - 1] + (mm === 1 ? " " + String(y).slice(2) : ""); };
+const mil = (n) => Math.abs(n) >= 1e6 ? (Math.round(n / 1e5) / 10).toLocaleString("es-AR") + " M" : Math.round(n / 1000).toLocaleString("es-AR") + " mil";
+function barrasApiladas(meses, series, colores, alto = 150) {
+  const tot = meses.map((m, i) => series.reduce((s, x) => s + Math.max(0, x.valores[i] || 0), 0));
+  const max = Math.max(...tot, 1);
+  return `<div class="graf-scroll"><div class="graf" style="height:${alto + 34}px">${meses.map((m, i) => `<div class="col" title="${mesCorto(m)}: ${series.map((x) => x.nombre + " " + mil(x.valores[i] || 0)).join(" · ")}">
+    <div class="pila" style="height:${alto}px">${series.map((x, k) => `<i style="height:${Math.round(Math.max(0, x.valores[i] || 0) / max * alto)}px;background:${colores[k]}"></i>`).join("")}</div><span>${mesCorto(m)}</span></div>`).join("")}</div></div>
+    <div class="leyenda">${series.map((x, k) => `<span><i style="background:${colores[k]}"></i>${esc(x.nombre)}</span>`).join("")}</div>`;
+}
+function linea(meses, valores, alto = 140) {
+  const pts = meses.map((m, i) => [m, valores[m]]).filter(([, v]) => v != null);
+  if (pts.length < 2) return "";
+  const max = Math.max(...pts.map(([, v]) => v)), min = Math.min(0, ...pts.map(([, v]) => v));
+  const W = Math.max(320, pts.length * 34), x = (i) => 16 + i * (W - 32) / (pts.length - 1), y = (v) => 10 + (alto - 20) * (1 - (v - min) / (max - min || 1));
+  return `<div class="graf-scroll"><svg width="${W}" height="${alto + 22}" role="img" aria-label="Saldo a fin de cada mes">
+    <polyline fill="none" stroke="#4F7DF3" stroke-width="2.5" stroke-linejoin="round" points="${pts.map(([, v], i) => x(i) + "," + y(v)).join(" ")}"/>
+    ${pts.map(([m, v], i) => `<circle cx="${x(i)}" cy="${y(v)}" r="3" fill="#4F7DF3"><title>${mesCorto(m)}: $ ${Math.round(v).toLocaleString("es-AR")}</title></circle><text x="${x(i)}" y="${alto + 18}" text-anchor="middle" class="eje">${mesCorto(m)}</text>`).join("")}</svg></div>`;
+}
+function bloqueAnalisis($) {
+  const a = analisis();
+  const imp = leer("historicoImport");
+  const boton = `<div class="chips" style="margin-top:12px"><button class="chip" data-accion="hist-importar">${a ? "Buscar extractos nuevos" : "Leer extractos y resúmenes"}</button></div>
+    <p class="fuente-dato">Lee los PDF de tus carpetas «EXTRACTOS…» y «RESUMENES TC» en Drive y los guarda en la hoja HISTORICO de tu planilla. Los que ya leyó no los repite.${imp ? ` Última lectura: ${new Date(imp.cuando).toLocaleDateString("es-AR")} · ${imp.archivos} archivos, ${imp.filas} movimientos${imp.noCierran.length ? ` · no cierran: ${imp.noCierran.map(esc).join(", ")}` : " · todos los saldos cierran"}.` : ""}</p>`;
+  if (!a) return `<section class="bloque"><h2>Análisis económico</h2><p>Tu historia con la plata, desde el extracto más viejo hasta hoy: sueldo y descuentos, en qué se va, cómo evolucionó el saldo y cuánto te devolvieron las promos.</p>${boton}</section>`;
+  const m = a.meses;
+  const neto = m.map((x) => (a.sueldo[x] || 0) - (a.descuentos[x] || 0));
+  const totPromos = m.reduce((s, x) => s + (a.promos[x] || 0), 0);
+  const ultSueldo = [...m].reverse().find((x) => a.sueldo[x] > 0);
+  const priSueldo = m.find((x) => a.sueldo[x] > 0);
+  return `<section class="bloque"><h2>Análisis económico <span class="tag">${mesCorto(a.desde)} → ${mesCorto(a.hasta)} · ${a.total} movimientos</span></h2>
+      ${priSueldo && ultSueldo && priSueldo !== ultSueldo ? `<div class="trio"><div><span class="k">Sueldo ${mesCorto(priSueldo)}</span><b>${$(a.sueldo[priSueldo])}</b></div><div><span class="k">Sueldo ${mesCorto(ultSueldo)}</span><b>${$(a.sueldo[ultSueldo])}</b></div><div><span class="k">Promos y rendim.</span><b>${$(totPromos)}</b></div></div>` : ""}${boton}</section>
+    <section class="bloque"><h2>Sueldo: lo que te queda y los descuentos</h2>${barrasApiladas(m, [{ nombre: "Te queda", valores: neto }, { nombre: "Descuento complementario", valores: m.map((x) => a.descuentos[x] || 0) }], ["#4F7DF3", "#C8102E"])}
+      <p class="fuente-dato">Acreditación de haberes menos el descuento complementario (préstamo y demás) que sale el mismo día.</p></section>
+    <section class="bloque"><h2>En qué se va, mes a mes</h2>${barrasApiladas(m, a.top.map((r) => ({ nombre: r, valores: a.rubros.map((o) => o[r] || 0) })), COLORES_R)}
+      <p class="fuente-dato">Compras con tarjeta (por rubro) y con débito, efectivo y transporte. No suma pagos de tarjeta ni pases entre tus cuentas, para no contar dos veces.</p></section>
+    <section class="bloque"><h2>Saldo de la caja de ahorro</h2>${linea(m, a.saldo)}<p class="fuente-dato">El saldo con el que terminó cada mes.</p></section>
+    <section class="bloque"><h2>Promos y reintegros</h2>${barrasApiladas(m, [{ nombre: "Promos, reintegros y rendimientos", valores: m.map((x) => a.promos[x] || 0) }], ["#1F9D55"], 100)}
+      <p class="fuente-dato">Reintegros de MODO, devoluciones y rendimientos de la cuenta: en total ${$(totPromos)}.</p></section>
+    ${a.grandes.filter((g) => g.categoria === "Transferencia enviada").length ? `<section class="bloque"><h2>Transferencias grandes: ¿a dónde fueron?</h2><ul class="lista">${a.grandes.slice(0, 12).map((g) => `<li style="flex-wrap:wrap;gap:8px"><span>${diaLargo(g.fecha)} · ${$(-g.monto)}<br><small class="vacio">${esc(g.concepto)}</small></span>
+      <span class="chips">${[["Alquiler y servicios", "Alquiler y servicios"], ["A mis cuentas", "Pase propio"], ["Ahorro", "Inversión"], ["Otro gasto", "Otros gastos"]].map(([t, c]) => `<button class="chip" data-accion="hist-clasif" data-i="${g.i}" data-cat="${esc(c)}">${t}</button>`).join("")}</span></li>`).join("")}</ul>
+      <p class="fuente-dato">Lo que elijas queda en tu planilla y corrige los gráficos.</p></section>` : ""}`;
 }
