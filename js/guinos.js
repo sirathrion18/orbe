@@ -1,10 +1,12 @@
-// Guiños: si el switch de Ajustes › Diseño está prendido, una o dos veces por día, en un momento al azar,
-// Inicio se viste de algo (Arácnido, Laboratorio, Decreto o TVA) durante 15 minutos desde que lo ves.
+// Guiños: si el switch de Ajustes › Diseño está prendido, tres veces por día (uno a la mañana, uno a la tarde
+// y uno a la noche, en un momento al azar), Inicio se viste de Arácnido, Laboratorio, Decreto o TVA durante
+// 20 minutos desde que lo ves. Tocando tres veces el saludo sale uno al toque.
 // Son guiños con dibujos genéricos y textos: ningún personaje dibujado.
-import { leer, guardar } from "./almacen.js";
+import { leer, guardar, sesion } from "./almacen.js";
 
 export const GUINOS = [["arana", "Arácnido"], ["lab", "Laboratorio"], ["decreto", "Decreto"], ["tva", "TVA"]];
-const DURA = 15 * 60000;
+const DURA = 20 * 60000;
+const FRANJAS = [[9, 13, "a la mañana"], [13, 18, "a la tarde"], [18, 23, "a la noche"]];
 export const guinosPrendidos = () => leer("guinos", true) !== false;
 
 function azar(semilla) {
@@ -16,28 +18,49 @@ function azar(semilla) {
 function plan(f) {
   const dia = f.getFullYear() + "-" + (f.getMonth() + 1) + "-" + f.getDate();
   let p = leer("guinoPlan");
-  if (!p || p.dia !== dia) {
+  if (!p || p.dia !== dia || p.v !== 2) {
     const r = azar(f.getFullYear() * 10007 + (f.getMonth() + 1) * 389 + f.getDate() * 31);
     const tipos = GUINOS.map(([k]) => k).sort(() => r() - .5);
-    const n = r() < .5 ? 1 : 2;
-    // Entre las 9 y las 22; si son dos, uno a la mañana-tarde y otro a la tarde-noche.
-    const momentos = Array.from({ length: n }, (_, i) => ({ min: Math.floor((n === 1 ? 9 * 60 + r() * 13 * 60 : 9 * 60 + i * 6.5 * 60 + r() * 6.5 * 60)), tipo: tipos[i], visto: 0 }));
-    p = { dia, momentos };
+    const momentos = FRANJAS.map(([a, b], i) => ({ min: Math.floor(a * 60 + r() * (b - a) * 60), tipo: tipos[i], visto: 0 }));
+    p = { v: 2, dia, momentos };
     guardar("guinoPlan", p, true);
   }
   return p;
 }
 
-// El guiño de ahora (o null). Se cuenta desde la primera vez que abrís Inicio después del momento sorteado,
-// así no se pierde si justo no estabas mirando.
+// Cuántos te tocan hoy y cuántos quedan (sin decir cuál), para Ajustes.
+export function resumenGuinos(f) {
+  const p = plan(f);
+  const min = f.getHours() * 60 + f.getMinutes();
+  const quedan = p.momentos.filter((m) => m.min > min).map((m) => FRANJAS.find(([a, b]) => m.min >= a * 60 && m.min < b * 60)?.[2]).filter(Boolean);
+  return quedan.length ? `Hoy te quedan ${quedan.length}: ${quedan.join(", ")}.` : "Por hoy ya pasaron los tres. Mañana hay más.";
+}
+
+// Uno al toque (tres toques en el saludo): dura 20 minutos o hasta cerrar Orbe.
+export function guinoYa() {
+  const actual = sesion("guinoYa")?.tipo;
+  const opciones = GUINOS.map(([k]) => k).filter((k) => k !== actual);
+  const tipo = opciones[Math.floor(Math.random() * opciones.length)];
+  sesion("guinoYa", { tipo, hasta: Date.now() + DURA });
+  return tipo;
+}
+
+// El guiño de ahora (o null). Se cuenta desde la primera vez que ves Inicio (con la pantalla prendida)
+// después del momento sorteado, así no se pierde si justo no estabas mirando.
 export function guinoActivo(f, demo) {
   if (demo) return demo;
   if (!guinosPrendidos()) return null;
+  const ya = sesion("guinoYa");
+  if (ya && Date.now() < ya.hasta) return ya.tipo;
   const p = plan(f);
   const min = f.getHours() * 60 + f.getMinutes(), ahora = f.getTime();
+  const visible = typeof document === "undefined" || document.visibilityState !== "hidden";
   for (const m of p.momentos) {
     if (m.min > min) continue;
-    if (!m.visto) { m.visto = ahora; guardar("guinoPlan", p, true); return m.tipo; }
+    if (!m.visto) {
+      if (!visible) return null; // con Orbe en segundo plano no se gasta
+      m.visto = ahora; guardar("guinoPlan", p, true); return m.tipo;
+    }
     if (ahora - m.visto < DURA) return m.tipo;
   }
   return null;

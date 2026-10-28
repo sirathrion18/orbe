@@ -943,3 +943,20 @@ textarea.chk-lineas { height: 202px; padding: 6px 14px 6px 46px; line-height: 32
 .lb-sumar input { flex: 1 1 100%; }
 .lb-sumar select { flex: 1; height: 46px; padding: 0 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); color: var(--text); font: inherit; font-size: 15px; }
 .lb-rapidos .chip { padding: 7px 12px; font-size: 13px; }
+
+.lb-cont { flex: none; display: inline-flex; align-items: center; gap: 2px; margin-left: 6px; }
+.lb-cont button { width: 34px; height: 34px; border: 1px solid var(--line); border-radius: 17px; background: var(--bg); color: var(--text); font: inherit; font-size: 18px; line-height: 1; cursor: pointer; }
+.lb-cont b { min-width: 26px; text-align: center; font-family: var(--serif); font-size: 20px; font-weight: 400; font-variant-numeric: tabular-nums; }
+.col-b > .w.lb-ini { margin-top: 10px; }
+
+/* ---------- v0.28 · River: tablas y copas ---------- */
+.sub-tabs { margin: -4px 0 6px; }
+.sub-tabs .chip { padding: 7px 14px; font-size: 13px; }
+details.plegable > summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--muted); padding: 2px 0; }
+details.bloque.plegable[open] > summary { margin-bottom: 10px; }
+.copa .tabla-pos { margin-top: 12px; }
+.copa details.plegable { margin-top: 14px; }
+.copa details.plegable .tabla-pos + h2, .copa details.plegable h2 { margin-top: 14px; }
+.fx-hora .res { margin-right: 6px; width: 20px; height: 20px; font-size: 11px; vertical-align: middle; }
+.tabla-pos td, .tabla-pos th { white-space: nowrap; }
+.tabla-pos .eq { white-space: nowrap; }

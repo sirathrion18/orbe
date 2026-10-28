@@ -49,18 +49,55 @@ async function tabla() {
   return null;
 }
 
+// Una tabla de ESPN a grupos con sus filas (River marcado).
+function grupos(t) {
+  return (t?.children || []).map((g) => ({
+    nombre: g.name || g.abbreviation || "",
+    filas: (g.standings?.entries || []).map((e) => {
+      const s = Object.fromEntries((e.stats || []).map((x) => [x.name, x.value]));
+      return { id: e.team?.id, pos: s.rank, equipo: e.team?.shortDisplayName || e.team?.displayName || "", river: e.team?.id === RIVER,
+        pts: s.points, pj: s.gamesPlayed, g: s.wins, e: s.ties, p: s.losses, dg: s.pointDifferential };
+    }).sort((a, b) => (a.pos || 99) - (b.pos || 99))
+  })).filter((g) => g.filas.length);
+}
+
+// Tabla anual: Apertura (tipo 1) + Clausura (tipo 6) de la temporada, sumadas equipo por equipo (como en Promiedos).
+async function anual() {
+  const anio = new Date().getFullYear();
+  const [ap, cl] = await Promise.all([1, 6].map((tipo) => json("https://site.api.espn.com/apis/v2/sports/soccer/arg.1/standings?season=" + anio + "&seasontype=" + tipo).catch(() => null)));
+  const suma = new Map();
+  [ap, cl].forEach((t) => grupos(t).forEach((g) => g.filas.forEach((f) => {
+    const x = suma.get(f.id) || { id: f.id, equipo: f.equipo, river: f.river, pts: 0, pj: 0, g: 0, e: 0, p: 0, dg: 0 };
+    ["pts", "pj", "g", "e", "p", "dg"].forEach((k) => { x[k] += Number(f[k]) || 0; });
+    suma.set(f.id, x);
+  })));
+  if (!suma.size) return null;
+  const filas = [...suma.values()].sort((a, b) => b.pts - a.pts || b.dg - a.dg || a.equipo.localeCompare(b.equipo)).map((f, i) => ({ ...f, pos: i + 1 }));
+  return { nombre: "Tabla anual " + anio, filas, torneos: [ap ? "Apertura" : "", cl ? "Clausura" : ""].filter(Boolean) };
+}
+
+// Copas: fase de grupos de la Libertadores y la Sudamericana (con River marcado si está).
+async function copas() {
+  const lista = [["conmebol.libertadores", "Copa Libertadores"], ["conmebol.sudamericana", "Copa Sudamericana"]];
+  return (await Promise.all(lista.map(async ([l, nombre]) => {
+    const t = await json("https://site.api.espn.com/apis/v2/sports/soccer/" + l + "/standings").catch(() => null);
+    const gs = grupos(t);
+    return gs.length ? { liga: l, nombre, grupos: gs, conRiver: gs.some((g) => g.filas.some((f) => f.river)) } : null;
+  }))).filter(Boolean);
+}
+
 export async function onRequestGet() {
   const ahora = Date.now();
   const pedidos = LIGAS.flatMap((l) => [API + l + "/teams/" + RIVER + "/schedule?fixture=true", API + l + "/teams/" + RIVER + "/schedule"].map((u) =>
     json(u).then((j) => (j.events || []).map((ev) => partido(ev, l))).catch(() => [])));
-  const [listas, posiciones] = await Promise.all([Promise.all(pedidos), tabla()]);
+  const [listas, posiciones, tablaAnual, tablasCopas] = await Promise.all([Promise.all(pedidos), tabla(), anual().catch(() => null), copas().catch(() => [])]);
   const vistos = new Map();
   listas.flat().filter(Boolean).forEach((p) => { if (!vistos.has(p.id) || p.jugado) vistos.set(p.id, p); });
   const todos = [...vistos.values()];
   if (!todos.length) return new Response(JSON.stringify({ error: "espn" }), { status: 502, headers: { "Content-Type": "application/json" } });
   const proximos = todos.filter((p) => !p.jugado && new Date(p.fecha).getTime() > ahora - 3 * 3600000).sort((x, y) => new Date(x.fecha) - new Date(y.fecha)).slice(0, 10);
   const ultimos = todos.filter((p) => p.jugado && p.gf !== null).sort((x, y) => new Date(y.fecha) - new Date(x.fecha)).slice(0, 6);
-  return new Response(JSON.stringify({ proximo: proximos[0] || null, ultimo: ultimos[0] || null, proximos, ultimos, tabla: posiciones, cuando: ahora }), {
+  return new Response(JSON.stringify({ proximo: proximos[0] || null, ultimo: ultimos[0] || null, proximos, ultimos, tabla: posiciones, anual: tablaAnual, copas: tablasCopas, partidos: todos.sort((x, y) => new Date(x.fecha) - new Date(y.fecha)), cuando: ahora }), {
     headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "public, max-age=1800" }
   });
 }

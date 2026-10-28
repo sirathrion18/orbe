@@ -18,7 +18,7 @@ import { RUBROS } from "./rubros.js";
 import { datosFacu, promedio } from "./facu.js";
 import { datosEconomia, linkEconomia, idEconomia } from "./economia.js";
 import { ultimaEdicion, htmlEdicion } from "./semanal.js";
-import { GUINOS, guinosPrendidos } from "./guinos.js";
+import { GUINOS, guinosPrendidos, resumenGuinos } from "./guinos.js";
 import { bloqueSuscripciones } from "./suscripciones.js";
 import { renderMes } from "./agendames.js";
 import { bloqueHoy } from "./bnahoy.js";
@@ -575,7 +575,7 @@ function estadoPartes(est) {
 }
 
 // Ajustes › Diseño: todo lo que cambia cómo se ve Inicio, junto y arriba de todo.
-const VER_INICIO = [["bnahoy", "BNA · lo que falta tachar", "solo los días que vas al banco"], ["chk", "Checklists"], ["clima", "Clima"], ["river", "River"], ["plata", "Diario de plata"], ["preguntas", "Preguntas de plata"], ["semanal", "El Semanal"], ["transporte", "Transporte", "solo aparece si hay problemas"]];
+const VER_INICIO = [["bnahoy", "BNA · lo que falta tachar", "solo en tu horario del banco"], ["chk", "Checklists"], ["clima", "Clima"], ["river", "River"], ["plata", "Diario de plata"], ["preguntas", "Preguntas de plata"], ["semanal", "El Semanal"], ["transporte", "Transporte", "solo aparece si hay problemas"]];
 const DIBUJO_MODO = {
   normal: '<svg viewBox="0 0 64 56" aria-hidden="true"><rect x="8" y="6" width="30" height="3" rx="1.5"/><rect x="8" y="12" width="20" height="3" rx="1.5"/><circle cx="32" cy="32" r="11" fill="none" stroke-width="2.5"/><circle cx="14" cy="50" r="2.4"/><circle cx="23" cy="50" r="2.4"/><circle cx="32" cy="50" r="2.4"/><circle cx="41" cy="50" r="2.4"/><circle cx="50" cy="50" r="2.4"/></svg>',
   compacto: '<svg viewBox="0 0 64 56" aria-hidden="true"><circle cx="16" cy="14" r="7.5" fill="none" stroke-width="2.2"/><rect x="28" y="9" width="28" height="3" rx="1.5"/><rect x="28" y="15" width="18" height="3" rx="1.5"/><rect x="8" y="28" width="48" height="8" rx="3" opacity=".55"/><rect x="8" y="40" width="23" height="11" rx="3" opacity=".55"/><rect x="33" y="40" width="23" height="11" rx="3" opacity=".55"/></svg>'
@@ -595,7 +595,7 @@ function bloqueDiseno(tema, f, muestra, demo) {
     <div class="chips">${[["auto", "Automático"], ["claro", "Claro"], ["oscuro", "Oscuro"]].map(([k, n]) => `<button class="chip ${tema === k ? "on" : ""}" data-accion="tema-fijo" data-tema="${k}">${n}</button>`).join("")}</div>
     <p class="fuente-dato">Automático: claro de día y oscuro desde la puesta del sol en Buenos Aires. El botón de Inicio lo cambia hasta la próxima salida o puesta.</p>
     <h3 class="sub-aj">Guiños</h3>
-    <ul class="interruptores"><li><button class="interruptor" role="switch" aria-checked="${guinosPrendidos()}" data-accion="guinos"><span><b>Prendidos</b><small>${guinosPrendidos() ? "Una o dos veces por día, en un momento al azar, Inicio se viste de Arácnido, Laboratorio, Decreto o TVA por 15 minutos." : "Apagado: Orbe sobria y seria, sin guiños ni días especiales."}</small></span><i aria-hidden="true"></i></button></li></ul>
+    <ul class="interruptores"><li><button class="interruptor" role="switch" aria-checked="${guinosPrendidos()}" data-accion="guinos"><span><b>Prendidos</b><small>${guinosPrendidos() ? "Tres por día (mañana, tarde y noche), en un momento al azar: Inicio se viste de Arácnido, Laboratorio, Decreto o TVA por 20 minutos. " + resumenGuinos(new Date()) + " Tocando tres veces el saludo sale uno al toque." : "Apagado: Orbe sobria y seria, sin guiños ni días especiales."}</small></span><i aria-hidden="true"></i></button></li></ul>
     <p class="fuente-dato" style="margin:10px 0 8px">Probar un guiño ahora (se apaga al cerrar Orbe):</p>
     <div class="chips"><button class="chip ${!sesionLeer("demoGuino") ? "on" : ""}" data-accion="demo-guino" data-g="">Real</button>${GUINOS.map(([k, n]) => `<button class="chip ${sesionLeer("demoGuino") === k ? "on" : ""}" data-accion="demo-guino" data-g="${k}">${n}</button>`).join("")}</div>
     <h3 class="sub-aj">Probar modos del día</h3>
@@ -742,7 +742,7 @@ export function renderRiver(ctx) {
   const vuelta = `${volver}<h1>River</h1><p class="bajada">Partidos, tabla y Promiedos. Datos públicos de ESPN.</p>`;
   if (!rv || (!rv.proximo && !rv.ultimo)) return `<div class="pagina">${vuelta}<section class="bloque"><p class="vacio">Todavía no llegaron los datos. Tocá ↻ en Inicio.</p></section></div>`;
   const tab = sesionLeer("riverTab") || "partidos";
-  const pest = `<div class="pestanas" role="tablist">${[["partidos", "Partidos"], ["tabla", "Tabla"], ["promiedos", "Promiedos"]].map(([id, t]) =>
+  const pest = `<div class="pestanas" role="tablist">${[["partidos", "Partidos"], ["tabla", "Tablas"], ["copas", "Copas"], ["promiedos", "Promiedos"]].map(([id, t]) =>
     `<button class="pestana ${tab === id ? "on" : ""}" role="tab" aria-selected="${tab === id}" data-accion="river-tab" data-tab="${id}">${t}</button>`).join("")}</div>`
     + `<button class="otros-link ${tab === "otros" ? "on" : ""}" data-accion="river-tab" data-tab="otros">${tab === "otros" ? "Otros equipos" : "Otros equipos ›"}</button>`;
   const p = rv.proximo;
@@ -765,12 +765,41 @@ export function renderRiver(ctx) {
     ${ult.length ? `<section class="bloque"><h2>Últimos resultados</h2><ul class="lista">${ult.map((x) => `<li><span><span class="res res-${R(x)}">${R(x)}</span> ${x.gf}-${x.gc}${x.penales ? ` (${x.penales[0]}-${x.penales[1]} pen.)` : ""} ${x.local ? "vs" : "en cancha de"} ${esc(x.rival)}<br><small class="vacio">${esc(torneoCorto(x.torneo))}</small></span><span class="tag">${new Date(x.fecha).getDate()}/${new Date(x.fecha).getMonth() + 1}</span></li>`).join("")}</ul></section>` : ""}`;
   } else if (tab === "tabla") {
     const t = rv.tabla && rv.tabla.pos ? rv.tabla : null;
-    const grupos = t?.grupos || [];
-    cuerpo = !t ? '<section class="bloque"><p class="vacio">ESPN todavía no publicó la tabla. Probá más tarde.</p></section>'
-      : `<section class="bloque"><div class="trio"><div><span class="k">Posición</span><b>${t.pos}° de ${t.equipos}</b></div><div><span class="k">Puntos</span><b>${t.pts}</b></div><div><span class="k">PJ · G-E-P</span><b>${t.pj} · ${t.g}-${t.e}-${t.p}</b></div></div>
-        <p class="fuente-dato">${esc(torneoCorto(t.torneo))}${t.zona ? " · " + esc(t.zona) : ""}. Diferencia de gol: ${t.dg > 0 ? "+" : ""}${t.dg}.</p></section>
-      ${grupos.map((g) => `<section class="bloque"><h2>${esc(g.nombre || "Tabla")}</h2><table class="tabla-pos"><thead><tr><th>#</th><th class="eq">Equipo</th><th>PJ</th><th>DG</th><th>Pts</th></tr></thead><tbody>
-        ${g.filas.map((f) => `<tr class="${f.river ? "river" : ""}"><td>${f.pos ?? ""}</td><td class="eq">${esc(f.equipo)}</td><td>${f.pj ?? ""}</td><td>${f.dg > 0 ? "+" : ""}${f.dg ?? ""}</td><td><b>${f.pts ?? ""}</b></td></tr>`).join("")}</tbody></table></section>`).join("")}`;
+    const sub = sesionLeer("riverTabla") || "zona";
+    const subs = `<div class="chips sub-tabs">${[["zona", "Zonas"], ["anual", "Anual"]].map(([k, n]) => `<button class="chip ${sub === k ? "on" : ""}" data-accion="river-tabla" data-v="${k}">${n}</button>`).join("")}</div>`;
+    if (sub === "anual") {
+      const an = rv.anual;
+      cuerpo = subs + (!an ? '<section class="bloque"><p class="vacio">ESPN todavía no tiene los datos para armar la anual.</p></section>'
+        : `<section class="bloque">${tablaPos(an.nombre, an.filas, true)}<p class="fuente-dato">Suma de ${an.torneos.join(" y ")} con los datos de ESPN, como la arma Promiedos. Decide los cupos a las copas y el descenso.</p></section>`);
+    } else {
+      const grupos = t?.grupos || [];
+      // Primero la zona de River; la otra, abajo y plegada.
+      const suya = grupos.find((g) => g.filas.some((f) => f.river));
+      const otras = grupos.filter((g) => g !== suya);
+      cuerpo = subs + (!t ? '<section class="bloque"><p class="vacio">ESPN todavía no publicó la tabla. Probá más tarde.</p></section>'
+        : `<section class="bloque"><div class="trio"><div><span class="k">Posición</span><b>${t.pos}° de ${t.equipos}</b></div><div><span class="k">Puntos</span><b>${t.pts}</b></div><div><span class="k">PJ · G-E-P</span><b>${t.pj} · ${t.g}-${t.e}-${t.p}</b></div></div>
+          <p class="fuente-dato">${esc(torneoCorto(t.torneo))}${t.zona ? " · " + esc(zonaTxt(t.zona)) : ""}. Diferencia de gol: ${t.dg > 0 ? "+" : ""}${t.dg}.</p></section>
+        ${suya ? `<section class="bloque">${tablaPos(zonaTxt(suya.nombre), suya.filas)}</section>` : ""}
+        ${otras.map((g) => `<details class="bloque plegable"><summary>${esc(zonaTxt(g.nombre))}</summary>${tablaPos("", g.filas)}</details>`).join("")}`);
+    }
+  } else if (tab === "copas") {
+    const cs = rv.copas || [];
+    const partidosDe = (re) => (rv.partidos || []).filter((x) => re.test(torneoCorto(x.torneo)));
+    const fila = (x) => { const f = new Date(x.fecha); return `<li><span class="fx-fecha"><span class="fx-dia">${DIAS[f.getDay()].slice(0, 3)}</span><span class="fx-num">${f.getDate()}/${f.getMonth() + 1}</span></span><span class="fx-rival">${x.local ? "vs " : "en cancha de "}${esc(x.rival)}</span><span class="fx-hora">${x.jugado && x.gf !== null ? `<span class="res res-${x.gf > x.gc ? "G" : x.gf < x.gc ? "P" : "E"}">${x.gf > x.gc ? "G" : x.gf < x.gc ? "P" : "E"}</span>${x.gf}-${x.gc}` : x.hora === false ? "a conf." : String(f.getHours()).padStart(2, "0") + ":" + String(f.getMinutes()).padStart(2, "0")}</span></li>`; };
+    const bloqueCopa = (nombre, re, copa) => {
+      const ps = partidosDe(re);
+      const suyo = copa?.grupos.find((g) => g.filas.some((f) => f.river));
+      if (!ps.length && !copa) return "";
+      return `<section class="bloque copa"><h2>${esc(nombre)}</h2>
+        ${ps.length ? `<ul class="fixture">${ps.map(fila).join("")}</ul>` : '<p class="vacio">River no juega esta copa en esta temporada.</p>'}
+        ${suyo ? tablaPos(grupoTxt(suyo.nombre), suyo.filas) : ""}
+        ${copa ? `<details class="plegable"><summary>Todos los grupos</summary>${copa.grupos.filter((g) => g !== suyo).map((g) => tablaPos(grupoTxt(g.nombre), g.filas)).join("")}</details>` : ""}</section>`;
+    };
+    const lib = cs.find((c) => /libertadores/.test(c.liga)), sud = cs.find((c) => /sudamericana/.test(c.liga));
+    // Primero la copa que juega River.
+    const orden = [["Copa Libertadores", /Libertadores/, lib], ["Copa Sudamericana", /Sudamericana/, sud], ["Copa Argentina", /Copa Argentina/, null]]
+      .sort((a, b) => (partidosDe(b[1]).length ? 1 : 0) - (partidosDe(a[1]).length ? 1 : 0));
+    cuerpo = orden.map(([n, re, c]) => bloqueCopa(n, re, c)).join("") || '<section class="bloque"><p class="vacio">Todavía no hay datos de copas.</p></section>';
   } else if (tab === "otros") {
     cuerpo = bloqueOtros(ctx);
   } else {
@@ -781,6 +810,14 @@ export function renderRiver(ctx) {
     <section class="bloque"><h2>Accesos</h2><div class="chips"><a class="chip" href="https://www.cariverplate.com.ar" target="_blank" rel="noopener">Sitio oficial</a><a class="chip" href="https://www.espn.com.ar/futbol/equipo/_/id/16/river-plate" target="_blank" rel="noopener">River en ESPN</a></div></section>`;
   }
   return `<div class="pagina">${vuelta}${pest}${cuerpo}</div>`;
+}
+
+// Tabla de posiciones (con River en rojo). Con «anual», también la diferencia de gol y los partidos.
+const grupoTxt = (n) => String(n || "").replace(/^Group\s+/i, "Grupo ");
+const zonaTxt = (n) => String(n || "").replace(/^Group\s+/i, "Zona ").replace(/^Grupo\s+/i, "Grupo ");
+function tablaPos(titulo, filas, conGep) {
+  return `${titulo ? `<h2>${esc(titulo)}</h2>` : ""}<table class="tabla-pos"><thead><tr><th>#</th><th class="eq">Equipo</th><th>PJ</th>${conGep ? "<th>G-E-P</th>" : ""}<th>DG</th><th>Pts</th></tr></thead><tbody>
+    ${filas.map((f) => `<tr class="${f.river ? "river" : ""}"><td>${f.pos ?? ""}</td><td class="eq">${esc(f.equipo)}</td><td>${f.pj ?? ""}</td>${conGep ? `<td>${f.g}-${f.e}-${f.p}</td>` : ""}<td>${f.dg > 0 ? "+" : ""}${f.dg ?? ""}</td><td><b>${f.pts ?? ""}</b></td></tr>`).join("")}</tbody></table>`;
 }
 
 // Otros equipos: un resumen chico de cada uno (posición, cómo viene, qué juega). River sigue siendo lo principal.

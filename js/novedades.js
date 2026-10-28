@@ -1,6 +1,18 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.28.0",
+    fecha: "28/10/2026",
+    titulo: "Guiños más seguidos, tablas y copas de River, y ajustes del BNA.",
+    cambios: [
+      "Guiños, actualización grande: ahora son tres por día (uno a la mañana, uno a la tarde y uno a la noche) y duran 20 minutos desde que los ves. Solo cuentan con Orbe en pantalla, así no se gastan en segundo plano. Tocando tres veces el saludo sale uno al toque. En Ajustes › Diseño te dice cuántos te quedan hoy.",
+      "River › Tablas: la zona de River completa (la otra, plegada abajo) y la tabla anual (Apertura + Clausura sumados, como en Promiedos).",
+      "River › Copas: la Copa Sudamericana, la Libertadores y la Copa Argentina, con los partidos de River en cada una y la tabla de su grupo. Todos los grupos, plegados abajo. Primero va la copa que juega River.",
+      "BNA › Hoy: «Escucha de llamados» entra siempre, con contador (− 3 +), porque siempre son varias.",
+      "Inicio: la tarjeta del BNA va debajo de la plata y arriba de El Semanal, y aparece solo en tu horario del banco, un día hábil. El resto del tiempo vive solo en BNA.",
+    ],
+  },
+  {
     version: "0.27.0",
     fecha: "28/10/2026",
     titulo: "BNA › Hoy (la libretita) y otros equipos.",

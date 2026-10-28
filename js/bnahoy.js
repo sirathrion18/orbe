@@ -16,7 +16,9 @@ const BASE = (companero) => [
   { t: "Armado de casuística", modo: "carga" },
   { t: "Diario CAT", modo: companero ? "control" : "carga" },
   { t: "Diario Evoltis", modo: companero ? "control" : "carga" },
-  { t: "Diario NS", modo: "carga" }
+  { t: "Diario NS", modo: "carga" },
+  // Siempre son varias: va con contador.
+  { t: "Escucha de llamados", modo: "libre", contador: true, cuenta: 0 }
 ];
 const MODOS = { carga: "Carga", control: "Control", libre: "Sin puntos" };
 
@@ -64,10 +66,31 @@ export function diaDe(fecha = isoHoy()) {
 
 // Tachar o destachar: suma o resta una carga o un control en Productividad.
 const tareaDe = (modo) => (datosProd()?.tareas || []).find((t) => t.grupo === modo)?.tarea;
+// Las escuchas suman a la tarea de tu planilla que hable de escuchas o pruebas de llamados (si hay una).
+const tareaEscucha = () => (datosProd()?.tareas || []).find((t) => /escucha/i.test(t.tarea))?.tarea || (datosProd()?.tareas || []).find((t) => /llamad/i.test(t.tarea))?.tarea;
+export function contar(fecha, id, delta, alTerminar) {
+  const d = diaDe(fecha);
+  const it = d.items.find((i) => i.id === id);
+  if (!it || !it.contador) return null;
+  const antes = it.cuenta || 0;
+  it.cuenta = Math.max(0, antes + delta);
+  if (it.cuenta === 0) it.hecho = null;
+  const tarea = tareaEscucha();
+  if (tarea && it.cuenta !== antes) cambiar(fecha, tarea, it.cuenta - antes, alTerminar);
+  guardarDia(fecha, d);
+  return it;
+}
 export function tachar(fecha, id, alTerminar) {
   const d = diaDe(fecha);
   const it = d.items.find((i) => i.id === id);
   if (!it) return null;
+  if (it.contador) {
+    // Con contador: tachar sin haber contado ninguna cuenta como una.
+    if (!it.hecho && !(it.cuenta > 0)) { guardarDia(fecha, d); contar(fecha, id, 1, alTerminar); const d2 = diaDe(fecha); const i2 = d2.items.find((x) => x.id === id); i2.hecho = Date.now(); guardarDia(fecha, d2); return i2; }
+    it.hecho = it.hecho ? null : Date.now();
+    guardarDia(fecha, d);
+    return it;
+  }
   it.hecho = it.hecho ? null : Date.now();
   const tarea = it.modo !== "libre" && tareaDe(it.modo);
   if (tarea) cambiar(fecha, tarea, it.hecho ? 1 : -1, alTerminar);
@@ -111,8 +134,9 @@ function renglon(fecha, it) {
   return `<li class="lb ${it.hecho ? "tachado" : ""}">
     <button class="lb-item" data-accion="hoy-tachar" data-f="${fecha}" data-id="${esc(it.id)}" aria-pressed="${!!it.hecho}" aria-label="${it.hecho ? "Destachar" : "Tachar"}: ${esc(it.t)}">
       <span class="lb-txt">${esc(it.t)}<svg class="birome" viewBox="0 0 200 12" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M2 7c18-3 34 2 52-1s32-3 50 0 34 2 50-1 28-1 44 1" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></span>
-      <span class="lb-modo m-${it.modo}">${it.modo === "libre" ? "" : MODOS[it.modo]}</span></button>
-    ${it.hecho ? "" : `<button class="lb-sacar" data-accion="hoy-sacar" data-f="${fecha}" data-id="${esc(it.id)}" aria-label="Sacar ${esc(it.t)}">${ICONOS.cruz}</button>`}</li>`;
+      ${it.contador ? "" : `<span class="lb-modo m-${it.modo}">${it.modo === "libre" ? "" : MODOS[it.modo]}</span>`}</button>
+    ${it.contador ? `<span class="lb-cont"><button data-accion="hoy-contar" data-f="${fecha}" data-id="${esc(it.id)}" data-d="-1" aria-label="Una escucha menos">−</button><b aria-live="polite">${it.cuenta || 0}</b><button data-accion="hoy-contar" data-f="${fecha}" data-id="${esc(it.id)}" data-d="1" aria-label="Una escucha más">+</button></span>` : ""}
+    ${it.hecho || it.contador ? "" : `<button class="lb-sacar" data-accion="hoy-sacar" data-f="${fecha}" data-id="${esc(it.id)}" aria-label="Sacar ${esc(it.t)}">${ICONOS.cruz}</button>`}</li>`;
 }
 
 export function bloqueHoy(ctx) {
@@ -149,14 +173,15 @@ function historialHtml(hoy) {
     const h = (d.items || []).filter((i) => i.hecho).length;
     return `<details class="lb-dia ${d.nota ? "con-nota" : ""}"><summary><span class="lb-f">${DIAS[fx.getDay()].slice(0, 3)} ${fx.getDate()}/${fx.getMonth() + 1}</span>
       <span class="lb-r">${h} de ${(d.items || []).length}${d.companero === false ? " · sin compañero" : ""}</span>${d.nota ? `<span class="lb-hito">${esc(d.nota)}</span>` : ""}</summary>
-      <ul class="lb-lista chica">${(d.items || []).map((i) => `<li class="lb ${i.hecho ? "tachado" : "quedo"}"><span class="lb-txt">${esc(i.t)}${i.hecho ? '<svg class="birome" viewBox="0 0 200 12" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M2 7c18-3 34 2 52-1s32-3 50 0 34 2 50-1 28-1 44 1" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>' : ""}</span><span class="lb-modo m-${i.modo}">${i.modo === "libre" ? "" : MODOS[i.modo]}</span></li>`).join("")}</ul></details>`;
+      <ul class="lb-lista chica">${(d.items || []).map((i) => `<li class="lb ${i.hecho ? "tachado" : "quedo"}"><span class="lb-txt">${esc(i.t)}${i.contador ? " × " + (i.cuenta || 0) : ""}${i.hecho ? '<svg class="birome" viewBox="0 0 200 12" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M2 7c18-3 34 2 52-1s32-3 50 0 34 2 50-1 28-1 44 1" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>' : ""}</span><span class="lb-modo m-${i.modo}">${i.modo === "libre" ? "" : MODOS[i.modo]}</span></li>`).join("")}</ul></details>`;
   }).join("")}</div></section>`;
 }
 
 // Inicio, los días de BNA: una franja con lo que falta tachar.
 export function wBnaHoy(ctx) {
-  const esDiaBna = (ctx.hoy || []).some((b) => b.tipo === "bna");
-  if (!esDiaBna) return "";
+  // Es un anotador del trabajo: aparece solo mientras estás en horario del BNA, un día hábil.
+  const enHorario = (ctx.hoy || []).some((b) => b.tipo === "bna" && b.ini <= ctx.min && ctx.min < b.fin);
+  if (!enHorario || ctx.feriado || ctx.diaLibre) return "";
   const fecha = isoHoy(ctx.fecha);
   const d = diaDe(fecha);
   const faltan = d.items.filter((i) => !i.hecho);

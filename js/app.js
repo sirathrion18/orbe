@@ -18,7 +18,7 @@ import { datosFacu, traerCampus, leerFacu, tildarTp, nuevoTp, guardarMateria, as
 import { asegurarHojas, asegurarLeeme, fijarSemillas, escribir as escribirHoja } from "./hoja.js";
 import { fijarHoja, idHoja } from "./hoja.js";
 import { traerDolar, traerRiver, traerTransporte, traerEquipos, equiposSeguidos } from "./extras.js";
-import { tachar as tacharHoy, fijarCompanero, sumarItem as sumarHoy, sacarItem as sacarHoy, guardarNota } from "./bnahoy.js";
+import { tachar as tacharHoy, contar as contarHoy, fijarCompanero, sumarItem as sumarHoy, sacarItem as sacarHoy, guardarNota } from "./bnahoy.js";
 import { responder } from "./preguntas.js";
 import { fijarEconomia, leerEconomia, datosEconomia, idEconomia } from "./economia.js";
 import { huellaActiva, huellaDisponible, registrarHuella, verificarHuella, sacarHuella } from "./huella.js";
@@ -27,7 +27,7 @@ import { actualizarSemanal, htmlEdicion, marcarLeida, pendientesDeSemanal } from
 import { escribirResumen } from "./resumen.js";
 import { leer, guardar, borrar, todo, borrarTodo, sesion } from "./almacen.js";
 import { sol } from "./sol.js";
-import { guinoActivo } from "./guinos.js";
+import { guinoActivo, guinoYa, guinosPrendidos } from "./guinos.js";
 import { sincronizarRiver } from "./rivercal.js";
 import { anotarCobros, escribirEnEconomia } from "./suscripciones.js";
 import { mesActual, claveMes, mesViejo } from "./agendames.js";
@@ -426,6 +426,7 @@ document.addEventListener("click", (e) => {
     sesion("riverTab", el.dataset.tab); pintar(true);
     if (el.dataset.tab === "otros") traerEquipos().then(() => pintar(true)).catch(() => avisar("No pude traer los otros equipos"));
   }
+  else if (a === "river-tabla") { sesion("riverTabla", el.dataset.v); pintar(true); }
   else if (a === "eq-sacar") {
     const l = equiposSeguidos().slice(); l.splice(Number(el.dataset.i), 1); guardar("equiposSeguidos", l); pintar(true);
     traerEquipos(true).then(() => pintar(true)).catch(() => {});
@@ -438,6 +439,7 @@ document.addEventListener("click", (e) => {
     if (li && marcando) li.classList.add("tachando");
     setTimeout(() => { tacharHoy(el.dataset.f, el.dataset.id, () => pintar(true)); pintar(true); }, marcando ? 420 : 0);
   }
+  else if (a === "hoy-contar") { vibrar(); contarHoy(el.dataset.f, el.dataset.id, Number(el.dataset.d), () => pintar(true)); pintar(true); }
   else if (a === "hoy-comp") { fijarCompanero(el.dataset.f, el.dataset.v === "1"); pintar(true); }
   else if (a === "hoy-otros") { sumarHoy(el.dataset.f, "Otros informes", el.dataset.modo); vibrar(); pintar(true); }
   else if (a === "hoy-sacar") { sacarHoy(el.dataset.f, el.dataset.id); pintar(true); }
@@ -736,6 +738,17 @@ window.addEventListener("hashchange", () => { cerrarHoja(); clearInterval(timerM
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") { cerrarHoja(); const b = document.querySelector(".buscador.flotante"); if (b && !b.hidden) b.hidden = true; }
 });
+// Tres toques en el saludo: un guiño al toque.
+let toques = [];
+document.addEventListener("click", (e) => {
+  if (!e.target.closest(".saludo h1") || !guinosPrendidos()) return;
+  const t = Date.now();
+  toques = toques.filter((x) => t - x < 900).concat(t);
+  if (toques.length >= 3) { toques = []; guinoYa(); vibrar(); pintar(); }
+});
+// Al volver a Orbe se repinta, así un guiño que tocaba mientras no mirabas aparece recién ahora.
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && (ruta() === "/" || ruta() === "")) pintar(true); });
+
 // Guiño Arácnido: manteniendo apretado el + sale un hilo de telaraña hacia arriba.
 let thwip = null, thwipHecho = false;
 document.addEventListener("pointerdown", (e) => {

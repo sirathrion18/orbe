@@ -550,8 +550,9 @@ export function renderInicio(datos, ctx, climaDatos, tema) {
     </div>
     <div class="col-b">
       ${tira(ctx, datos)}
-      <div class="widgets">${wUrgente(datos, ctx)}${ver("bnahoy", wBnaHoy(ctx))}${ver("chk", wChecklists())}${cuadros}${ver("plata", wPlata(datos, ctx))}</div>
+      <div class="widgets">${wUrgente(datos, ctx)}${ver("chk", wChecklists())}${cuadros}${ver("plata", wPlata(datos, ctx))}</div>
       ${ver("preguntas", avisoPreguntas())}
+      ${ver("bnahoy", wBnaHoy(ctx))}
       ${ver("semanal", wSemanal())}
       ${ver("transporte", wTransporte())}
       <p class="pie">${MARCA}<br>${pieAgenda(datos)} · <a href="#/novedades">novedades</a> · <a href="privacidad.html">privacidad</a></p>
