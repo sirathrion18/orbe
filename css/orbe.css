@@ -623,3 +623,34 @@ svg .eje { font-size: 10px; fill: var(--muted); font-family: var(--sans); }
 .preg-fin { margin-top: 14px; }
 .preg-fin .w { display: flex; }
 @media (min-width: 920px) { .urg-pag { margin: 0 auto; max-width: 680px; } .cab-urg { border-radius: 26px; } }
+
+/* v0.23.1: arriba entra todo en el celu, Urgente finita y el reloj un poco más chico */
+.top .dia-corto { display: none; }
+@media (max-width: 480px) {
+  .top .dia-largo { display: none; }
+  .top .dia-corto { display: inline; }
+  .top .der { gap: 6px; }
+  .top .icon-btn { width: 34px; height: 34px; }
+  .top .icon-btn svg { width: 16px; height: 16px; }
+  .anillo { width: 200px; height: 200px; }
+  .centro .big { font-size: 40px; }
+}
+.w.urg.urg-corta { padding: 12px 14px; gap: 4px; }
+.urg-corta .fila { align-items: center; gap: 10px; }
+.urg-corta .cuando-c { margin-left: auto; font-family: var(--serif); font-size: 17px; color: var(--accent); white-space: nowrap; }
+.urg-corta .hecho { width: 30px; height: 30px; flex: none; margin: 0; }
+.urg-linea { display: flex; align-items: baseline; gap: 8px; text-decoration: none; color: var(--text); min-width: 0; }
+.urg-linea .tit { flex: 1; min-width: 0; font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.urg-linea .monto { font-size: 15px; font-weight: 600; white-space: nowrap; }
+.urg-linea .mas { font-size: 13px; font-weight: 600; color: var(--accent); white-space: nowrap; }
+
+/* Modo compacto: el saludo ocupa lo que queda al lado del reloj y se achica para entrar */
+.inicio.compacto .cab .saludo { flex: 1; min-width: 0; }
+.inicio.compacto .cab .saludo h1 { overflow: hidden; }
+@media (max-width: 480px) {
+  .inicio.compacto .cab .anillo { width: 132px; height: 132px; }
+  .inicio.compacto .cab .centro .big { font-size: 26px; }
+  .inicio.compacto .cab .centro .sub { font-size: 9px; max-width: 86px; }
+  .inicio.compacto .cab .centro .lbl { font-size: 8px; }
+  .inicio.compacto .cab .saludo h1 { font-size: 24px; }
+}

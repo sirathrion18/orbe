@@ -330,16 +330,12 @@ function wUrgente(datos, ctx) {
     }
     return `<a class="w urg-vacio" href="#/urgente" style="text-decoration:none"><span class="k">Urgente</span><span class="tit">Nada urgente</span><span class="sub">Todo en orden por ahora</span></a>`;
   }
-  // La tarjeta lleva a la página de Urgente, donde vive todo lo urgente de cualquier universo.
+  // Tarjeta finita, a lo ancho: lo más urgente en una línea; el resto vive en la página de Urgente.
   const [p, ...resto] = lista;
-  const despues = resto.slice(0, 2).map((x) => esc(x.titulo.split(" · ")[0]) + " (" + cuandoTexto(x.dias) + ")").join(", ");
-  return `<div class="w urg"><div class="fila"><span class="k">${p.dias < 0 ? "Vencido" : "Urgente"} · ${lista.length}</span>
+  return `<div class="w urg urg-corta"><div class="fila"><span class="k">${p.dias < 0 ? "Vencido" : "Urgente"} · ${lista.length}</span>
+      <span class="cuando-c">${cuandoTexto(p.dias)}</span>
       <button class="hecho" data-accion="hecho" data-clave="${esc(p.clave)}" aria-label="Marcar ${esc(p.titulo)} como hecho">${ICONOS.check}</button></div>
-    <a href="#/urgente" style="text-decoration:none;display:flex;flex-direction:column;gap:6px" aria-label="Abrir todo lo urgente">
-      <span class="tit">${esc(p.titulo)}</span>
-      ${p.monto ? `<span class="monto">${esc(p.monto)}</span>` : ""}
-      <span class="cuando">${cuandoTexto(p.dias)}</span>
-      ${resto.length ? `<span class="sub">Después: ${despues}${resto.length > 2 ? ` y ${resto.length - 2} más` : ""} ›</span>` : ""}</a></div>`;
+    <a class="urg-linea" href="#/urgente" aria-label="Abrir todo lo urgente"><span class="tit">${esc(p.titulo)}</span>${p.monto ? `<span class="monto">${esc(p.monto)}</span>` : ""}<span class="mas">${resto.length ? "+" + resto.length + " ›" : "›"}</span></a></div>`;
 }
 
 const pesos = (n) => "$\u00a0" + Math.round(n).toLocaleString("es-AR");
@@ -513,7 +509,7 @@ function pieAgenda(datos) {
 // ---------- Pantalla ----------
 export function renderInicio(datos, ctx, clima, tema) {
   const f = ctx.fecha;
-  const fechaTxt = DIAS[f.getDay()] + " " + f.getDate() + " " + MESES[f.getMonth()].slice(0, 3);
+  const fechaTxt = `<span class="dia-largo">${DIAS[f.getDay()]}</span><span class="dia-corto">${DIAS[f.getDay()].slice(0, 3)}</span> ${f.getDate()} ${MESES[f.getMonth()].slice(0, 3)}`;
   const temaIcono = tema === "oscuro" ? ICONOS.sol : ICONOS.luna;
   const compacto = !!leer("inicioCompacto");
   const ahora = new Date();
@@ -597,7 +593,7 @@ export function despuesInicio(app, animar = true) {
     const ancho = h1.clientWidth;
     const base = parseFloat(getComputedStyle(h1).fontSize);
     const mayor = Math.max(...[...h1.querySelectorAll(".ls")].map((l) => l.scrollWidth));
-    if (mayor > ancho && ancho > 0) h1.style.fontSize = Math.max(20, Math.floor(base * ancho / mayor * 0.98)) + "px";
+    if (mayor > ancho && ancho > 0) h1.style.fontSize = Math.max(h1.closest(".compacto") ? 15 : 20, Math.floor(base * ancho / mayor * 0.98)) + "px";
   }
   const segs = app.querySelectorAll(".anillo .seg");
   const dibujar = () => segs.forEach((s) => s.setAttribute("stroke-dasharray", s.dataset.largo + " " + (s.dataset.circ || C)));

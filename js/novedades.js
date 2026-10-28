@@ -1,6 +1,17 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.23.1",
+    fecha: "28/10/2026",
+    titulo: "Arreglos de Inicio en el celu.",
+    cambios: [
+      "Arriba ya no se rompe en el celu: el día va abreviado («Mié 28 oct · 12:33:02») y los íconos son un poco más chicos.",
+      "Urgente en Inicio es una franja fina a lo ancho: lo primero que vence, cuándo, el tilde y cuántas cosas más hay.",
+      "El reloj es un poco más chico en el celu.",
+      "Modo compacto: el saludo ya no se corta; se achica para entrar al lado del reloj.",
+    ],
+  },
+  {
     version: "0.23.0",
     fecha: "28/10/2026",
     titulo: "Inicio nuevo y página de Urgente.",
