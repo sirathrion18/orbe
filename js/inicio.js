@@ -12,6 +12,7 @@ import { datosEconomia } from "./economia.js";
 import { movimientoDolar } from "./extras.js";
 import { presupuesto, preguntas } from "./presupuesto.js";
 import { ultimaEdicion, esNueva, proximaSemanal } from "./semanal.js";
+import { wChecklists, usarColores } from "./checklists.js";
 
 export const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -507,18 +508,21 @@ function pieAgenda(datos) {
 }
 
 // ---------- Pantalla ----------
-export function renderInicio(datos, ctx, clima, tema) {
+export function renderInicio(datos, ctx, climaDatos, tema) {
   const f = ctx.fecha;
   const fechaTxt = `<span class="dia-largo">${DIAS[f.getDay()]}</span><span class="dia-corto">${DIAS[f.getDay()].slice(0, 3)}</span> ${f.getDate()} ${MESES[f.getMonth()].slice(0, 3)}`;
   const temaIcono = tema === "oscuro" ? ICONOS.sol : ICONOS.luna;
   const compacto = !!leer("inicioCompacto");
   const ahora = new Date();
   const seg = String(ahora.getSeconds()).padStart(2, "0");
-  // Universos: íconos redondos debajo del reloj (en el modo compacto, botones con nombre).
-  const uniIconos = `<nav class="u-fila" aria-label="Universos">${UNIVERSOS.map((u) => `<a class="uf" href="#/u/${u.id}" aria-label="${esc(u.nombre)}" title="${esc(u.nombre)}" data-nombre="${esc(u.nombre)}"><span class="u-ico" style="color:${colorUniverso(datos, u, tema)}">${ICONOS["u_" + u.id] || ""}</span></a>`).join("")}</nav>`;
-  const uniChips = `<nav class="u-chips" aria-label="Universos">${UNIVERSOS.map((u) => `<a class="uc" href="#/u/${u.id}"><span class="u-ico" style="color:${colorUniverso(datos, u, tema)}">${ICONOS["u_" + u.id] || ""}</span>${esc(u.nombre)}</a>`).join("")}</nav>`;
-  const saludo = `<div class="saludo"><h1>${elegirSaludo(datos, ctx, clima)}</h1></div>`;
-  const river = wRiverMini(ctx);
+  const saludo = `<div class="saludo"><h1>${elegirSaludo(datos, ctx, climaDatos)}</h1></div>`;
+  // Lo que elegiste no ver en Ajustes › Diseño (Urgente siempre está).
+  const oculto = new Set(leer("inicioOcultos", []));
+  const ver = (k, html) => (oculto.has(k) ? "" : html);
+  usarColores((u) => colorUniverso(datos, u, tema));
+  const river = ver("river", wRiverMini(ctx));
+  const clima = ver("clima", wClima(climaDatos, ctx));
+  const cuadros = clima && river ? clima + river : (clima || river).replace(/class="w (clima marco|riv-mini)/, 'class="w $1 ancho');
   return `
   ${ctx.modo === "river" ? '<div class="banda" aria-hidden="true"></div>' : ""}
   ${ctx.modo === "marvel" ? TELA : ""}
@@ -535,19 +539,18 @@ export function renderInicio(datos, ctx, clima, tema) {
           <input id="q" type="search" autocomplete="off" placeholder="Buscar, o «gasto 3500 súper»"></label>
         <div class="resultados" id="resultados" role="listbox"></div>
       </div>
-      ${compacto ? `<div class="cab">${anillo(datos, ctx, tema)}${saludo}</div>` : `${saludo}${anillo(datos, ctx, tema)}${leyenda(datos, ctx, tema)}${uniIconos}`}
+      ${compacto ? `<div class="cab">${anillo(datos, ctx, tema)}${saludo}</div>` : `${saludo}${anillo(datos, ctx, tema)}${leyenda(datos, ctx, tema)}`}
     </div>
     <div class="col-b">
       ${tira(ctx, datos)}
-      ${compacto ? uniChips : ""}
-      <div class="widgets">${wUrgente(datos, ctx)}${river ? wClima(clima, ctx) : wClima(clima, ctx).replace("w clima marco", "w clima marco ancho")}${river}${wPlata(datos, ctx)}</div>
-      ${avisoPreguntas()}
-      ${wSemanal()}
-      ${wTransporte()}
+      <div class="widgets">${wUrgente(datos, ctx)}${ver("chk", wChecklists())}${cuadros}${ver("plata", wPlata(datos, ctx))}</div>
+      ${ver("preguntas", avisoPreguntas())}
+      ${ver("semanal", wSemanal())}
+      ${ver("transporte", wTransporte())}
       <p class="pie">${MARCA}<br>${pieAgenda(datos)} · <a href="#/novedades">novedades</a> · <a href="privacidad.html">privacidad</a></p>
     </div>
   </div>
-  <button class="fab" data-accion="idea" aria-label="Anotar una idea">${ICONOS.mas}</button>`;
+  <button class="fab" data-accion="idea" aria-label="Anotar una idea o armar un checklist">${ICONOS.mas}</button>`;
 }
 
 // ---------- El Semanal ----------

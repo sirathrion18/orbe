@@ -26,6 +26,7 @@ import { actualizarSemanal, htmlEdicion, marcarLeida, pendientesDeSemanal } from
 import { escribirResumen } from "./resumen.js";
 import { leer, guardar, borrar, todo, borrarTodo, sesion } from "./almacen.js";
 import { sol } from "./sol.js";
+import { renderChecklists, formChecklist, crear as crearChecklist, tildar as tildarChk, sumarItem, sacarItem, usarDeNuevo, borrarChecklist, itemsDeTexto, usarColores } from "./checklists.js";
 
 const app = document.getElementById("app");
 const estado = { datos: null, clima: null, ctx: null };
@@ -94,6 +95,7 @@ function pintar(refresco = false) {
     html = bloqueado ? renderBloqueo("semanal", huellaActiva(), !!leer("pin")) : renderSemanal();
   }
   else if (r === "/urgente") html = renderUrgente(estado.datos, estado.ctx);
+  else if (r === "/checklists") { usarColores((u) => colorUniverso(estado.datos, u, tema)); html = renderChecklists(); }
   else if (r === "/ideas") html = renderIdeas();
   else if (r === "/agenda") html = renderAgenda(estado.datos, estado.ctx, tema);
   else if (r === "/respiro") html = renderRespiro();
@@ -110,8 +112,9 @@ function pintar(refresco = false) {
   else if (r === "/novedades") html = renderNovedades();
   else html = renderNoEncontrado();
 
-  app.innerHTML = franjaSesion() + html + (esInicio ? "" : barraInferior(r, tema));
-  document.body.classList.toggle("con-barra", !esInicio);
+  app.innerHTML = franjaSesion() + html + barraInferior(r, tema);
+  document.body.classList.add("con-barra");
+  document.body.classList.toggle("dock-nombres", !!leer("dockNombres"));
   riverEnNegrita(app);
   if (esInicio) { despuesInicio(app, !refresco); conectarBuscador(); }
   const lector = app.querySelector(".lector-ed");
@@ -159,12 +162,15 @@ function franjaSesion() {
     <button class="btn" data-accion="google-reconectar">Reconectar</button></div>`;
 }
 
+// La barra de abajo: Inicio y los seis universos, fija en todas las pantallas (también en la compu),
+// a mano del pulgar. Manteniendo apretado un ícono aparece su nombre; en Ajustes › Diseño se pueden dejar los nombres fijos.
 function barraInferior(r, tema) {
-  const items = [{ id: "", nombre: "Inicio", color: "var(--text)", href: "#/" }]
-    .concat(UNIVERSOS.map((u) => ({ id: u.id, nombre: u.corto, color: colorUniverso(estado.datos, u, tema), href: "#/u/" + u.id })));
-  return `<nav class="barra-inf" aria-label="Universos">${items.map((it) => {
-    const on = it.id ? r === "/u/" + it.id : false;
-    return `<a href="${it.href}" class="${on ? "on" : ""}" ${on ? 'aria-current="page"' : ""}><i class="dot" style="background:${it.color}"></i>${esc(it.nombre)}</a>`;
+  const items = [{ id: "", nombre: "Inicio", color: "var(--text)", href: "#/", ico: ICONOS.inicio }]
+    .concat(UNIVERSOS.map((u) => ({ id: u.id, nombre: u.corto, color: colorUniverso(estado.datos, u, tema), href: "#/u/" + u.id, ico: ICONOS["u_" + u.id] || "" })));
+  const nombres = !!leer("dockNombres");
+  return `<nav class="dock ${nombres ? "con-nombres" : ""}" aria-label="Universos">${items.map((it) => {
+    const on = it.id ? r === "/u/" + it.id : (r === "/" || r === "");
+    return `<a href="${it.href}" class="uf ${on ? "on" : ""}" ${on ? 'aria-current="page"' : ""} aria-label="${esc(it.nombre)}" data-nombre="${esc(it.nombre)}"><span class="u-ico" style="color:${it.color}">${it.ico}</span>${nombres ? `<small>${esc(it.nombre)}</small>` : ""}</a>`;
   }).join("")}</nav>`;
 }
 
@@ -278,19 +284,40 @@ function avisar(texto) {
   timerAviso = setTimeout(() => el.classList.remove("on"), 2200);
 }
 
-function abrirHojaIdea() {
-  cerrarHoja();
-  const velo = document.createElement("div"); velo.className = "velo on"; velo.dataset.accion = "cerrar-hoja";
-  const hoja = document.createElement("div"); hoja.className = "hoja"; hoja.setAttribute("role", "dialog"); hoja.setAttribute("aria-label", "Anotar una idea");
-  hoja.innerHTML = `<h2>Una idea</h2><form data-form="idea-hoja">
+// La hoja del «+»: arriba elegís qué anotar (una idea o un checklist) y abajo cambia el formulario.
+function formIdea() {
+  return `<form data-form="idea-hoja">
     <label class="sr" for="idea-txt">Idea</label><textarea id="idea-txt" name="t" class="campo-texto" placeholder="Lo que se te cruce. Sumá #etiquetas si querés." required></textarea>
     ${("webkitSpeechRecognition" in window || "SpeechRecognition" in window) ? '<button type="button" class="btn sec dictar" data-accion="dictar" style="margin-top:8px;display:inline-flex;gap:8px;align-items:center"><span style="width:18px;height:18px;display:inline-flex">' + ICONOS.mic + '</span>Dictar</button>' : ""}
     <div class="grupo"><span>Universo (opcional)</span><div class="chips">${UNIVERSOS.map((u) => `<label class="chip"><input type="radio" name="u" value="${u.nombre}" class="sr">${esc(u.nombre)}</label>`).join("")}</div></div>
-    <div class="grupo" style="display:flex;gap:10px"><button type="button" class="btn sec" data-accion="cerrar-hoja" style="flex:1">Cancelar</button><button class="btn" style="flex:2">Guardar</button></div></form>`;
+    <div class="grupo" style="display:flex;gap:10px"><button type="button" class="btn sec" data-accion="cerrar-hoja" style="flex:1">Cancelar</button><button class="btn" style="flex:2">Guardar idea</button></div></form>`;
+}
+function pestanaMas(hoja, cual) {
+  hoja.querySelectorAll(".mas-tabs button").forEach((b) => { const on = b.dataset.tab === cual; b.classList.toggle("on", on); b.setAttribute("aria-selected", on); });
+  hoja.querySelector(".mas-cuerpo").innerHTML = cual === "chk" ? formChecklist() : formIdea();
+  hoja.setAttribute("aria-label", cual === "chk" ? "Armar un checklist" : "Anotar una idea");
+  guardar("masPestana", cual);
+  const foco = hoja.querySelector(cual === "chk" ? "#chk-lineas" : "textarea");
+  if (foco) foco.focus();
+}
+function abrirHojaIdea(cual = leer("masPestana") || "idea") {
+  cerrarHoja();
+  const velo = document.createElement("div"); velo.className = "velo on"; velo.dataset.accion = "cerrar-hoja";
+  const hoja = document.createElement("div"); hoja.className = "hoja hoja-mas"; hoja.setAttribute("role", "dialog");
+  hoja.style.maxHeight = "92vh"; hoja.style.overflowY = "auto";
+  hoja.innerHTML = `<div class="mas-tabs" role="tablist" aria-label="Qué querés anotar">
+      <button type="button" role="tab" data-accion="mas-tab" data-tab="idea">Idea</button>
+      <button type="button" role="tab" data-accion="mas-tab" data-tab="chk">Checklist</button></div>
+    <div class="mas-cuerpo"></div>`;
   document.body.append(velo, hoja);
-  requestAnimationFrame(() => { hoja.classList.add("on"); hoja.querySelector("textarea").focus(); });
+  requestAnimationFrame(() => { hoja.classList.add("on"); pestanaMas(hoja, cual); });
   hoja.addEventListener("change", (e) => {
     if (e.target.name === "u") hoja.querySelectorAll(".chip").forEach((c) => c.classList.toggle("on", c.contains(e.target)));
+  });
+  hoja.addEventListener("input", (e) => {
+    if (!e.target.classList.contains("chk-lineas")) return;
+    const n = itemsDeTexto(e.target.value).length;
+    hoja.querySelector(".chk-contador").textContent = n ? (n === 1 ? "1 ítem" : n + " ítems") : "Cada renglón es un ítem.";
   });
 }
 function abrirHoja(html, etiqueta) {
@@ -340,6 +367,31 @@ document.addEventListener("click", (e) => {
   } else if (a === "ocultar-plata") {
     guardar("plataOculta", !leer("plataOculta", false)); pintar();
   } else if (a === "idea") abrirHojaIdea();
+  else if (a === "nuevo-chk") abrirHojaIdea("chk");
+  else if (a === "mas-tab") pestanaMas(el.closest(".hoja"), el.dataset.tab);
+  else if (a === "chk-tildar") {
+    // Primero se ve el tilde y el tachado; recién después se acomoda la lista.
+    vibrar();
+    el.classList.add("tildando");
+    setTimeout(() => {
+      const c = tildarChk(el.dataset.id, Number(el.dataset.i));
+      if (c && c.hecho && el.getAttribute("aria-pressed") !== "true") avisar(`«${c.titulo}» completo`);
+      pintar(true);
+    }, ruta() === "/checklists" ? 0 : 380);
+  }
+  else if (a === "chk-sacar") { sacarItem(el.dataset.id, Number(el.dataset.i)); pintar(true); }
+  else if (a === "chk-de-nuevo") { usarDeNuevo(el.dataset.id); avisar("Listo: otra vez en Inicio"); pintar(true); }
+  else if (a === "chk-borrar") {
+    // Dos toques para borrar, sin ventanitas de confirmación.
+    if (el.dataset.seguro !== "1") { el.dataset.seguro = "1"; el.textContent = "Tocá de nuevo para borrar"; el.classList.add("peligro"); setTimeout(() => { if (el.isConnected) { el.dataset.seguro = ""; el.textContent = "Borrar checklist"; el.classList.remove("peligro"); } }, 4000); return; }
+    borrarChecklist(el.dataset.id); avisar("Checklist borrado"); pintar(true);
+  }
+  else if (a === "dock-nombres") { guardar("dockNombres", !leer("dockNombres")); vibrar(); pintar(true); }
+  else if (a === "inicio-ver") {
+    const l = new Set(leer("inicioOcultos", []));
+    if (l.has(el.dataset.k)) l.delete(el.dataset.k); else l.add(el.dataset.k);
+    guardar("inicioOcultos", [...l]); vibrar(); pintar(true);
+  }
   else if (a === "inicio-compacto") { guardar("inicioCompacto", el.dataset.v === "1"); pintar(); }
   else if (a === "buscar") {
     // La lupa de arriba abre (y cierra) el buscador.
@@ -437,8 +489,13 @@ document.addEventListener("click", (e) => {
     if (!SR || !campo) return;
     const rec = new SR(); rec.lang = "es-AR"; rec.interimResults = false;
     el.classList.add("escuchando"); el.lastChild.textContent = "Escuchando…";
-    rec.onresult = (ev) => { campo.value = (campo.value ? campo.value + " " : "") + ev.results[0][0].transcript; };
-    rec.onend = () => { el.classList.remove("escuchando"); el.lastChild.textContent = "Dictar"; campo.focus(); };
+    rec.onresult = (ev) => {
+      const t = ev.results[0][0].transcript;
+      // En un checklist, cada dictado es un renglón nuevo (un ítem).
+      if (campo.classList.contains("chk-lineas")) { campo.value = campo.value.replace(/\s*$/, "") + (campo.value.trim() ? "\n" : "") + t; campo.dispatchEvent(new Event("input", { bubbles: true })); }
+      else campo.value = (campo.value ? campo.value + " " : "") + t;
+    };
+    rec.onend = () => { el.classList.remove("escuchando"); el.lastChild.textContent = campo.classList.contains("chk-lineas") ? "Dictar un ítem" : "Dictar"; campo.focus(); };
     rec.onerror = () => avisar("No te escuché: probá de nuevo");
     rec.start();
   }
@@ -490,6 +547,12 @@ document.addEventListener("submit", async (e) => {
   const tipo = f.dataset.form;
   if (tipo === "super") { const l = leer("super", []); l.push({ t: d.t.trim(), ok: false }); guardar("super", l); vibrar(); pintar(); document.querySelector('[data-form="super"] input')?.focus(); }
   else if (tipo === "idea") { guardarIdea(d.t.trim(), ""); pintar(); }
+  else if (tipo === "chk-nuevo") {
+    const c = crearChecklist(d.titulo, d.items, d.u || "");
+    if (!c) { avisar("Sumá al menos un ítem"); return; }
+    cerrarHoja(); avisar(`«${c.titulo}» está en Inicio`); pintar(true);
+  }
+  else if (tipo === "chk-sumar") { sumarItem(f.dataset.id, d.t); pintar(true); document.querySelector(`[data-form="chk-sumar"][data-id="${f.dataset.id}"] input`)?.focus(); }
   else if (tipo === "idea-hoja") { guardarIdea(d.t.trim(), d.u || ""); cerrarHoja(); if (ruta() === "/ideas") pintar(); }
   else if (tipo === "futbol") { const l = leer("futbol", []); l.push({ t: d.t.trim(), f: new Date().toLocaleDateString("es-AR") }); guardar("futbol", l); avisar("Partido anotado"); pintar(); }
   else if (tipo === "gasto") {

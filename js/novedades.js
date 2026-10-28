@@ -1,6 +1,18 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.24.0",
+    fecha: "28/10/2026",
+    titulo: "Checklists, barra de universos abajo y Ajustes › Diseño.",
+    cambios: [
+      "Checklists: el + ahora tiene dos pestañas, Idea y Checklist. Ponés un nombre y escribís un ítem por renglón (también podés pegar una lista o dictar ítem por ítem). Si elegís un universo, la barrita de progreso toma su color.",
+      "Cada checklist abierto aparece en Inicio, debajo de Urgente: se tilda ahí mismo y lo tildado se va. Cuando tildás todo, sale de Inicio y queda en «Completos».",
+      "Página Checklists: ves todos los ítems, sumás o sacás ítems, y con «Usar de nuevo» un checklist completo vuelve a Inicio destildado (ideal para el súper o la valija). Para borrar, dos toques. Se sincroniza entre el celu y la compu.",
+      "La barra de universos ahora está abajo y fija, al alcance del pulgar: Inicio y los seis universos, igual en todas las pantallas y en la compu. Manteniendo apretado un ícono aparece su nombre.",
+      "Ajustes › Diseño, arriba de todo: el modo de Inicio (reloj grande o compacto), nombres en la barra de abajo, qué tarjetas se ven en Inicio (Urgente siempre está), tema y tipografías.",
+    ],
+  },
+  {
     version: "0.23.1",
     fecha: "28/10/2026",
     titulo: "Arreglos de Inicio en el celu.",

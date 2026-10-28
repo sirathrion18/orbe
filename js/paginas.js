@@ -564,6 +564,32 @@ function estadoPartes(est) {
   return filas.length ? `<ul class="lista">${filas.join("")}</ul>` : '<p class="vacio">Todavía no se actualizó nada en este dispositivo.</p>';
 }
 
+// Ajustes › Diseño: todo lo que cambia cómo se ve Inicio, junto y arriba de todo.
+const VER_INICIO = [["chk", "Checklists"], ["clima", "Clima"], ["river", "River"], ["plata", "Diario de plata"], ["preguntas", "Preguntas de plata"], ["semanal", "El Semanal"], ["transporte", "Transporte", "solo aparece si hay problemas"]];
+const DIBUJO_MODO = {
+  normal: '<svg viewBox="0 0 64 56" aria-hidden="true"><rect x="8" y="6" width="30" height="3" rx="1.5"/><rect x="8" y="12" width="20" height="3" rx="1.5"/><circle cx="32" cy="32" r="11" fill="none" stroke-width="2.5"/><circle cx="14" cy="50" r="2.4"/><circle cx="23" cy="50" r="2.4"/><circle cx="32" cy="50" r="2.4"/><circle cx="41" cy="50" r="2.4"/><circle cx="50" cy="50" r="2.4"/></svg>',
+  compacto: '<svg viewBox="0 0 64 56" aria-hidden="true"><circle cx="16" cy="14" r="7.5" fill="none" stroke-width="2.2"/><rect x="28" y="9" width="28" height="3" rx="1.5"/><rect x="28" y="15" width="18" height="3" rx="1.5"/><rect x="8" y="28" width="48" height="8" rx="3" opacity=".55"/><rect x="8" y="40" width="23" height="11" rx="3" opacity=".55"/><rect x="33" y="40" width="23" height="11" rx="3" opacity=".55"/></svg>'
+};
+function bloqueDiseno(tema, f, muestra) {
+  const compacto = !!leer("inicioCompacto");
+  const ocultos = new Set(leer("inicioOcultos", []));
+  const modo = (k, n, d) => `<button class="muestra modo-ini ${compacto === k ? "on" : ""}" data-accion="inicio-compacto" data-v="${k ? 1 : 0}" aria-pressed="${compacto === k}">${DIBUJO_MODO[k ? "compacto" : "normal"]}<b>${n}</b><small>${d}</small></button>`;
+  return `<section class="bloque diseno" id="diseno"><h2>Diseño</h2>
+    <h3 class="sub-aj">Inicio</h3>
+    <div class="muestras">${modo(false, "Reloj grande", "el reloj al medio")}${modo(true, "Compacto", "más cosas sin bajar")}</div>
+    <ul class="interruptores"><li><button class="interruptor" role="switch" aria-checked="${!!leer("dockNombres")}" data-accion="dock-nombres"><span><b>Nombres en la barra de abajo</b><small>si no, solo los íconos (manteniendo apretado aparece el nombre)</small></span><i aria-hidden="true"></i></button></li></ul>
+    <h3 class="sub-aj">Qué se ve en Inicio</h3>
+    <ul class="interruptores">${VER_INICIO.map(([k, n, d]) => { const on = !ocultos.has(k); return `<li><button class="interruptor" role="switch" aria-checked="${on}" data-accion="inicio-ver" data-k="${k}"><span><b>${n}</b>${d ? `<small>${d}</small>` : ""}</span><i aria-hidden="true"></i></button></li>`; }).join("")}</ul>
+    <p class="fuente-dato">Urgente siempre se ve, para que nada se pase.</p>
+    <h3 class="sub-aj">Tema</h3>
+    <div class="chips">${[["auto", "Automático"], ["claro", "Claro"], ["oscuro", "Oscuro"]].map(([k, n]) => `<button class="chip ${tema === k ? "on" : ""}" data-accion="tema-fijo" data-tema="${k}">${n}</button>`).join("")}</div>
+    <p class="fuente-dato">Automático: claro de día y oscuro desde la puesta del sol en Buenos Aires. El botón de Inicio lo cambia hasta la próxima salida o puesta.</p>
+    <h3 class="sub-aj">Tipografía del reloj</h3>
+    <div class="muestras">${RELOJES.map((x) => muestra("reloj", x)).join("")}</div>
+    <h3 class="sub-aj">Tipografía del saludo</h3>
+    <div class="muestras">${SALUDOS_F.map((x) => muestra("saludo", x)).join("")}</div></section>`;
+}
+
 export function renderAjustes(estadoTema, demo, hayPin, google) {
   const tema = estadoTema.modo;
   const f = { reloj: "logo", saludo: "revista", ...leer("fuentes", {}) };
@@ -579,6 +605,7 @@ export function renderAjustes(estadoTema, demo, hayPin, google) {
       <b style="font-family:${FAMILIA[k]}">${grupo === "reloj" ? "10:24" : "Buen día"}</b><small>${n} · ${d}</small></button>`;
   return `<div class="pagina">${volver}<h1>Ajustes</h1><p class="bajada">${MARCA} versión ${VERSION}.</p>
     ${google.aviso ? `<section class="bloque" role="alert" style="background:var(--urg-bg)"><p>${esc(google.aviso)}</p></section>` : ""}
+    ${bloqueDiseno(tema, f, muestra)}
     <section class="bloque"><h2>Cuenta de Google</h2>${tarjeta}
       <p class="vacio" style="margin-top:12px;font-size:12px">La sesión dura 30 días y se renueva sola cada vez que usás Orbe. Orbe nunca ve tu contraseña.</p></section>
 
@@ -596,12 +623,6 @@ export function renderAjustes(estadoTema, demo, hayPin, google) {
           ${idEconomia() ? "" : '<form class="form" data-form="economia"><input name="link" placeholder="Link de ECONOMÍA" aria-label="Link de la planilla ECONOMÍA" required><button class="btn">Listo</button></form>'}`}
     </section>
 
-    <section class="bloque"><h2>Tipografías</h2>
-      <p class="vacio" style="font-size:13px;margin-bottom:10px">Reloj del anillo</p>
-      <div class="muestras">${RELOJES.map((x) => muestra("reloj", x)).join("")}</div>
-      <p class="vacio" style="font-size:13px;margin:16px 0 10px">Saludo</p>
-      <div class="muestras">${SALUDOS_F.map((x) => muestra("saludo", x)).join("")}</div></section>
-
     <section class="bloque"><h2>Horario fijo del BNA</h2>
       <p class="vacio" style="font-size:13px;margin-bottom:14px">Completa los días hábiles que tu calendario no tenga cargados.</p>
       <form data-form="horario"><div class="horas"><span></span><span class="cab">Entrada</span><span class="cab">Salida</span>
@@ -610,10 +631,6 @@ export function renderAjustes(estadoTema, demo, hayPin, google) {
         <input type="time" name="f${d}" value="${esc(h.fin || "")}" aria-label="Salida ${DIAS[d]}">`; }).join("")}</div>
         <button class="btn ancho-completo" style="margin-top:14px">Guardar horario</button></form></section>
 
-    <section class="bloque"><h2>Inicio</h2><div class="chips">${[[false, "Reloj grande"], [true, "Compacto"]].map(([k, n]) => `<button class="chip ${!!leer("inicioCompacto") === k ? "on" : ""}" data-accion="inicio-compacto" data-v="${k ? 1 : 0}">${n}</button>`).join("")}</div>
-      <p class="fuente-dato">Compacto: el reloj chico al lado del saludo y los universos con su nombre, para ver más cosas sin bajar.</p></section>
-    <section class="bloque"><h2>Tema</h2><div class="chips">${[["auto", "Automático"], ["claro", "Claro"], ["oscuro", "Oscuro"]].map(([k, n]) => `<button class="chip ${tema === k ? "on" : ""}" data-accion="tema-fijo" data-tema="${k}">${n}</button>`).join("")}</div>
-      <p class="vacio" style="margin-top:12px;font-size:13px">Automático: claro de día y oscuro desde la puesta del sol en Buenos Aires. El botón de Inicio lo cambia hasta la próxima salida o puesta.</p></section>
     <section class="bloque"><h2>Probar modos del día</h2><div class="chips"><button class="chip ${!demo ? "on" : ""}" data-accion="demo" data-modo="">Real</button>${MODOS.map((m) => `<button class="chip ${demo === m ? "on" : ""}" data-accion="demo" data-modo="${m}">${m === "normal" ? "Normal" : m === "libre" ? "Día libre" : m === "river" ? "River" : m === "marvel" ? "Guiño Marvel" : "Noche"}</button>`).join("")}</div>
       <p class="vacio" style="margin-top:12px;font-size:13px">Simula el día y la hora de cada modo. Se apaga al cerrar Orbe.</p></section>
     <section class="bloque"><h2>Bloqueo de Finanzas y Bienestar</h2>
