@@ -1,6 +1,21 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.15.0",
+    fecha: "28/10/2026",
+    titulo: "Productividad en el BNA.",
+    cambios: [
+      "BNA tiene dos pestañas: Productividad y Horarios y sueldo.",
+      "Productividad: contadores + y − por tarea, total en vivo y barra hacia la meta del día. «Te faltan» te dice los puntos y cuántos MS o cambios de cartera son, con los minutos.",
+      "Minutos: lo que llevás contra los minutos efectivos de la jornada, y si con lo que falta la meta entra en el día.",
+      "Día tipo: seis presets que cargan cargas y controles de un toque.",
+      "Historial por mes: total de cada día con su banda (Óptimo, Esperado, Bajo), promedio, días en meta y gráfico con la línea de meta. Tocando un día lo corregís.",
+      "Pesos y metas editables. Viven en tu planilla (PESOS_PRODUCTIVIDAD y PRODUCTIVIDAD), no en el código; tu octubre llegó desde «Orbe · semillas».",
+      "Finanzas y BNA quedan abiertos 15 minutos después de salir de Orbe; pasado ese tiempo, piden la huella.",
+      "El LEEME de tu planilla explica todas las hojas nuevas."
+    ]
+  },
+  {
     version: "0.14.0",
     fecha: "27/10/2026",
     titulo: "River en Inicio y el aviso para fichar.",

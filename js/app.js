@@ -4,13 +4,14 @@ import * as G from "./google.js";
 import { construirContexto } from "./contexto.js";
 import { renderInicio, despuesInicio, esc, colorUniverso } from "./inicio.js";
 import { ICONOS } from "./iconos.js";
-import { renderRiver, renderUniverso, renderBloqueo, renderIdeas, renderAgenda, renderRespiro, renderDatos, renderAjustes, renderNovedades, renderNoEncontrado, hojaMovimiento, hojaTp, hojaMateria, hojaAsignar, hojaAgus, hojaPartido, hojaPasos } from "./paginas.js";
+import { renderRiver, renderUniverso, renderBloqueo, renderIdeas, renderAgenda, renderRespiro, renderDatos, renderAjustes, renderNovedades, renderNoEncontrado, hojaMovimiento, hojaTp, hojaMateria, hojaAsignar, hojaAgus, hojaPartido, hojaPasos, hojaPesos } from "./paginas.js";
+import { HOJAS_PROD, leerProd, datosProd, mandar as mandarProd, hayPendientes as prodPendiente, cambiar as prodCambiar, fijar as prodFijar, aplicarPreset, guardarPesos, cantidadesDe, isoHoy } from "./productividad.js";
 import { HOJAS_LISTAS, leerListas, datosListas, traerGithub, agregarAgus, tildarAgus, anotarPartido, guardarProximos } from "./listas.js";
 import { sincronizar, activa as sincroActiva } from "./sincro.js";
 import { leerPlanilla, traerMails, corregir, datosFinanzas, pendientesDeTarjetas, guardarTope } from "./finanzas.js";
 import { leerRecibos } from "./recibos.js";
 import { datosFacu, traerCampus, leerFacu, tildarTp, nuevoTp, guardarMateria, asignarTp, pendientesDeTps, HOJAS_FACU } from "./facu.js";
-import { asegurarHojas } from "./hoja.js";
+import { asegurarHojas, asegurarLeeme } from "./hoja.js";
 import { fijarHoja, idHoja } from "./hoja.js";
 import { traerDolar, traerRiver, traerTransporte } from "./extras.js";
 import { responder } from "./preguntas.js";
@@ -312,6 +313,15 @@ document.addEventListener("click", (e) => {
     tildarAgus(Number(el.dataset.fila), el.checked).then(() => { vibrar(); pintar(true); }).catch((e) => avisar("No se pudo: " + textoError(e.message)));
   }
   else if (a === "fichado") { guardar("fichado", el.dataset.dia); vibrar(); avisar("Fichado. Buen día de laburo."); pintar(true); }
+  else if (a === "bna-tab") { sesion("bnaTab", el.dataset.tab); pintar(true); }
+  else if (a === "prod-mas" || a === "prod-menos") {
+    prodCambiar(sesion("prodFecha") || isoHoy(), el.dataset.tarea, a === "prod-mas" ? 1 : -1, () => pintar(true));
+    vibrar(); pintar(true);
+  }
+  else if (a === "prod-preset") { aplicarPreset(sesion("prodFecha") || isoHoy(), el.dataset.id, () => pintar(true)); vibrar(); pintar(true); }
+  else if (a === "prod-mes") { if (el.dataset.mes) { sesion("prodMes", el.dataset.mes); pintar(true); } }
+  else if (a === "prod-ir") { sesion("prodFecha", el.dataset.fecha === isoHoy() ? null : el.dataset.fecha); window.scrollTo({ top: 0, behavior: "smooth" }); pintar(true); }
+  else if (a === "prod-pesos") abrirHoja(hojaPesos(), "Editar pesos");
   else if (a === "agus-nuevo") abrirHoja(hojaAgus(el.dataset.tipo), "Agregar");
   else if (a === "partido-nuevo") abrirHoja(hojaPartido(), "Anotar partido");
   else if (a === "proyecto-pasos") {
@@ -383,6 +393,7 @@ document.addEventListener("change", (e) => {
   const el = e.target;
   if (el.type === "radio" && el.closest(".chips")) el.closest(".chips").querySelectorAll(".chip").forEach((c) => c.classList.toggle("on", c.contains(el) && el.checked));
   if (el.dataset.accion === "super-tilde") { const l = leer("super", []); l[Number(el.dataset.i)].ok = el.checked; guardar("super", l); vibrar(); pintar(); }
+  if (el.dataset.accion === "prod-fecha" && el.value) { sesion("prodFecha", el.value === isoHoy() ? null : el.value); sesion("prodMes", null); pintar(true); }
   if (el.classList.contains("campo-menu")) { const m = leer("menu", {}); m[el.dataset.dia] = el.value.trim(); guardar("menu", m); avisar("Menú guardado"); }
 });
 
@@ -433,6 +444,22 @@ document.addEventListener("submit", async (e) => {
       await corregir(id, { clase: d.clase, rubro: d.rubro || "", mitad: !!d.mitad }, !!d.aprender);
       avisar("Guardado en tu planilla"); pintar(true);
     } catch (err) { avisar("No se pudo guardar: " + err.message); }
+  } else if (tipo === "prod-otra") {
+    if (d.tarea) { prodCambiar(sesion("prodFecha") || isoHoy(), d.tarea, 1, () => pintar(true)); vibrar(); pintar(true); }
+  } else if (tipo === "prod-pesos") {
+    const num = (v) => Number(String(v || "").replace(",", "."));
+    const lista = [];
+    for (let i = 0; i < Number(f.dataset.n); i++) {
+      const pts = num(d["p" + i]), min = num(d["m" + i]);
+      if (!(pts > 0)) { avisar("Revisá los puntos de " + d["o" + i]); return; }
+      lista.push({ tarea: d["o" + i], original: d["o" + i], puntos: pts, minutos: min || 0, grupo: d["g" + i] });
+    }
+    if (d.nt && d.nt.trim()) {
+      if (!(num(d.np) > 0)) { avisar("Falta cuántos puntos vale la tarea nueva"); return; }
+      lista.push({ tarea: d.nt.trim(), puntos: num(d.np), minutos: num(d.nm) || 0, grupo: "otras" });
+    }
+    cerrarHoja(); avisar("Guardando pesos…");
+    guardarPesos(lista).then(() => { avisar("Pesos guardados"); pintar(true); }).catch((err) => avisar("No se pudo: " + textoError(err.message)));
   } else if (tipo === "agus-nuevo") {
     cerrarHoja(); avisar("Guardando…");
     agregarAgus(d.tipo || "plan", d.titulo.trim(), d.fecha || "", (d.nota || "").trim())
@@ -467,8 +494,11 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape") cerrarHoja
 
 // Al volver a Orbe, refresca la agenda si la sesión de Google sigue abierta.
 document.addEventListener("visibilitychange", async () => {
-  // Al salir de Orbe, Finanzas y BNA se vuelven a bloquear.
-  if (document.visibilityState === "hidden") { UNIVERSOS.forEach((u) => u.bloqueo && sesion("abierto-" + u.id, null)); return; }
+  // Al salir de Orbe, Finanzas y BNA quedan abiertos 15 minutos; después piden la huella de nuevo.
+  if (document.visibilityState === "hidden") { sesion("ocultoDesde", Date.now()); if (prodPendiente()) mandarProd().catch(() => {}); return; }
+  const fuera = sesion("ocultoDesde");
+  sesion("ocultoDesde", null);
+  if (fuera && Date.now() - fuera > 15 * 60000) UNIVERSOS.forEach((u) => u.bloqueo && sesion("abierto-" + u.id, null));
   if (!estado.datos) return;
   pintar(true);
   const ag = leer("agenda");
@@ -525,7 +555,18 @@ async function refrescarTodo(forzar = false) {
   try { const cambio = await sincronizar(); estadoParte("sincro"); if (cambio) pintar(true); }
   catch (e) { estadoParte("sincro", e.message); fallas.push(["sincro", e.message]); }
   if (!fallas.length && (forzar || Date.now() - (leer("hojasCuando") || 0) > 20 * 3600000)) {
-    try { await asegurarHojas(HOJAS_EXTRA); guardar("hojasCuando", Date.now(), true); } catch (e) { /* se reintenta otro día */ }
+    try {
+      await asegurarHojas(HOJAS_EXTRA); guardar("hojasCuando", Date.now(), true);
+      if (leer("leemeV") !== LEEME.length) { await asegurarLeeme(LEEME); guardar("leemeV", LEEME.length, true); }
+    } catch (e) { /* se reintenta otro día */ }
+  }
+  // Productividad: primero se manda lo que tocaste; después se lee la planilla.
+  if (!fallas.length) {
+    try {
+      if (prodPendiente()) await mandarProd();
+      if (forzar || !datosProd() || Date.now() - datosProd().cuando > 5 * 60000) await leerProd();
+      estadoParte("prod");
+    } catch (e) { estadoParte("prod", e.message); fallas.push(["prod", e.message]); }
   }
   // Agus, fútbol y proyectos: viven en tu planilla; GitHub se consulta como mucho una vez por hora.
   if (!fallas.length && (forzar || !datosListas() || Date.now() - datosListas().cuando > 10 * 60000)) {
@@ -559,8 +600,18 @@ async function refrescarTodo(forzar = false) {
 }
 
 // Hojas que Orbe crea solo en tu planilla si todavía no están.
-const HOJAS_EXTRA = { ...HOJAS_FACU, ...HOJAS_LISTAS };
-const NOMBRE_PARTE = { facu: "el campus de UFASTA", sincro: "la sincronización", mails: "los mails", economia: "ECONOMÍA", agenda: "la agenda", recibos: "los recibos", listas: "Agus, fútbol y proyectos" };
+const HOJAS_EXTRA = { ...HOJAS_FACU, ...HOJAS_LISTAS, ...HOJAS_PROD };
+// Lo que dice el LEEME de tu planilla sobre cada hoja que Orbe fue sumando (mismo estilo que las demás).
+const LEEME = [
+  "MATERIAS: tus materias de UFASTA, con pistas para reconocer los mails del campus, profe, aula, links y notas.",
+  "TPS: cada TP con su materia, fecha de entrega y si está hecho. Los avisos del campus lo tildan solo.",
+  "AGUS: lo compartido con Agus: fechas (anual), viaje, vuelos, planes, pelis y series, docs.",
+  "FUTBOL: cada partido: fecha, resultado (G/E/P), goles y cómo jugaste.",
+  "PROYECTOS: tus proyectos con repo, estado y próximos pasos (separados por ;).",
+  "PRODUCTIVIDAD: tu puntaje del BNA, una fila por tarea y por día (fecha, tarea, cantidad, puntos). Los puntos quedan fijos con el peso de ese día. «Otras (histórico)» es lo que no fue informe en los días traídos de la planilla del banco. Solo tus números.",
+  "PESOS_PRODUCTIVIDAD: cuánto vale cada tarea (puntos por unidad) y cuántos minutos lleva; grupo carga, control, ms (MS y cambio de cartera), otras o meta. Las filas «meta» dicen desde qué fecha vale cada meta diaria y los minutos efectivos."
+];
+const NOMBRE_PARTE = { facu: "el campus de UFASTA", sincro: "la sincronización", mails: "los mails", economia: "ECONOMÍA", agenda: "la agenda", recibos: "los recibos", listas: "Agus, fútbol y proyectos", prod: "la productividad" };
 export function textoError(m) {
   m = String(m || "");
   if (m === "reconectar" || m.startsWith("reconectar")) return "hay que volver a conectar con Google";

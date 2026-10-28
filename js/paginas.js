@@ -5,6 +5,7 @@ import { ICONOS, MARCA } from "./iconos.js";
 import { esc, colorTipo, colorUniverso, datosPartido, resultadoTxt } from "./inicio.js";
 import { DIAS, DIAS_CORTOS, bloquesDe, bloquesFecha, pendientesCon, cuandoTexto, duracion, hhmm, MODOS, lunesDe, minutosDia, sumaTipo } from "./contexto.js";
 import { datosListas, proximaAnual } from "./listas.js";
+import { datosProd, resumenDia, banda, PRESETS, presetPuntos, historial, mesesConDatos, isoHoy, metaDe, HISTORICO, hayPendientes } from "./productividad.js";
 import { permisos as permisosG } from "./google.js";
 import { leer, todo, sesion as sesionLeer } from "./almacen.js";
 import { datosFinanzas, resumenMes, topesSugeridos } from "./finanzas.js";
@@ -168,10 +169,14 @@ const PAGINAS = {
       `<li><span>Para vivir en ${nombreMes(m.mes)}<br><small class="vacio">${esc(m.fuente)}</small></span><span class="der">${$(m.disponible)}</span></li>`).join("")}</ul>
       <p class="fuente-dato">Disponible real = neto − talón complementario. Lo leo de tu carpeta BNA en Drive.</p></section>`
       : pronto("Sueldo", "Cuando des permiso de Drive en Ajustes, leo tus recibos de la carpeta BNA y te muestro el disponible real de cada mes.");
-    return `${semana(0)}${semana(1)}${horas}${sueldo}
+    const tab = sesionLeer("bnaTab") || "prod";
+    const pestanas = `<div class="pestanas" role="tablist">${[["prod", "Productividad"], ["horas", "Horarios y sueldo"]].map(([id, t]) =>
+      `<button class="pestana ${tab === id ? "on" : ""}" role="tab" aria-selected="${tab === id}" data-accion="bna-tab" data-tab="${id}">${t}</button>`).join("")}</div>`;
+    const nunca = `<section class="bloque"><h2>Lo que nunca entra</h2><p class="vacio">Solo tus números: nada de clientes, compañeros ni el contenido de los informes.</p></section>`;
+    if (tab === "prod") return pestanas + bloqueProductividad(ctx) + nunca;
+    return `${pestanas}${semana(0)}${semana(1)}${horas}${sueldo}
       <section class="bloque"><h2>Fichar</h2><p>Media hora antes de entrar, Inicio te recuerda fichar en Teams. Tocás «Listo» y desaparece hasta el día siguiente.</p></section>
-      ${pronto("Productividad", "El lugar ya está y queda detrás de tu huella. Lo armamos cuando me cuentes qué números querés ver.")}
-      <section class="bloque"><h2>Lo que nunca entra</h2><p class="vacio">Clientes, procedimientos e informes del banco quedan afuera de Orbe, siempre.</p></section>`;
+      ${nunca}`;
   },
 
   ufasta(datos, ctx) {
@@ -423,7 +428,7 @@ const FAMILIA = { logo: "var(--sans);font-weight:600;letter-spacing:-.045em", re
   cursiva: "var(--serif);font-style:italic" };
 
 // Qué anda y qué no, parte por parte, con el motivo y el arreglo cuando lo hay.
-const PARTES = [["agenda", "Agenda"], ["sincro", "Celu y compu"], ["economia", "Planilla ECONOMÍA"], ["mails", "Mails del BNA y Mercado Pago"], ["recibos", "Recibos de sueldo (Drive)"], ["facu", "Campus de UFASTA"], ["listas", "Agus, fútbol y proyectos"]];
+const PARTES = [["agenda", "Agenda"], ["sincro", "Celu y compu"], ["economia", "Planilla ECONOMÍA"], ["mails", "Mails del BNA y Mercado Pago"], ["recibos", "Recibos de sueldo (Drive)"], ["facu", "Campus de UFASTA"], ["listas", "Agus, fútbol y proyectos"], ["prod", "Productividad del BNA"]];
 function estadoPartes(est) {
   const hace = (t) => { const m = Math.round((Date.now() - t) / 60000); return m < 1 ? "recién" : m < 60 ? "hace " + m + " min" : "hace " + Math.round(m / 60) + " h"; };
   const filas = PARTES.filter(([k]) => est[k]).map(([k, n]) => {
@@ -598,4 +603,102 @@ export function renderRiver(ctx) {
       <div><span class="k">Posición</span><b>${t.pos}° de ${t.equipos}</b></div><div><span class="k">Puntos</span><b>${t.pts}</b></div><div><span class="k">PJ · G-E-P</span><b>${t.pj} · ${t.g}-${t.e}-${t.p}</b></div></div>
       <p class="fuente-dato">${esc(t.torneo)}. Diferencia de gol: ${t.dg > 0 ? "+" : ""}${t.dg}.</p></section>` : ""}
     <section class="bloque"><h2>Accesos</h2><div class="chips"><a class="chip" href="https://www.cariverplate.com.ar" target="_blank" rel="noopener">Sitio oficial</a><a class="chip" href="https://www.espn.com.ar/futbol/equipo/_/id/16/river-plate" target="_blank" rel="noopener">River en ESPN</a></div></section></div>`;
+}
+
+// ---------- BNA · Productividad ----------
+const f1 = (x) => (Math.round(x * 10) / 10).toLocaleString("es-AR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const MESES_C = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+const diaLargo = (iso) => { const d = new Date(iso + "T12:00"); return DIAS[d.getDay()] + " " + d.getDate() + "/" + (d.getMonth() + 1); };
+
+function bloqueProductividad(ctx) {
+  const p = datosProd();
+  if (!sincroActiva()) return `<section class="bloque"><h2>Productividad</h2><p class="vacio">Vive en tu planilla «Orbe · datos»: activá la sincronización en Ajustes.</p></section>`;
+  if (!p || !p.tareas.length) return `<section class="bloque"><h2>Productividad</h2><p>Faltan tus pesos y metas. Salen de «Orbe · semillas», tu planilla privada en Drive, y para leerla Orbe necesita el permiso de Drive.</p>
+    <div class="chips" style="margin-top:12px"><button class="chip" data-accion="activar-todo">Dar permiso de Drive</button><button class="chip" data-accion="actualizar-todo">Ya lo di: actualizar</button></div>
+    <p class="fuente-dato">También podés cargarlos a mano en la hoja PESOS_PRODUCTIVIDAD.</p></section>`;
+  const hoy = isoHoy(ctx.fecha);
+  const fecha = sesionLeer("prodFecha") || hoy;
+  const r = resumenDia(fecha);
+  const meta = r.meta?.meta || null, efectivos = r.meta?.minutos || null;
+  // Mientras el día está en curso no se marca «Bajo»: la banda aparece cuando llegás a Esperado.
+  const b0 = banda(r.total, meta);
+  const b = fecha === hoy && b0?.id === "bajo" ? null : b0;
+  const pct = meta ? Math.min(100, r.total / meta * 100) : 0;
+  const titulo = fecha === hoy ? "Hoy" : diaLargo(fecha);
+  // Te faltan / minutos
+  const unidadTxt = r.unidad ? (r.nUnidades === 1 ? "1 MS o cambio de cartera" : r.nUnidades + " MS o cambios de cartera") : "";
+  const falta = !meta ? '<p class="vacio">Sin meta cargada para esta fecha.</p>'
+    : r.falta > 1e-9 ? `<p class="te-faltan">Te faltan <b>${f1(r.falta)} pts</b>${r.unidad ? `: <b>${unidadTxt}</b> (${r.minutosFalta} min)` : ""}</p>`
+    : `<p class="te-faltan ok">Meta cumplida${r.total - meta > 0.05 ? `: <b>+${f1(r.total - meta)} pts</b> arriba` : ""}.</p>`;
+  const usados = Math.round(r.minutos), conFalta = usados + r.minutosFalta;
+  const minutos = efectivos ? `<div class="minutos"><div class="barra"><i style="width:${Math.min(100, usados / efectivos * 100)}%"></i><i class="falta" style="width:${Math.max(0, Math.min(100 - usados / efectivos * 100, r.minutosFalta / efectivos * 100))}%"></i></div>
+      <p class="fuente-dato">${usados} de ${efectivos} min estimados${r.minutosFalta ? ` · con lo que falta, ${conFalta} min: ${conFalta <= efectivos ? `<b>entra</b> (sobran ${efectivos - conFalta})` : `<b class="rojo-txt">no entra</b> (te pasás ${conFalta - efectivos})`}` : ""}.</p></div>` : "";
+  const hoyHtml = `<section class="bloque prod-hoy"><div class="fila-prod"><h2>${esc(titulo)}</h2>
+      <label class="cambiar-dia"><span class="sr">Elegir día</span><input type="date" data-accion="prod-fecha" value="${fecha}" max="${hoy}"></label></div>
+    <div class="prod-total"><span class="cifra">${f1(r.total)}</span><span class="de">${meta ? "/ " + meta + " pts" : "pts"}</span>${b ? `<span class="chip-banda b-${b.id}">${b.txt}</span>` : ""}</div>
+    <div class="barra prod"><i class="${b ? "b-" + b.id : ""}" style="width:${pct}%"></i></div>
+    ${falta}${minutos}${hayPendientes() ? '<p class="fuente-dato">Guardando en tu planilla…</p>' : ""}</section>`;
+
+  // Contadores
+  const fila = (t, v) => `<li class="contador"><span><b>${esc(t.tarea)}</b><br><small class="vacio">${f1(t.puntos).replace(",0", "")} pts · ${String(t.minutos).replace(".", ",")} min</small></span>
+    <span class="botones"><button class="mm" data-accion="prod-menos" data-tarea="${esc(t.tarea)}" aria-label="Restar ${esc(t.tarea)}" ${!v ? "disabled" : ""}>−</button>
+    <b class="cant">${v || 0}</b><button class="mm" data-accion="prod-mas" data-tarea="${esc(t.tarea)}" aria-label="Sumar ${esc(t.tarea)}">+</button></span>
+    <span class="pts">${v ? f1(v * t.puntos) : ""}</span></li>`;
+  const habituales = p.tareas.filter((t) => t.grupo !== "otras");
+  const otras = p.tareas.filter((t) => t.grupo === "otras");
+  const usadas = otras.filter((t) => r.c[t.tarea]?.cantidad);
+  const hist = r.c[HISTORICO];
+  const tareas = `<section class="bloque"><h2>Tareas</h2><ul class="lista contadores">
+      ${habituales.map((t) => fila(t, r.c[t.tarea]?.cantidad)).join("")}${usadas.map((t) => fila(t, r.c[t.tarea]?.cantidad)).join("")}
+      ${hist ? `<li class="contador"><span><b>${HISTORICO}</b><br><small class="vacio">MS, cambios de cartera y otras, del total del banco</small></span><span></span><span class="pts">${f1(hist.puntos)}</span></li>` : ""}</ul>
+    <form class="form" data-form="prod-otra"><select name="tarea" aria-label="Otra tarea" required><option value="">Otras tareas…</option>${otras.map((t) => `<option value="${esc(t.tarea)}">${esc(t.tarea)} · ${f1(t.puntos).replace(",0", "")}</option>`).join("")}</select><button class="btn">Sumar</button></form></section>`;
+
+  // Presets
+  const carga = p.tareas.find((t) => t.grupo === "carga"), control = p.tareas.find((t) => t.grupo === "control");
+  const presets = carga && control ? `<section class="bloque"><h2>Día tipo <span class="tag">fija cargas y controles</span></h2><div class="presets">${PRESETS.map((pr) => {
+    const pts = presetPuntos(pr), fal = meta && r.unidad ? Math.max(0, Math.ceil((meta - pts) / r.unidad.puntos - 1e-9)) : null;
+    const activo = (r.c[carga.tarea]?.cantidad || 0) === pr.carga && (r.c[control.tarea]?.cantidad || 0) === pr.control;
+    return `<button class="preset ${activo ? "on" : ""}" data-accion="prod-preset" data-id="${pr.id}"><b>${pr.nombre}</b>
+      <span>${pr.carga} carga${pr.carga === 1 ? "" : "s"}${pr.control ? " + " + pr.control + " control" + (pr.control === 1 ? "" : "es") : ""}</span>
+      <span>${f1(pts)} pts${fal === null ? "" : fal ? " · faltan " + fal + " MS/CC" : " · llega a la meta"}</span></button>`;
+  }).join("")}</div></section>` : "";
+
+  // Historial
+  const meses = mesesConDatos();
+  const mes = sesionLeer("prodMes") || (meses.includes(fecha.slice(0, 7)) ? fecha.slice(0, 7) : meses[meses.length - 1] || fecha.slice(0, 7));
+  const hi = historial(mes, hoy);
+  const i = meses.indexOf(mes);
+  const [yy, mm] = mes.split("-").map(Number);
+  const tope = Math.max(...hi.dias.map((d) => d.total), (hi.meta || 0) * 1.25, 1);
+  const grafico = hi.dias.length ? `<div class="grafico-prod" role="img" aria-label="Puntos por día de ${MESES_LARGOS[mm - 1]}, con la línea de meta">
+      <div class="area">${hi.meta ? `<span class="linea-meta" style="bottom:${hi.meta / tope * 100}%"><em>meta ${hi.meta}</em></span>` : ""}
+      ${hi.dias.map((d) => `<i class="b-${d.banda?.id || "n"}" style="height:${d.total / tope * 100}%" title="${d.fecha.slice(8)}: ${f1(d.total)}"></i>`).join("")}</div>
+      <div class="etiquetas">${hi.dias.map((d) => `<span>${Number(d.fecha.slice(8))}</span>`).join("")}</div></div>` : "";
+  const historialHtml = `<section class="bloque"><div class="fila-prod"><h2>Historial · ${MESES_LARGOS[mm - 1]}${yy !== ctx.fecha.getFullYear() ? " " + yy : ""}</h2>
+      <span class="nav-mes"><button class="mm" data-accion="prod-mes" data-mes="${meses[i - 1] || ""}" ${i > 0 ? "" : "disabled"} aria-label="Mes anterior">‹</button><button class="mm" data-accion="prod-mes" data-mes="${meses[i + 1] || ""}" ${i >= 0 && i < meses.length - 1 ? "" : "disabled"} aria-label="Mes siguiente">›</button></span></div>
+    ${hi.dias.length ? `<div class="trio"><div><span class="k">Promedio</span><b>${hi.promedio !== null ? f1(hi.promedio) : "—"}</b>${hi.banda ? `<span class="chip-banda chica b-${hi.banda.id}">${hi.banda.txt}</span>` : ""}</div>
+      <div><span class="k">En meta</span><b>${hi.enMeta} de ${hi.cerrados}</b><span class="fuente-dato" style="margin:0">días en ${hi.meta || "—"} o más</span></div>
+      <div><span class="k">Mejor día</span><b>${f1(Math.max(...hi.dias.map((d) => d.total)))}</b></div></div>
+      ${grafico}
+      ${((fila) => { const ds = hi.dias.slice().reverse(); return `<ul class="lista dias-prod">${ds.slice(0, 5).map(fila).join("")}</ul>` +
+        (ds.length > 5 ? `<details class="mas"><summary>Ver los ${ds.length} días</summary><ul class="lista dias-prod">${ds.slice(5).map(fila).join("")}</ul></details>` : ""); })((d) => `<li><button class="dia-prod" data-accion="prod-ir" data-fecha="${d.fecha}"><span>${diaLargo(d.fecha)}</span><span class="der">${f1(d.total)}${d.banda ? ` <span class="chip-banda chica b-${d.banda.id}">${d.banda.txt}</span>` : d.enCurso ? ' <span class="tag">en curso</span>' : ""}</span></button></li>`)}`
+      : '<p class="vacio">Sin días cargados en este mes.</p>'}
+    <p class="fuente-dato">Bandas: más de la meta Óptimo, hasta un 10% abajo Esperado, menos es Bajo. La meta va según la fecha.</p></section>`;
+
+  const pie = `<section class="bloque"><h2>Pesos y metas</h2><p>Cuánto vale cada tarea y la meta de cada período. Si el banco cambia un peso, lo cambiás acá y vale desde ese día: lo ya cargado no se mueve.</p>
+    <div class="chips" style="margin-top:12px"><button class="chip" data-accion="prod-pesos">Editar pesos</button>${linkHoja() ? `<a class="chip" href="${esc(linkHoja())}" target="_blank" rel="noopener">Abrir la planilla</a>` : ""}</div>
+    <p class="fuente-dato">Esto es tu seguimiento personal: la planilla oficial del banco es la que manda.</p></section>`;
+  return hoyHtml + tareas + presets + historialHtml + pie;
+}
+
+export function hojaPesos() {
+  const p = datosProd();
+  const filas = (p?.tareas || []).map((t, i) => `<div class="peso"><input type="hidden" name="o${i}" value="${esc(t.tarea)}"><input type="hidden" name="g${i}" value="${esc(t.grupo)}">
+    <span class="nombre">${esc(t.tarea)}</span><label><span class="sr">Puntos de ${esc(t.tarea)}</span><input class="campo-hora" name="p${i}" inputmode="decimal" value="${String(Math.round(t.puntos * 1e6) / 1e6).replace(".", ",")}"></label>
+    <label><span class="sr">Minutos de ${esc(t.tarea)}</span><input class="campo-hora" name="m${i}" inputmode="decimal" value="${String(t.minutos).replace(".", ",")}"></label></div>`).join("");
+  return `<h2>Pesos</h2><form data-form="prod-pesos" data-n="${(p?.tareas || []).length}">
+    <div class="peso cab"><span>Tarea</span><span>Puntos</span><span>Min</span></div>${filas}
+    <div class="grupo"><span>Nueva tarea (opcional)</span><div class="peso"><input class="campo-hora" name="nt" placeholder="Nombre" style="text-align:left"><input class="campo-hora" name="np" inputmode="decimal" placeholder="Pts"><input class="campo-hora" name="nm" inputmode="decimal" placeholder="Min"></div></div>
+    <p class="fuente-dato">Las metas se cambian en la hoja PESOS_PRODUCTIVIDAD: filas con grupo «meta» (desde qué fecha, meta del día y minutos efectivos).</p>
+    <div class="grupo" style="display:flex;gap:10px"><button type="button" class="btn sec" data-accion="cerrar-hoja" style="flex:1">Cancelar</button><button class="btn" style="flex:2">Guardar</button></div></form>`;
 }
