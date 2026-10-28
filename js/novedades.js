@@ -1,6 +1,19 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.17.0",
+    fecha: "28/10/2026",
+    titulo: "Presupuesto diario.",
+    cambios: [
+      "Presupuesto diario, de cobro a cobro: Inicio te dice cuánto podés gastar hoy. Sale de tu planilla ECONOMÍA (Ingresos − TOTAL de la columna del mes que vivís con ese sueldo), repartido en los días que faltan hasta el próximo cobro.",
+      "Lo que no gastás un día se reparte en los que quedan; si te pasás, la tira de Inicio te dice cuánto y cómo quedan los próximos días.",
+      "Botón «+ Gasto» en Inicio (y el buscador: «gasto 3500 súper»). Si después llega el mail del mismo gasto, se unen y cuenta una vez.",
+      "Lo que no coincide te lo pregunta Inicio con botones: gastos de mail desde $5.000 que no cargaste (mío, de los dos, fijo de la planilla, no es gasto) y plata que te entra (Agus, otro ingreso, pase entre tus cuentas).",
+      "Finanzas › Este período: de dónde sale el diario, los últimos días y el colchón de imprevistos (lo que te pasa Agus por la división, con el lavarropas descontado cuota a cuota).",
+      "No cuentan los fijos de tu planilla, los pasajes ni los pases entre tus cuentas; de lo compartido, tu mitad. Las compras con tarjeta cuentan el día que comprás y después se descuentan del resumen."
+    ]
+  },
+  {
     version: "0.16.0",
     fecha: "28/10/2026",
     titulo: "Lunes, River, Amorcitos, reloj y productividad verificada.",

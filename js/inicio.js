@@ -10,6 +10,7 @@ import { leer } from "./almacen.js";
 import { resumenMes, datosFinanzas } from "./finanzas.js";
 import { datosEconomia } from "./economia.js";
 import { movimientoDolar } from "./extras.js";
+import { presupuesto, preguntas } from "./presupuesto.js";
 
 export const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -198,6 +199,12 @@ function tira(ctx, datos) {
   if (ctx.cumpleManana && ctx.cumpleManana.length && ctx.modo !== "river") {
     return `<div class="tira"><div><div class="k">Mañana cumple</div><div class="t">${esc(unir(ctx.cumpleManana))}</div></div><div class="n">mañana</div></div>`;
   }
+  // Te pasaste del diario: cuánto, y cómo quedan los próximos días.
+  const pr = ctx.demo ? null : presupuesto(ctx.fecha);
+  if (pr && pr.pasado && pr.diarioManana != null && !leer("plataOculta", false)) {
+    return `<a class="tira" href="#/u/finanzas" style="text-decoration:none;border-color:var(--accent)"><div><div class="k">Te pasaste ${pesos(-pr.quedaHoy)} hoy</div>
+      <div class="t">Los próximos días tenés ${pesos(Math.max(0, pr.diarioManana))} por día</div></div></a>`;
+  }
   // Problemas en la línea E (la tuya, Emilio Mitre): alerta con alternativa, los días que vas al BNA.
   const tr = leer("transporte");
   if (bna && tr?.lineas?.E && !tr.lineas.E.ok && ctx.min < bna.fin && Date.now() - tr.cuando < 30 * 60000) {
@@ -310,7 +317,51 @@ function wUrgente(datos, ctx) {
 
 const pesos = (n) => "$\u00a0" + Math.round(n).toLocaleString("es-AR");
 
+// Presupuesto diario (de cobro a cobro): cuánto podés gastar hoy, y un toque para cargar un gasto.
+function wDiario(datos, ctx) {
+  const b = presupuesto(ctx.fecha);
+  const oculto = leer("plataOculta", false);
+  const $ = (n) => oculto ? "••••" : pesos(n);
+  const ojo = `<button class="ojo" data-accion="ocultar-plata" aria-label="${oculto ? "Mostrar" : "Ocultar"} la plata">${oculto ? ICONOS.ojoNo : ICONOS.ojo}</button>`;
+  const mas = `<button class="mas-gasto" data-accion="gasto-rapido" aria-label="Cargar un gasto">+ Gasto</button>`;
+  const finTxt = b.p.fin.getDate() + "/" + (b.p.fin.getMonth() + 1);
+  if (b.total == null) return null; // sin tu planilla de este período: queda la tarjeta de siempre
+  if (b.base == null) {
+    return `<div class="w ancho"><div class="fila"><span class="k">Diario · ${b.p.nombre}</span>${mas}</div>
+      <span class="medio" style="font-size:20px">Falta el ingreso de ${b.p.nombre}</span>
+      ${b.ingreso.monto ? `<span class="sub">Lo que veo: ${$(b.ingreso.monto)} (${esc(b.ingreso.fuente)}).</span>
+        <div class="chips"><button class="chip" data-accion="presu-confirmar" data-clave="${b.p.clave}" data-monto="${Math.round(b.ingreso.monto)}">Usar ${$(b.ingreso.monto)}</button><a class="chip" href="#/u/finanzas">Lo cargo en la planilla</a></div>`
+        : '<span class="sub">Cargalo en tu planilla ECONOMÍA y el diario sale solo.</span>'}</div>`;
+  }
+  if (b.sinDiario) {
+    return `<div class="w ancho"><div class="fila"><span class="k">Diario · ${b.p.nombre}</span><span class="fila" style="gap:8px">${ojo}${mas}</span></div>
+      <span class="medio" style="font-size:20px;color:var(--accent)">No queda diario</span>
+      <span class="sub">Los egresos de tu planilla (${$(b.total)}) superan el ingreso (${$(b.ingreso.monto)}${b.ingreso.propuesta ? ", estimado" : ""}) por ${$(-b.base)}. Revisá los Ingresos de ${b.p.nombre} en ECONOMÍA.</span></div>`;
+  }
+  const rojo = b.quedaHoy < 0;
+  const uso = b.diario > 0 ? Math.min(1, Math.max(0, b.gastoHoy / b.diario)) : 1;
+  return `<div class="w ancho diario"><div class="fila"><span class="k">${rojo ? "Hoy te pasaste" : "Hoy podés gastar"}</span><span class="fila" style="gap:8px">${ojo}${mas}</span></div>
+    <a href="#/u/finanzas" style="text-decoration:none"><span class="medio ${oculto ? "oculto" : ""}" style="${rojo ? "color:var(--accent)" : ""}">${oculto ? "••••••" : pesos(Math.abs(b.quedaHoy))}</span></a>
+    <div class="barra"><i style="width:${oculto ? 0 : Math.round(uso * 100)}%;${rojo ? "background:var(--accent)" : ""}"></i></div>
+    <span class="sub">Diario ${$(b.diario)} · gastaste ${$(b.gastoHoy)} hoy · te quedan ${$(b.queda)} hasta el ${finTxt} (${b.p.restantes} ${b.p.restantes === 1 ? "día" : "días"})</span>
+    ${b.ingreso.propuesta ? `<span class="sub" style="color:var(--accent)">Ingreso estimado: confirmalo en Finanzas.</span>` : ""}</div>`;
+}
+
+// Lo que no coincide entre lo que cargaste y los mails: de a una pregunta, con botones.
+function wPregunta() {
+  const q = preguntas();
+  if (!q.length) return "";
+  const x = q[0], m = x.m, d = new Date(m.ts);
+  const oculto = leer("plataOculta", false);
+  return `<div class="w ancho pregunta"><div class="fila"><span class="k">¿Y esto?${q.length > 1 ? ` · 1 de ${q.length}` : ""}</span><span class="sub">${d.getDate()}/${d.getMonth() + 1}</span></div>
+    <span class="tit">${oculto ? "••••" : pesos(m.monto || 0)} · ${esc(m.contra || m.tipo || "")}</span>
+    <span class="sub">${esc(x.texto)}${m.medio ? " · " + esc(m.medio) : ""}</span>
+    <div class="chips">${x.botones.map(([r, t]) => `<button class="chip" data-accion="presu-responder" data-id="${esc(x.id)}" data-r="${r}">${t}</button>`).join("")}</div></div>`;
+}
+
 function wPlata(datos, ctx) {
+  const d = wDiario(datos, ctx);
+  if (d) return wPregunta() + d;
   const r = resumenMes(datosFinanzas(), ctx.fecha);
   const e = datosEconomia();
   const m = e && e.meses[ctx.fecha.getMonth()];

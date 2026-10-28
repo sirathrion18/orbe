@@ -5,6 +5,7 @@ import { ICONOS, MARCA } from "./iconos.js";
 import { esc, colorTipo, colorUniverso, datosPartido, resultadoTxt, torneoCorto, estadioCorto, regresiva } from "./inicio.js";
 import { DIAS, DIAS_CORTOS, bloquesDe, bloquesFecha, pendientesCon, cuandoTexto, duracion, hhmm, MODOS, lunesDe, minutosDia, sumaTipo } from "./contexto.js";
 import { datosListas, proximaAnual } from "./listas.js";
+import { presupuesto } from "./presupuesto.js";
 import { datosProd, resumenDia, banda, PRESETS, presetPuntos, historial, mesesConDatos, isoHoy, metaDe, HISTORICO, OFICIAL, hayPendientes } from "./productividad.js";
 import { permisos as permisosG } from "./google.js";
 import { leer, todo, sesion as sesionLeer } from "./almacen.js";
@@ -24,6 +25,33 @@ const local = '<p class="vacio" style="margin-top:12px;font-size:12px">Por ahora
 function cabecera(u, datos, tema) {
   return `${volver}<h1><i class="dot" style="width:12px;height:12px;border-radius:6px;vertical-align:middle;margin-right:10px;background:${colorUniverso(datos, u, tema)}"></i>${esc(u.nombre)}</h1>
     <p class="bajada">${esc(u.bajada)}</p>`;
+}
+
+// ---------- Este período (de cobro a cobro) ----------
+function bloquePeriodo(ctx, $0) {
+  const $ = (n) => (n < 0 ? "−" : "") + $0(Math.abs(n));
+  const b = presupuesto(ctx.fecha);
+  if (b.total == null) return "";
+  const p = b.p;
+  const dm = (d) => d.getDate() + "/" + (d.getMonth() + 1);
+  const filas = [
+    ["Ingreso", b.ingreso.monto != null ? $(b.ingreso.monto) : "falta", b.ingreso.fuente || "cargalo en ECONOMÍA"],
+    ["Egresos de tu planilla", "− " + $(b.total), "TOTAL de " + p.nombre + " (con tus redondeos)"],
+    ...(b.tarjetaAnterior ? [["Tarjeta ya contada", "+ " + $(b.tarjetaAnterior), "compras del período anterior que vienen en el resumen"]] : []),
+    ["Para el día a día", b.base != null ? $(b.base) : "—", p.dias + " días, del " + dm(p.inicio) + " al " + dm(p.fin)]
+  ];
+  const dias = Object.entries(b.porDia).sort((x, y) => y[0].localeCompare(x[0])).slice(0, 7);
+  const confirmar = b.ingreso.propuesta && b.ingreso.monto ? `<div class="chips" style="margin-top:10px"><button class="chip" data-accion="presu-confirmar" data-clave="${p.clave}" data-monto="${Math.round(b.ingreso.monto)}">Usar ${$(b.ingreso.monto)} como ingreso</button></div>
+    <p class="fuente-dato">Ojo: tus egresos ya restan «PP + Gym», así que el ingreso tiene que ser el neto del recibo antes del descuento complementario; si no, el préstamo se cuenta dos veces.</p>` : "";
+  const colchon = b.division || b.agus ? `<section class="bloque"><h2>Colchón de imprevistos</h2>
+      <div class="trio"><div><span class="k">Agus te pasó</span><b>${$(b.agus)}</b></div><div><span class="k">Esperado</span><b>${b.esperadoAgus != null ? $(b.esperadoAgus) : "—"}</b></div><div></div></div>
+      ${b.ajustes.map((a) => `<p class="fuente-dato">${esc(a.concepto)}: −${$(a.monto)} · cuota ${a.cuota} de ${a.cuotas}${a.cuota === a.cuotas ? " · ¡última!" : ""}</p>`).join("")}
+      <p class="fuente-dato">Lo que te pasa Agus por la división no infla el diario: queda acá para los imprevistos.</p></section>` : "";
+  return `<section class="bloque"><h2>Este período <span class="tag">${dm(p.inicio)} → ${dm(p.fin)}</span></h2>
+      ${b.base != null ? `<div class="trio"><div><span class="k">Hoy</span><b style="${b.quedaHoy < 0 ? "color:var(--accent)" : ""}">${$(b.quedaHoy)}</b></div><div><span class="k">Diario</span><b>${$(b.diario)}</b></div><div><span class="k">Te quedan</span><b>${$(b.queda)}</b></div></div>` : ""}
+      <ul class="lista" style="margin-top:12px">${filas.map(([a, v, n]) => `<li><span>${a}<br><small class="vacio">${esc(n)}</small></span><span class="der" style="font-size:18px">${v}</span></li>`).join("")}</ul>${confirmar}
+      ${dias.length ? `<h2 style="margin-top:18px">Últimos días</h2><ul class="lista">${dias.map(([d, v]) => `<li><span>${diaLargo(d)}</span><span class="der" style="font-size:18px">${$(v)}</span></li>`).join("")}</ul>` : ""}
+      <p class="fuente-dato">Próximo cobro: ${DIAS[p.proximo.getDay()]} ${dm(p.proximo)}${p.extrasProximo ? " · " + esc(p.extrasProximo) : ""}. Cuentan tus gastos del día a día (de lo compartido, tu mitad); no cuentan los fijos de tu planilla, los pasajes ni los pases entre tus cuentas.</p></section>${colchon}`;
 }
 
 // ---------- Tu planilla ECONOMÍA ----------
@@ -339,7 +367,7 @@ const PAGINAS = {
         <div><span class="k">Oficial</span><b>$ ${Math.round(dl.oficial.venta).toLocaleString("es-AR")}</b></div>
         <div><span class="k">MEP</span><b>$ ${Math.round(dl.mep?.venta || 0).toLocaleString("es-AR")}</b></div>
         <div><span class="k">Blue</span><b>${dl.blue ? "$\u00a0" + Math.round(dl.blue.venta).toLocaleString("es-AR") : "—"}</b></div></div></section>` : "";
-    return `${aviso}${bloqueEconomia(ctx, $)}${cabeza}${dolar}${revisar}${topes}${rubros}
+    return `${aviso}${bloquePeriodo(ctx, $)}${bloqueEconomia(ctx, $)}${cabeza}${dolar}${revisar}${topes}${rubros}
       <section class="bloque"><h2>Vencimientos ${datos.agenda ? "" : '<span class="ejemplo">Ejemplo</span>'}</h2><ul class="lista">${venc.map((d) => `<li style="align-items:flex-start"><span style="display:flex;flex-direction:column;gap:4px;min-width:0"><span>${esc(d.titulo)}${d.vernet ? ' <span class="tag">Vernet</span>' : ""}${d.nota ? ` <span class="tag">${esc(d.nota)}</span>` : ""}</span>${d.monto ? `<b>${esc(d.monto)}</b>` : ""}<span class="der ${d.dias <= 7 && !d.vernet ? "rojo" : ""}" style="font-size:17px">${cuandoTexto(d.dias)}</span></span>
         <button class="hecho" style="margin:0" data-accion="hecho" data-clave="${esc(d.clave)}" aria-label="Marcar ${esc(d.titulo)} como hecho">${ICONOS.check}</button></li>`).join("") || '<li class="vacio">Nada pendiente.</li>'}</ul>
         ${leer("hechos", []).length ? '<button class="link" style="margin-top:12px;font-size:13px" data-accion="deshacer-hechos">Volver a mostrar los marcados como hechos</button>' : ""}</section>
@@ -721,5 +749,16 @@ export function hojaPesos() {
     <div class="peso cab"><span>Tarea</span><span>Puntos</span><span>Min</span></div>${filas}
     <div class="grupo"><span>Nueva tarea (opcional)</span><div class="peso"><input class="campo-hora" name="nt" placeholder="Nombre" style="text-align:left"><input class="campo-hora" name="np" inputmode="decimal" placeholder="Pts"><input class="campo-hora" name="nm" inputmode="decimal" placeholder="Min"></div></div>
     <p class="fuente-dato">Las metas se cambian en la hoja PESOS_PRODUCTIVIDAD: filas con grupo «meta» (desde qué fecha, meta del día y minutos efectivos).</p>
+    <div class="grupo" style="display:flex;gap:10px"><button type="button" class="btn sec" data-accion="cerrar-hoja" style="flex:1">Cancelar</button><button class="btn" style="flex:2">Guardar</button></div></form>`;
+}
+
+// Cargar un gasto en un toque.
+export function hojaGasto() {
+  const medios = [["efectivo", "Efectivo"], ["debito", "Débito"], ["tarjeta", "Tarjeta"], ["mp", "Mercado Pago"], ["transferencia", "Transferencia"]];
+  return `<h2>Un gasto</h2><form data-form="gasto-rapido">
+    <div class="grupo"><span>Cuánto</span><input class="campo-hora" name="monto" inputmode="decimal" required placeholder="3500" style="text-align:left;font-size:22px" autofocus></div>
+    <div class="grupo"><span>En qué</span><input class="campo-hora" name="desc" required placeholder="Súper, café, Rappi…" style="text-align:left"></div>
+    <div class="grupo"><span>Cómo pagaste</span><div class="chips">${medios.map(([v, t], i) => `<label class="chip ${i === 0 ? "on" : ""}"><input type="radio" class="sr" name="medio" value="${v}" ${i === 0 ? "checked" : ""}>${t}</label>`).join("")}</div></div>
+    <div class="grupo"><label style="display:flex;gap:10px;align-items:center"><input type="checkbox" name="mitad" style="width:20px;height:20px"> Es de los dos (cuenta tu mitad)</label></div>
     <div class="grupo" style="display:flex;gap:10px"><button type="button" class="btn sec" data-accion="cerrar-hoja" style="flex:1">Cancelar</button><button class="btn" style="flex:2">Guardar</button></div></form>`;
 }

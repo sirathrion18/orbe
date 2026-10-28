@@ -459,3 +459,11 @@ form.evento { display: grid; gap: 10px; }
 .peso.cab span { font-size: 10px; font-weight: 600; letter-spacing: .1em; color: var(--muted); text-transform: uppercase; }
 .riv { font-weight: 700; }
 .verif { display: inline-flex; width: 18px; height: 18px; border-radius: 9px; background: #1F9D55; color: #fff; font: 700 11px/18px var(--sans); justify-content: center; vertical-align: 3px; margin-right: 4px; }
+
+/* v0.17: presupuesto diario */
+.mas-gasto { height: 32px; padding: 0 12px; border-radius: 999px; border: 0; background: var(--text); color: var(--bg); font: 600 13px var(--sans); white-space: nowrap; }
+.w.pregunta { background: var(--urg-bg); }
+.w.pregunta .k { color: var(--accent); }
+.w.pregunta .chips { margin-top: 4px; gap: 6px; }
+.w.pregunta .chip { padding: 8px 12px; font-size: 13px; background: var(--bg); }
+.w.pregunta.girando { opacity: .5; pointer-events: none; }

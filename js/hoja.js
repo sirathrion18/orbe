@@ -85,25 +85,36 @@ export async function asegurarHojas(spec) {
 // Filas de arranque privadas: una planilla «Orbe · semillas» en tu Drive. Si Orbe ya sabe su ID (link con ?semillas=),
 // la lee directo como planilla; si no, la busca por nombre en Drive (eso necesita el servicio de Drive prendido).
 export function fijarSemillas(texto) {
-  const t = String(texto || "").trim();
-  const m = t.match(/\/d\/([\w-]{20,})/) || t.match(/^([\w-]{20,})$/);
-  if (!m) return false;
-  guardar("semillas", m[1], true);
+  const ids = String(texto || "").split(/[,\s]+/).map((t) => (t.match(/\/d\/([\w-]{20,})/) || t.match(/^([\w-]{20,})$/) || [])[1]).filter(Boolean);
+  if (!ids.length) return false;
+  guardar("semillasIds", [...new Set([...idsSemillas(), ...ids])], true);
   return true;
 }
+const idsSemillas = () => [...new Set([...(leer("semillasIds") || []), ...(leer("semillas") ? [leer("semillas")] : [])])];
+// Puede haber más de una planilla de semillas (cada tanda nueva viene en la suya): se buscan las hojas en todas.
 async function leerSemillas(hojas) {
   try {
-    let id = leer("semillas");
-    if (!id) {
-      const q = encodeURIComponent("name = 'Orbe · semillas' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false");
-      const f = (await api("https://www.googleapis.com/drive/v3/files?fields=files(id)&q=" + q)).files || [];
-      if (!f[0]) { guardar("semillasError", "no-existe", true); return {}; }
-      id = f[0].id;
-      guardar("semillas", id, true);
+    let ids = idsSemillas();
+    if (!ids.length) {
+      const q = encodeURIComponent("name contains 'Orbe · semillas' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false");
+      const f = (await api("https://www.googleapis.com/drive/v3/files?fields=files(id,name)&q=" + q)).files || [];
+      ids = f.filter((x) => !/anterior/i.test(x.name)).map((x) => x.id);
+      if (!ids.length) { guardar("semillasError", "no-existe", true); return {}; }
+      guardar("semillasIds", ids, true);
     }
-    const r = await api(BASE + id + "/values:batchGet?valueRenderOption=UNFORMATTED_VALUE&" + hojas.map((h) => "ranges=" + encodeURIComponent(h + "!A2:Z")).join("&"));
+    const out = {};
+    for (const id of ids) {
+      const faltan = hojas.filter((h) => !out[h]);
+      if (!faltan.length) break;
+      let titulos;
+      try { titulos = ((await api(BASE + id + "?fields=sheets.properties.title")).sheets || []).map((x) => x.properties.title); } catch (e) { continue; }
+      const hay = faltan.filter((h) => titulos.includes(h));
+      if (!hay.length) continue;
+      const r = await api(BASE + id + "/values:batchGet?valueRenderOption=UNFORMATTED_VALUE&" + hay.map((h) => "ranges=" + encodeURIComponent(h + "!A2:Z")).join("&"));
+      hay.forEach((h, i) => { out[h] = r.valueRanges?.[i]?.values || []; });
+    }
     guardar("semillasError", null, true);
-    return Object.fromEntries(hojas.map((h, i) => [h, (r.valueRanges?.[i]?.values || []).map((fila) => fila.map((v) => typeof v === "number" && v > 30000 && v < 80000 ? aFecha(v) : v))]));
+    return out;
   } catch (e) { guardar("semillasError", e.message, true); return {}; }
 }
 

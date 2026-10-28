@@ -1,11 +1,12 @@
 // Finanzas: lee y escribe la planilla, trae los mails nuevos a través del servidor y arma la cuenta del mes.
 import { leer, guardar } from "./almacen.js";
-import { leerRangos, agregar, escribir, idHoja } from "./hoja.js";
+import { leerRangos, agregar, escribir, escribirVarios, idHoja } from "./hoja.js";
 import { servidor, permisos } from "./google.js";
 import { fusionar } from "./movimientos.js";
 import { rubroDe } from "./rubros.js";
 
-const COLS = ["id", "fecha", "ts", "clase", "tipo", "monto", "moneda", "contra", "medio", "rubro", "mitad", "fuente", "revisar", "nota", "grupo", "eco"];
+// «diario» (sí / no / agus / dup / vacío = automático) y «cruce» (el id del movimiento con el que se unió) son del presupuesto diario.
+const COLS = ["id", "fecha", "ts", "clase", "tipo", "monto", "moneda", "contra", "medio", "rubro", "mitad", "fuente", "revisar", "nota", "grupo", "eco", "diario", "cruce"];
 const si = (v) => /^(s[ií]|si|true|1|x)$/i.test(String(v ?? "").trim());
 const num = (v) => { if (typeof v === "number") return v; const n = Number(String(v ?? "").replace(/\./g, "").replace(",", ".")); return Number.isFinite(n) ? n : null; };
 const isoDia = (ts) => { const d = new Date(ts); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
@@ -21,7 +22,7 @@ const aFila = (m) => COLS.map((c) => c === "mitad" || c === "revisar" || c === "
 
 // ---------- Leer la planilla ----------
 export async function leerPlanilla() {
-  const [movs, reglas, topes, meses, deudas] = await leerRangos(["MOVIMIENTOS!A2:P", "REGLAS!A2:E", "TOPES!A2:C", "MES!A2:C", "DEUDAS!A2:J"]);
+  const [movs, reglas, topes, meses, deudas] = await leerRangos(["MOVIMIENTOS!A2:R", "REGLAS!A2:E", "TOPES!A2:C", "MES!A2:C", "DEUDAS!A2:J"]);
   const previo = leer("finanzas", {});
   const fin = {
     cuando: Date.now(), ultimoMail: previo.ultimoMail || 0,
@@ -67,7 +68,7 @@ export async function traerMails() {
     if (vuelta) await espera(2500);
     const r = await servidor("/api/finanzas", { desde });
     const aceptados = fusionar(fin.movs, r.movimientos).map((m) => clasificar({ ...m, mitad: false, nota: m.nota || "", grupo: m.grupo || "" }, fin.reglas));
-    if (aceptados.length) { await agregar("MOVIMIENTOS!A:P", aceptados.map(aFila)); fin.movs.push(...aceptados); total += aceptados.length; }
+    if (aceptados.length) { await agregar("MOVIMIENTOS!A:R", aceptados.map(aFila)); fin.movs.push(...aceptados); total += aceptados.length; }
     if (r.ultimo > desde) { desde = r.ultimo; fin.ultimoMail = desde; guardar("finanzas", fin, true); }
     frenado = !!r.frenado; quedan = r.quedan || 0;
     if (frenado || !quedan) break;
@@ -84,7 +85,7 @@ export async function corregir(id, cambios, aprender) {
   const m = fin.movs.find((x) => x.id === id);
   if (!m) return;
   const nuevo = { ...m, ...cambios, revisar: false };
-  await escribir("MOVIMIENTOS!A" + m.fila + ":P" + m.fila, [aFila(nuevo)]);
+  await escribir("MOVIMIENTOS!A" + m.fila + ":R" + m.fila, [aFila(nuevo)]);
   if (aprender && m.contra && !/^(rappi|uber|propina)/i.test(m.contra)) {
     const clave = m.contra.replace(/\s*\(.*\)\s*$/, "").replace(/,? cuota.*$/i, "").trim();
     if (clave.length >= 3 && !fin.reglas.some((r) => r.contiene.toLowerCase() === clave.toLowerCase())) {
@@ -129,6 +130,26 @@ export function resumenMes(fin, fecha) {
 }
 
 export const hayPlanilla = () => !!idHoja();
+
+// Varios movimientos a la vez (cruces y respuestas del presupuesto), sin aprender reglas.
+export async function actualizarMovs(lista) {
+  const fin = leer("finanzas");
+  const datos = lista.map(({ id, ...cambios }) => {
+    const m = fin.movs.find((x) => x.id === id);
+    return m && { range: "MOVIMIENTOS!A" + m.fila + ":R" + m.fila, values: [aFila({ ...m, ...cambios })] };
+  }).filter(Boolean);
+  if (datos.length) await escribirVarios(datos);
+  return leerPlanilla();
+}
+// Un gasto cargado a mano: va a MOVIMIENTOS como cualquier otro, con fuente «A mano».
+export async function agregarManual({ monto, desc, medio, mitad, rubro }) {
+  const ts = Date.now();
+  const m = { id: "m-" + ts.toString(36), ts, clase: medio === "tarjeta" ? "gasto-tarjeta" : "gasto", tipo: "manual", monto, moneda: "ARS",
+    contra: desc, medio: ({ efectivo: "Efectivo", debito: "Débito", tarjeta: "Tarjeta de crédito", mp: "Mercado Pago", transferencia: "Transferencia" })[medio] || medio,
+    rubro: rubro || rubroDe(desc) || "Otros", mitad: !!mitad, fuente: "A mano", revisar: false, nota: "", grupo: "", eco: false, diario: "sí", cruce: "" };
+  await agregar("MOVIMIENTOS!A:R", [aFila(m)]);
+  return leerPlanilla();
+}
 
 // ---------- Topes sugeridos según tu historial ----------
 // Promedio mensual por rubro en los últimos meses completos, y una sugerencia un 20% más baja.
