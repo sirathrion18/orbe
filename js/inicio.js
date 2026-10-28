@@ -14,6 +14,7 @@ import { presupuesto, preguntas } from "./presupuesto.js";
 import { ultimaEdicion, esNueva, proximaSemanal } from "./semanal.js";
 import { wChecklists, usarColores } from "./checklists.js";
 import { decoracion, hudSobre, decreto, lineaTva } from "./guinos.js";
+import { wBnaHoy } from "./bnahoy.js";
 
 export const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -549,7 +550,7 @@ export function renderInicio(datos, ctx, climaDatos, tema) {
     </div>
     <div class="col-b">
       ${tira(ctx, datos)}
-      <div class="widgets">${wUrgente(datos, ctx)}${ver("chk", wChecklists())}${cuadros}${ver("plata", wPlata(datos, ctx))}</div>
+      <div class="widgets">${wUrgente(datos, ctx)}${ver("bnahoy", wBnaHoy(ctx))}${ver("chk", wChecklists())}${cuadros}${ver("plata", wPlata(datos, ctx))}</div>
       ${ver("preguntas", avisoPreguntas())}
       ${ver("semanal", wSemanal())}
       ${ver("transporte", wTransporte())}

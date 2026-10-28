@@ -56,3 +56,18 @@ export async function traerTransporte() {
     return d;
   } catch (e) { return g || null; }
 }
+
+// Otros equipos que seguís (además de River): se piden por nombre y se guardan para ver sin señal.
+export const EQUIPOS_INICIALES = ["Ferro", "Morón", "Racing", "Independiente"];
+export const equiposSeguidos = () => leer("equiposSeguidos", EQUIPOS_INICIALES);
+export async function traerEquipos(forzar) {
+  const g = leer("equipos");
+  const lista = equiposSeguidos();
+  if (!forzar && g && g.pedidos === lista.join(",") && Date.now() - g.cuando < 3600000) return g;
+  const r = await fetch("/api/equipos?q=" + encodeURIComponent(lista.join(",")));
+  if (!r.ok) throw new Error("equipos");
+  const j = await r.json();
+  const d = { ...j, cuando: Date.now(), pedidos: lista.join(",") };
+  guardar("equipos", d, true);
+  return d;
+}

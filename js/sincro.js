@@ -5,7 +5,7 @@ import { leer, guardar, alGuardar } from "./almacen.js";
 import { idHoja, leerRangos, escribir } from "./hoja.js";
 import { permisos } from "./google.js";
 
-export const SINCRO = ["hechos", "horario", "ideas", "super", "menu", "gastos", "futbol", "alarmaManual", "fuentes", "plataOculta", "pin", "economia", "presupuesto", "checklists", "suscripciones"];
+export const SINCRO = ["hechos", "horario", "ideas", "super", "menu", "gastos", "futbol", "alarmaManual", "fuentes", "plataOculta", "pin", "economia", "presupuesto", "checklists", "suscripciones", "bnaDias", "equiposSeguidos"];
 const meta = () => leer("sincro", { cuando: {}, ultima: 0 });
 let listo = false;       // no se manda nada hasta haber traído lo de la planilla
 let timer = null;

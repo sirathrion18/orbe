@@ -21,6 +21,8 @@ import { ultimaEdicion, htmlEdicion } from "./semanal.js";
 import { GUINOS, guinosPrendidos } from "./guinos.js";
 import { bloqueSuscripciones } from "./suscripciones.js";
 import { renderMes } from "./agendames.js";
+import { bloqueHoy } from "./bnahoy.js";
+import { equiposSeguidos } from "./extras.js";
 
 const MESES_LARGOS = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 
@@ -218,10 +220,11 @@ const PAGINAS = {
       `<li><span>Para vivir en ${nombreMes(m.mes)}<br><small class="vacio">${esc(m.fuente)}</small></span><span class="der">${$(m.disponible)}</span></li>`).join("")}</ul>
       <p class="fuente-dato">Disponible real = neto − talón complementario. Lo leo de tu carpeta BNA en Drive.</p></section>`
       : pronto("Sueldo", "Cuando des permiso de Drive en Ajustes, leo tus recibos de la carpeta BNA y te muestro el disponible real de cada mes.");
-    const tab = sesionLeer("bnaTab") || "prod";
-    const pestanas = `<div class="pestanas" role="tablist">${[["prod", "Productividad"], ["horas", "Horarios y sueldo"]].map(([id, t]) =>
+    const tab = sesionLeer("bnaTab") || "hoy";
+    const pestanas = `<div class="pestanas" role="tablist">${[["hoy", "Hoy"], ["prod", "Productividad"], ["horas", "Horarios y sueldo"]].map(([id, t]) =>
       `<button class="pestana ${tab === id ? "on" : ""}" role="tab" aria-selected="${tab === id}" data-accion="bna-tab" data-tab="${id}">${t}</button>`).join("")}</div>`;
     const nunca = `<section class="bloque"><h2>Lo que nunca entra</h2><p class="vacio">Solo tus números: nada de clientes, compañeros ni el contenido de los informes.</p></section>`;
+    if (tab === "hoy") return pestanas + bloqueHoy(ctx) + nunca;
     if (tab === "prod") return pestanas + bloqueProductividad(ctx) + nunca;
     return `${pestanas}${aviso}${semana(0)}${semana(1)}${horas}${sueldo}
       <section class="bloque"><h2>Fichar</h2><p>Media hora antes de entrar, Inicio te recuerda fichar en Teams. Tocás «Listo» y desaparece hasta el día siguiente.</p></section>
@@ -572,7 +575,7 @@ function estadoPartes(est) {
 }
 
 // Ajustes › Diseño: todo lo que cambia cómo se ve Inicio, junto y arriba de todo.
-const VER_INICIO = [["chk", "Checklists"], ["clima", "Clima"], ["river", "River"], ["plata", "Diario de plata"], ["preguntas", "Preguntas de plata"], ["semanal", "El Semanal"], ["transporte", "Transporte", "solo aparece si hay problemas"]];
+const VER_INICIO = [["bnahoy", "BNA · lo que falta tachar", "solo los días que vas al banco"], ["chk", "Checklists"], ["clima", "Clima"], ["river", "River"], ["plata", "Diario de plata"], ["preguntas", "Preguntas de plata"], ["semanal", "El Semanal"], ["transporte", "Transporte", "solo aparece si hay problemas"]];
 const DIBUJO_MODO = {
   normal: '<svg viewBox="0 0 64 56" aria-hidden="true"><rect x="8" y="6" width="30" height="3" rx="1.5"/><rect x="8" y="12" width="20" height="3" rx="1.5"/><circle cx="32" cy="32" r="11" fill="none" stroke-width="2.5"/><circle cx="14" cy="50" r="2.4"/><circle cx="23" cy="50" r="2.4"/><circle cx="32" cy="50" r="2.4"/><circle cx="41" cy="50" r="2.4"/><circle cx="50" cy="50" r="2.4"/></svg>',
   compacto: '<svg viewBox="0 0 64 56" aria-hidden="true"><circle cx="16" cy="14" r="7.5" fill="none" stroke-width="2.2"/><rect x="28" y="9" width="28" height="3" rx="1.5"/><rect x="28" y="15" width="18" height="3" rx="1.5"/><rect x="8" y="28" width="48" height="8" rx="3" opacity=".55"/><rect x="8" y="40" width="23" height="11" rx="3" opacity=".55"/><rect x="33" y="40" width="23" height="11" rx="3" opacity=".55"/></svg>'
@@ -740,7 +743,8 @@ export function renderRiver(ctx) {
   if (!rv || (!rv.proximo && !rv.ultimo)) return `<div class="pagina">${vuelta}<section class="bloque"><p class="vacio">Todavía no llegaron los datos. Tocá ↻ en Inicio.</p></section></div>`;
   const tab = sesionLeer("riverTab") || "partidos";
   const pest = `<div class="pestanas" role="tablist">${[["partidos", "Partidos"], ["tabla", "Tabla"], ["promiedos", "Promiedos"]].map(([id, t]) =>
-    `<button class="pestana ${tab === id ? "on" : ""}" role="tab" aria-selected="${tab === id}" data-accion="river-tab" data-tab="${id}">${t}</button>`).join("")}</div>`;
+    `<button class="pestana ${tab === id ? "on" : ""}" role="tab" aria-selected="${tab === id}" data-accion="river-tab" data-tab="${id}">${t}</button>`).join("")}</div>`
+    + `<button class="otros-link ${tab === "otros" ? "on" : ""}" data-accion="river-tab" data-tab="otros">${tab === "otros" ? "Otros equipos" : "Otros equipos ›"}</button>`;
   const p = rv.proximo;
   const R = (u) => u.gf > u.gc ? "G" : u.gf < u.gc ? "P" : "E";
   let cuerpo = "";
@@ -767,6 +771,8 @@ export function renderRiver(ctx) {
         <p class="fuente-dato">${esc(torneoCorto(t.torneo))}${t.zona ? " · " + esc(t.zona) : ""}. Diferencia de gol: ${t.dg > 0 ? "+" : ""}${t.dg}.</p></section>
       ${grupos.map((g) => `<section class="bloque"><h2>${esc(g.nombre || "Tabla")}</h2><table class="tabla-pos"><thead><tr><th>#</th><th class="eq">Equipo</th><th>PJ</th><th>DG</th><th>Pts</th></tr></thead><tbody>
         ${g.filas.map((f) => `<tr class="${f.river ? "river" : ""}"><td>${f.pos ?? ""}</td><td class="eq">${esc(f.equipo)}</td><td>${f.pj ?? ""}</td><td>${f.dg > 0 ? "+" : ""}${f.dg ?? ""}</td><td><b>${f.pts ?? ""}</b></td></tr>`).join("")}</tbody></table></section>`).join("")}`;
+  } else if (tab === "otros") {
+    cuerpo = bloqueOtros(ctx);
   } else {
     cuerpo = `<section class="bloque promiedos"><h2>Promiedos</h2>
       ${ctx.modo === "river" ? '<a class="btn ancho-completo" href="https://www.promiedos.com.ar/team/river-plate/igi" target="_blank" rel="noopener" style="margin-bottom:10px">Seguir el partido en Promiedos</a>' : ""}
@@ -775,6 +781,26 @@ export function renderRiver(ctx) {
     <section class="bloque"><h2>Accesos</h2><div class="chips"><a class="chip" href="https://www.cariverplate.com.ar" target="_blank" rel="noopener">Sitio oficial</a><a class="chip" href="https://www.espn.com.ar/futbol/equipo/_/id/16/river-plate" target="_blank" rel="noopener">River en ESPN</a></div></section>`;
   }
   return `<div class="pagina">${vuelta}${pest}${cuerpo}</div>`;
+}
+
+// Otros equipos: un resumen chico de cada uno (posición, cómo viene, qué juega). River sigue siendo lo principal.
+function bloqueOtros(ctx) {
+  const d = leer("equipos");
+  const lista = equiposSeguidos();
+  const R = (u) => u.gf > u.gc ? "G" : u.gf < u.gc ? "P" : "E";
+  const cards = !d ? '<p class="vacio">Trayendo los datos de ESPN…</p>' : (d.equipos || []).map((e) => {
+    if (!e.encontrado) return `<li class="eq-card"><b>${esc(e.pedido)}</b><small class="vacio">No lo encontré en Primera ni en la Primera Nacional.</small></li>`;
+    const px = e.proximo;
+    const pf = px && new Date(px.fecha);
+    return `<li class="eq-card"><div class="eq-cab"><b>${esc(e.nombre)}</b><span class="eq-pos">${e.pos ?? "–"}°<small> de ${e.equiposZona} · ${e.pts ?? 0} pts</small></span></div>
+      <small class="eq-liga">${esc(e.liga)}${e.zona ? " · " + esc(e.zona) : ""}</small>
+      <div class="eq-forma" aria-label="Últimos resultados">${(e.ultimos || []).slice().reverse().map((u) => `<span class="res res-${R(u)}" title="${u.gf}-${u.gc} ${u.local ? "vs" : "en cancha de"} ${esc(u.rival)}">${R(u)}</span>`).join("") || '<small class="vacio">Sin partidos jugados</small>'}</div>
+      ${px ? `<small class="eq-prox">Próximo: ${DIAS[pf.getDay()].slice(0, 3)} ${pf.getDate()}/${pf.getMonth() + 1}${px.hora ? " " + String(pf.getHours()).padStart(2, "0") + ":" + String(pf.getMinutes()).padStart(2, "0") : ""} · ${px.local ? "vs" : "en cancha de"} ${esc(px.rival)}</small>` : ""}</li>`;
+  }).join("");
+  return `<section class="bloque otros"><h2>Otros equipos</h2><ul class="eq-lista">${cards}</ul>
+    <div class="chips eq-chips">${lista.map((n, i) => `<button class="chip" data-accion="eq-sacar" data-i="${i}" aria-label="Dejar de seguir a ${esc(n)}">${esc(n)} ×</button>`).join("")}</div>
+    <form class="form" data-form="eq-sumar"><input name="t" placeholder="Sumar un equipo (Primera o Nacional)" aria-label="Sumar un equipo" autocomplete="off" required><button class="btn sec">Sumar</button></form>
+    <p class="fuente-dato">Datos públicos de ESPN${d?.cuando ? ", al " + new Date(d.cuando).toLocaleString("es-AR", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }) : ""}.</p></section>`;
 }
 
 // ---------- BNA · Productividad ----------

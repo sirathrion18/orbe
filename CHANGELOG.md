@@ -1,5 +1,16 @@
 # Novedades de Orbe
 
+## v0.27.0 · 28/10/2026
+
+BNA › Hoy (la libretita) y otros equipos.
+
+- BNA › Hoy, la libretita del día (primera pestaña de BNA): arranca precargada con tu mínimo, con los mismos nombres de tu archivo de informes (Descarga casuística APC / Tel / RRSS, Armado de casuística, Diario CAT, Diario Evoltis y Diario NS).
+- Orbe deduce si tu compañero está a la mañana (por los mismos días de antes) y arma la lista: si está, CAT y Evoltis van como control; si no, todo como carga. Lo cambiás con un toque.
+- Se tacha como con birome. Cada informe tachado suma una carga o un control a Productividad, así no cargás en dos lados. Lo que no da puntos también se tacha. «Otros informes» se suma las veces que haga falta.
+- Nota del día para hitos e histórico de tus días (lo que tachaste, lo que quedó y la nota). Si sumás algo a mano dos veces el mismo día de la semana, Orbe empieza a precargarlo.
+- Inicio, los días de BNA: una franja con lo que te falta tachar (se puede ocultar en Ajustes › Diseño).
+- River › Otros equipos (escondido, al costado de las pestañas): Ferro, Morón, Racing e Independiente con su posición, cómo vienen (últimos 5) y qué juegan. Primera y Primera Nacional, datos públicos de ESPN. Sumás o sacás equipos por nombre.
+
 ## v0.26.0 · 28/10/2026
 
 River completo, calendario «River», Agenda del mes y suscripciones a ECONOMÍA.

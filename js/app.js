@@ -17,7 +17,8 @@ import { leerRecibos } from "./recibos.js";
 import { datosFacu, traerCampus, leerFacu, tildarTp, nuevoTp, guardarMateria, asignarTp, pendientesDeTps, HOJAS_FACU } from "./facu.js";
 import { asegurarHojas, asegurarLeeme, fijarSemillas, escribir as escribirHoja } from "./hoja.js";
 import { fijarHoja, idHoja } from "./hoja.js";
-import { traerDolar, traerRiver, traerTransporte } from "./extras.js";
+import { traerDolar, traerRiver, traerTransporte, traerEquipos, equiposSeguidos } from "./extras.js";
+import { tachar as tacharHoy, fijarCompanero, sumarItem as sumarHoy, sacarItem as sacarHoy, guardarNota } from "./bnahoy.js";
 import { responder } from "./preguntas.js";
 import { fijarEconomia, leerEconomia, datosEconomia, idEconomia } from "./economia.js";
 import { huellaActiva, huellaDisponible, registrarHuella, verificarHuella, sacarHuella } from "./huella.js";
@@ -105,7 +106,7 @@ function pintar(refresco = false) {
   else if (r === "/ideas") html = renderIdeas();
   else if (r === "/agenda") { html = renderAgenda(estado.datos, estado.ctx, tema); if (sesion("agendaTab") === "mes") setTimeout(traerMes, 0); }
   else if (r === "/respiro") html = renderRespiro();
-  else if (r === "/river") html = renderRiver(estado.ctx);
+  else if (r === "/river") { html = renderRiver(estado.ctx); if (sesion("riverTab") === "otros" && !leer("equipos")) traerEquipos().then(() => pintar(true)).catch(() => {}); }
   else if (r === "/datos") html = renderDatos();
   else if (r === "/ajustes") {
     const ag = leer("agenda");
@@ -421,7 +422,25 @@ document.addEventListener("click", (e) => {
     avisar("Volvió a la lista"); pintar(true);
   }
   else if (a === "cerrar-hoja") cerrarHoja();
-  else if (a === "river-tab") { sesion("riverTab", el.dataset.tab); pintar(true); }
+  else if (a === "river-tab") {
+    sesion("riverTab", el.dataset.tab); pintar(true);
+    if (el.dataset.tab === "otros") traerEquipos().then(() => pintar(true)).catch(() => avisar("No pude traer los otros equipos"));
+  }
+  else if (a === "eq-sacar") {
+    const l = equiposSeguidos().slice(); l.splice(Number(el.dataset.i), 1); guardar("equiposSeguidos", l); pintar(true);
+    traerEquipos(true).then(() => pintar(true)).catch(() => {});
+  }
+  else if (a === "hoy-tachar") {
+    // El trazo de birome se ve primero; después se acomoda la lista (lo tachado baja).
+    vibrar();
+    const li = el.closest(".lb");
+    const marcando = el.getAttribute("aria-pressed") !== "true";
+    if (li && marcando) li.classList.add("tachando");
+    setTimeout(() => { tacharHoy(el.dataset.f, el.dataset.id, () => pintar(true)); pintar(true); }, marcando ? 420 : 0);
+  }
+  else if (a === "hoy-comp") { fijarCompanero(el.dataset.f, el.dataset.v === "1"); pintar(true); }
+  else if (a === "hoy-otros") { sumarHoy(el.dataset.f, "Otros informes", el.dataset.modo); vibrar(); pintar(true); }
+  else if (a === "hoy-sacar") { sacarHoy(el.dataset.f, el.dataset.id); pintar(true); }
   else if (a === "agenda-tab") { sesion("agendaTab", el.dataset.tab); pintar(true); if (el.dataset.tab === "mes") traerMes(); }
   else if (a === "mes-nav") {
     const m = mesActual(estado.ctx); const d = new Date(m.anio, m.mes + Number(el.dataset.d), 1);
@@ -583,6 +602,15 @@ document.addEventListener("change", (e) => {
   if (el.classList.contains("campo-menu")) { const m = leer("menu", {}); m[el.dataset.dia] = el.value.trim(); guardar("menu", m); avisar("Menú guardado"); }
 });
 
+// La nota del día del BNA se guarda sola, un segundo después de que dejás de escribir.
+let timerNota = null;
+document.addEventListener("input", (e) => {
+  const t = e.target;
+  if (!t.classList?.contains("lb-nota")) return;
+  clearTimeout(timerNota);
+  timerNota = setTimeout(() => guardarNota(t.dataset.f, t.value), 900);
+});
+
 document.addEventListener("submit", async (e) => {
   const f = e.target.closest("form[data-form]");
   if (!f) return;
@@ -595,6 +623,12 @@ document.addEventListener("submit", async (e) => {
     const sus = guardarSuscripcion(d, f.dataset.id || "");
     if (!sus) { avisar("Faltan el nombre o la fecha de renovación"); return; }
     cerrarHoja(); avisar(`${sus.nombre} guardada`); pintar(true);
+  }
+  else if (tipo === "hoy-sumar") { sumarHoy(f.dataset.f, d.t, d.modo); pintar(true); document.querySelector('[data-form="hoy-sumar"] input')?.focus(); }
+  else if (tipo === "eq-sumar") {
+    const l = equiposSeguidos().slice(); if (d.t.trim() && !l.some((x) => x.toLowerCase() === d.t.trim().toLowerCase())) l.push(d.t.trim());
+    guardar("equiposSeguidos", l); pintar(true); avisar("Buscando " + d.t.trim() + "…");
+    traerEquipos(true).then(() => pintar(true)).catch(() => avisar("No pude traer los otros equipos"));
   }
   else if (tipo === "chk-nuevo") {
     const c = crearChecklist(d.titulo, d.items, d.u || "");
