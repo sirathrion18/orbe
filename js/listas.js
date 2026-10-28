@@ -1,6 +1,6 @@
 // Listas que viven en tu planilla Orbe · datos: lo de Agus, el fútbol y los proyectos.
 import { leer, guardar } from "./almacen.js";
-import { leerRangos, agregar, escribir, aFecha } from "./hoja.js";
+import { insertarArriba, leerRangos, agregar, escribir, aFecha } from "./hoja.js";
 export { aFecha };
 
 const si = (v) => /^(s[ií]|si|true|1|x)$/i.test(String(v ?? "").trim());
@@ -58,22 +58,38 @@ export async function guardarProximos(id, proximos) {
   return leerListas();
 }
 
-// Último cambio de cada repo público en GitHub (sin cuenta; se guarda una hora).
+// Último cambio de cada repo público en GitHub y cuántos hubo en la semana (sin cuenta; se guarda una hora).
 export async function traerGithub() {
   const l = datosListas();
   if (!l) return;
   const gh = { ...(l.github || {}) };
+  const desde = new Date(Date.now() - 7 * 86400000).toISOString();
+  const pedir = async (repo, q) => {
+    const r = await fetch("https://api.github.com/repos/" + repo + "/commits?" + q, { headers: { Accept: "application/vnd.github+json" } });
+    if (r.status === 404) return null;
+    if (!r.ok) throw new Error("github " + r.status);
+    return r.json();
+  };
+  const linea = (c) => (c?.commit?.message || "").split("\n")[0].slice(0, 90);
   for (const p of l.proyectos.filter((x) => x.repo)) {
-    if (gh[p.repo] && Date.now() - gh[p.repo].cuando < 3600000) continue;
+    if (gh[p.repo] && Date.now() - gh[p.repo].cuando < 3600000 && gh[p.repo].semana !== undefined) continue;
     try {
-      const r = await fetch("https://api.github.com/repos/" + p.repo + "/commits?per_page=1", { headers: { Accept: "application/vnd.github+json" } });
-      if (r.status === 404) { gh[p.repo] = { cuando: Date.now(), privado: true }; continue; }
-      if (!r.ok) continue;
-      const [c] = await r.json();
-      gh[p.repo] = { cuando: Date.now(), fecha: c?.commit?.author?.date, mensaje: (c?.commit?.message || "").split("\n")[0].slice(0, 90) };
-    } catch (e) { /* sin red: se reintenta */ }
+      let semana = await pedir(p.repo, "per_page=30&since=" + encodeURIComponent(desde));
+      if (semana === null) { gh[p.repo] = { cuando: Date.now(), privado: true }; continue; }
+      const ultimo = semana[0] || (await pedir(p.repo, "per_page=1"))?.[0];
+      gh[p.repo] = { cuando: Date.now(), fecha: ultimo?.commit?.author?.date, mensaje: linea(ultimo), semana: semana.length, mensajesSemana: semana.slice(0, 5).map(linea) };
+    } catch (e) { /* sin red o límite de GitHub: se reintenta */ }
   }
   guardar("listas", { ...leer("listas"), github: gh }, true);
+}
+
+// El Semanal es el primer proyecto: si todavía no está en la hoja PROYECTOS, va arriba de todo.
+export async function sumarSemanalAProyectos() {
+  const l = datosListas();
+  if (!l || l.proyectos.some((p) => p.id === "semanal")) return false;
+  await insertarArriba("PROYECTOS", ["semanal", "El Semanal", "", "#/semanal", "Activo", "Títulos con más chispa; Seguimiento de proyectos con estética TVA"]);
+  await leerListas();
+  return true;
 }
 
 // Próxima vez que cae una fecha anual (aniversario, cumple) y cuántos días faltan.

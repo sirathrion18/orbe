@@ -10,6 +10,7 @@ import { datosFinanzas, pendientesDeTarjetas } from "./finanzas.js";
 import { datosProd, historial, metaDe } from "./productividad.js";
 import { datosFacu } from "./facu.js";
 import { datosListas, proximaAnual } from "./listas.js";
+import { ultimaEdicion } from "./semanal.js";
 
 export const NOMBRE_RESUMEN = "Orbe · resumen para El Semanal";
 const CAB = ["seccion", "clave", "valor", "detalle"];
@@ -136,7 +137,15 @@ export function armarResumen(datos, ctx) {
     const l = datosListas();
     (l?.proyectos || []).forEach((p) => {
       const gh = l.github?.[p.repo];
-      fila("proyectos", p.nombre, p.estado || "", (gh?.fecha ? "último commit " + gh.fecha.slice(0, 10) + ": " + gh.mensaje : "sin commits leídos") + (p.proximos.length ? " · próximos: " + p.proximos.slice(0, 3).join("; ") : ""));
+      let mov;
+      if (p.id === "semanal") {
+        const e = ultimaEdicion();
+        mov = e ? "última edición: " + e.nombre + (e.numero ? " N.º " + e.numero : "") + " del " + e.fecha + (e.titular ? " («" + e.titular + "»)" : "") : "sin ediciones leídas por Orbe";
+      } else if (!p.repo) mov = "sin repo: el estado es el que Nacho cargó en Orbe";
+      else if (gh?.privado) mov = "repo privado: sin datos de commits";
+      else mov = (gh?.fecha ? "último commit " + gh.fecha.slice(0, 10) + ": " + gh.mensaje : "sin commits leídos")
+        + (gh?.semana !== undefined ? " · " + gh.semana + " commits en 7 días" + (gh.mensajesSemana?.length ? ": " + gh.mensajesSemana.join(" | ") : "") : "");
+      fila("proyectos", p.nombre, p.estado || "", mov + (p.proximos.length ? " · próximos: " + p.proximos.slice(0, 3).join("; ") : ""));
     });
   });
 

@@ -1,6 +1,16 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.22.0",
+    fecha: "28/10/2026",
+    titulo: "El Semanal, primer proyecto.",
+    cambios: [
+      "El Semanal entra a Proyectos, primero de la lista: fue tu primer proyecto. En vez de commits muestra la última edición, y «Leer» la abre.",
+      "Proyectos cuenta los cambios de la semana de cada repo, además del último. La revista los usa para el seguimiento de proyectos.",
+      "El Semanal cambia la forma de titular: más chispa en la tapa y en las notas, siempre con datos verdaderos."
+    ]
+  },
+  {
     version: "0.21.0",
     fecha: "28/10/2026",
     titulo: "El Semanal lee de Orbe.",

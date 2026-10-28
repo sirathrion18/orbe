@@ -394,10 +394,16 @@ const PAGINAS = {
     const repoUrl = (r) => !r ? "" : /^https?:/.test(r) ? r : "https://github.com/" + r;
     return lista.map((p) => {
       const g = gh[p.repo];
-      const ultimo = g?.fecha ? `<p class="fuente-dato" style="margin-top:0">Último cambio ${hace(g.fecha)}: ${esc(g.mensaje)}</p>` : g?.privado ? '<p class="fuente-dato" style="margin-top:0">Repo privado: sin datos de cambios.</p>' : "";
+      let ultimo = g?.fecha ? `<p class="fuente-dato" style="margin-top:0">Último cambio ${hace(g.fecha)}: ${esc(g.mensaje)}${g.semana ? ` · ${g.semana} ${g.semana === 1 ? "cambio" : "cambios"} esta semana` : ""}</p>` : g?.privado ? '<p class="fuente-dato" style="margin-top:0">Repo privado: sin datos de cambios.</p>' : "";
+      if (p.id === "semanal") {
+        // El Semanal no tiene repo: su seguimiento son las ediciones.
+        const e = ultimaEdicion();
+        ultimo = e ? `<p class="fuente-dato" style="margin-top:0">Última edición: ${esc(e.nombre)}${e.numero ? " N.º " + esc(e.numero) : ""} · ${esc(e.fecha.split("-").reverse().slice(0, 2).join("/"))}${e.titular ? " — «" + esc(e.titular) + "»" : ""}</p>` : '<p class="fuente-dato" style="margin-top:0">Sale los domingos a las 20:00.</p>';
+      }
+      const interno = /^#\//.test(p.url || "");
       return `<section class="bloque"><h2>${esc(p.nombre)} <span class="tag">${esc(p.estado)}</span></h2>${ultimo}
       ${p.proximos.length ? `<p class="vacio" style="font-size:12px;margin-top:10px">Próximos pasos</p><ul class="pasos">${p.proximos.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
-      <div class="chips" style="margin-top:12px">${p.url ? `<a class="chip" href="${esc(p.url)}" target="_blank" rel="noopener">Abrir</a>` : ""}${p.repo ? `<a class="chip" href="${esc(repoUrl(p.repo))}" target="_blank" rel="noopener">Repo</a>` : ""}${l?.proyectos?.length ? `<button class="chip" data-accion="proyecto-pasos" data-id="${esc(p.id)}">Editar pasos</button>` : ""}</div></section>`;
+      <div class="chips" style="margin-top:12px">${p.url ? `<a class="chip" href="${esc(p.url)}"${interno ? "" : ' target="_blank" rel="noopener"'}>${interno ? "Leer" : "Abrir"}</a>` : ""}${p.repo ? `<a class="chip" href="${esc(repoUrl(p.repo))}" target="_blank" rel="noopener">Repo</a>` : ""}${l?.proyectos?.length ? `<button class="chip" data-accion="proyecto-pasos" data-id="${esc(p.id)}">Editar pasos</button>` : ""}</div></section>`;
     }).join("") + (l ? "" : '<p class="fuente-dato">Con la sincronización activa, la lista vive en la hoja PROYECTOS de tu planilla y se ve el último cambio de cada repo.</p>');
   }
 };

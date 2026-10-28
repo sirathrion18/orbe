@@ -120,6 +120,17 @@ async function leerSemillas(hojas) {
   } catch (e) { guardar("semillasError", e.message, true); return {}; }
 }
 
+// Inserta una fila nueva justo debajo de los títulos de una hoja (para lo que tiene que quedar primero).
+export async function insertarArriba(hojaNombre, fila) {
+  const meta = await api(BASE + idHoja() + "?fields=sheets.properties(title,sheetId)");
+  const h = (meta.sheets || []).find((x) => x.properties.title === hojaNombre);
+  if (!h) throw new Error("no-existe");
+  await api(BASE + idHoja() + ":batchUpdate", "POST", { requests: [{ insertDimension: {
+    range: { sheetId: h.properties.sheetId, dimension: "ROWS", startIndex: 1, endIndex: 2 }, inheritFromBefore: false } }] });
+  const col = String.fromCharCode(64 + fila.length);
+  await escribir(hojaNombre + "!A2:" + col + "2", [fila]);
+}
+
 // El LEEME de la planilla: suma la explicación de las hojas nuevas, en el mismo estilo («HOJA: qué guarda»),
 // antes del renglón en blanco del final. Lo que ya está no se toca.
 export async function asegurarLeeme(lineas) {

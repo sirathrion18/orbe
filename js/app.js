@@ -10,7 +10,7 @@ import { agregarManual } from "./finanzas.js";
 import { HOJAS_ESC, leerEscalafon, cargarConformado, datosEsc } from "./escalafon.js";
 import { HOJAS_ANALISIS, importarHistorico, reclasificar, leerHistorico, datosHist } from "./analisis.js";
 import { HOJAS_PROD, leerProd, datosProd, compararOficial, mandar as mandarProd, hayPendientes as prodPendiente, cambiar as prodCambiar, fijar as prodFijar, aplicarPreset, guardarPesos, cantidadesDe, isoHoy } from "./productividad.js";
-import { HOJAS_LISTAS, leerListas, datosListas, traerGithub, agregarAgus, tildarAgus, anotarPartido, guardarProximos } from "./listas.js";
+import { HOJAS_LISTAS, leerListas, datosListas, traerGithub, sumarSemanalAProyectos, agregarAgus, tildarAgus, anotarPartido, guardarProximos } from "./listas.js";
 import { sincronizar, activa as sincroActiva } from "./sincro.js";
 import { leerPlanilla, traerMails, corregir, datosFinanzas, pendientesDeTarjetas, guardarTope } from "./finanzas.js";
 import { leerRecibos } from "./recibos.js";
@@ -651,7 +651,7 @@ async function refrescarTodo(forzar = false) {
   }
   // Agus, fútbol y proyectos: viven en tu planilla; GitHub se consulta como mucho una vez por hora.
   if (!fallas.length && (forzar || !datosListas() || Date.now() - datosListas().cuando > 10 * 60000)) {
-    try { await leerListas(); estadoParte("listas"); await recargarDatos(); traerGithub().then(() => pintar(true)); }
+    try { await leerListas(); await sumarSemanalAProyectos().catch(() => {}); estadoParte("listas"); await recargarDatos(); traerGithub().then(() => pintar(true)); }
     catch (e) { estadoParte("listas", e.message); fallas.push(["listas", e.message]); }
   }
   if (!fallas.length && (forzar || !datosFacu() || Date.now() - datosFacu().cuando > 3 * 3600000)) {
