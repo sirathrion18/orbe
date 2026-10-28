@@ -1,6 +1,19 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.20.0",
+    fecha: "28/10/2026",
+    titulo: "El Semanal dentro de Orbe.",
+    cambios: [
+      "El Semanal en Inicio, entre el buscador y los universos: la tapa de la última edición con su titular, el dibujo de la semana que cerró y cuándo sale la próxima. Dice «Nueva» hasta que la abrís.",
+      "Al tocarla, la edición se abre adentro de Orbe con su diseño completo; «Drive» lleva al Google Doc.",
+      "Se lee sin señal: Orbe guarda la última edición en el celu cada vez que la encuentra.",
+      "Se abre con tu huella (o tu PIN), como Finanzas y BNA, porque trae tu plata, tu sueldo y tus turnos.",
+      "El Diario entra por el mismo botón: si hay uno más nuevo que El Semanal, el botón muestra ese.",
+      "Si Orbe no puede leer tu Drive, el botón lo dice en vez de mostrar datos viejos o inventados."
+    ]
+  },
+  {
     version: "0.19.0",
     fecha: "28/10/2026",
     titulo: "Análisis económico con tu historial.",

@@ -2,7 +2,7 @@
 import { UNIVERSOS, PROMOS, PROMOS_SIEMPRE, VERSION } from "./config.js";
 import { NOVEDADES } from "./novedades.js";
 import { ICONOS, MARCA } from "./iconos.js";
-import { esc, colorTipo, colorUniverso, datosPartido, resultadoTxt, torneoCorto, estadioCorto, regresiva } from "./inicio.js";
+import { logoSemanal, esc, colorTipo, colorUniverso, datosPartido, resultadoTxt, torneoCorto, estadioCorto, regresiva } from "./inicio.js";
 import { DIAS, DIAS_CORTOS, bloquesDe, bloquesFecha, pendientesCon, cuandoTexto, duracion, hhmm, MODOS, lunesDe, minutosDia, sumaTipo } from "./contexto.js";
 import { datosListas, proximaAnual } from "./listas.js";
 import { presupuesto } from "./presupuesto.js";
@@ -17,6 +17,7 @@ import { ultimaSincro, activa as sincroActiva } from "./sincro.js";
 import { RUBROS } from "./rubros.js";
 import { datosFacu, promedio } from "./facu.js";
 import { datosEconomia, linkEconomia, idEconomia } from "./economia.js";
+import { ultimaEdicion, htmlEdicion } from "./semanal.js";
 
 const MESES_LARGOS = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 
@@ -408,10 +409,32 @@ export function renderUniverso(id, datos, ctx, tema) {
 }
 
 export function renderBloqueo(id, conHuella, conPin) {
-  const u = UNIVERSOS.find((x) => x.id === id);
-  return `<div class="pagina">${volver}<h1>${esc(u.nombre)}</h1><p class="bajada">Este universo está bloqueado.</p>
+  const u = UNIVERSOS.find((x) => x.id === id) || { nombre: id === "semanal" ? "El Semanal" : id };
+  return `<div class="pagina">${volver}<h1>${esc(u.nombre)}</h1><p class="bajada">${u.id ? "Este universo está bloqueado." : "Trae tu plata, tu sueldo y tus turnos: se abre con " + (conHuella ? "tu huella." : "tu PIN.")}</p>
     ${conHuella ? `<button class="btn ancho-completo" data-accion="huella-abrir" data-id="${id}" style="height:56px;font-size:16px">Abrir con huella</button>` : ""}
     ${conPin ? `<form class="form" data-form="pin" data-id="${id}" style="margin-top:${conHuella ? 18 : 12}px"><input name="pin" type="password" inputmode="numeric" autocomplete="off" placeholder="${conHuella ? "o con el PIN" : "PIN"}" aria-label="PIN" required><button class="btn">Entrar</button></form>` : ""}</div>`;
+}
+
+// ---------- El Semanal ----------
+// El lector: la edición tal cual salió (la que está guardada en este dispositivo, así se lee sin señal).
+export function renderSemanal() {
+  const e = ultimaEdicion(), html = htmlEdicion();
+  if (!e || !html) {
+    const err = leer("semanalError") || "";
+    const motivo = !permisosG().drive ? "Orbe todavía no tiene permiso para leer tu Drive. Conectalo en Ajustes y volvé."
+      : /api-apagada:drive/.test(err) ? "El servicio de Drive está apagado en tu proyecto de Google. Prendelo una vez y Orbe trae la edición sola."
+      : err === "sin-ediciones" ? "No encontré ediciones de El Semanal ni de El Diario en tu Drive."
+      : "Todavía no bajé ninguna edición. Tocá actualizar en Inicio (con señal) y queda guardada para leer sin conexión.";
+    return `<div class="pagina">${volver}<h1>${logoSemanal()}</h1><p class="bajada">${esc(motivo)}</p>
+      <div class="chips" style="margin-top:12px">${/api-apagada:drive/.test(err) ? '<a class="chip" target="_blank" rel="noopener" href="https://console.cloud.google.com/apis/library/drive.googleapis.com?project=orbe-512903">Prender Drive</a>' : ""}
+      <a class="chip" target="_blank" rel="noopener" href="https://drive.google.com/drive/search?q=%22El%20Semanal%22">Buscarla en Drive</a></div></div>`;
+  }
+  const f = new Date(e.fecha + "T12:00:00");
+  const meta = (e.numero ? "N.º " + esc(e.numero) + " · " : "") + DIAS[f.getDay()].slice(0, 3) + " " + f.getDate() + "/" + (f.getMonth() + 1);
+  const drive = e.doc ? `<a class="lector-drive" target="_blank" rel="noopener" href="https://docs.google.com/document/d/${encodeURIComponent(e.doc)}/edit">Drive</a>` : "";
+  return `<div class="lector"><div class="lector-bar"><a class="lector-volver" href="#/" aria-label="Volver a Inicio">${ICONOS.volver}</a>
+    <span class="lector-tit">${logoSemanal(e.nombre, "chico")}<span class="lector-meta">${meta}</span></span>${drive}</div>
+    <iframe class="lector-ed" title="${esc(e.nombre)}${e.numero ? " N.º " + esc(e.numero) : ""}" sandbox="allow-popups allow-popups-to-escape-sandbox"></iframe></div>`;
 }
 
 // ---------- Secciones ----------
@@ -477,7 +500,7 @@ const FAMILIA = { logo: "var(--sans);font-weight:600;letter-spacing:-.045em", re
   cursiva: "var(--serif);font-style:italic" };
 
 // Qué anda y qué no, parte por parte, con el motivo y el arreglo cuando lo hay.
-const PARTES = [["agenda", "Agenda"], ["sincro", "Celu y compu"], ["economia", "Planilla ECONOMÍA"], ["mails", "Mails del BNA y Mercado Pago"], ["recibos", "Recibos de sueldo (Drive)"], ["facu", "Campus de UFASTA"], ["listas", "Agus, fútbol y proyectos"], ["prod", "Productividad del BNA"]];
+const PARTES = [["agenda", "Agenda"], ["sincro", "Celu y compu"], ["economia", "Planilla ECONOMÍA"], ["mails", "Mails del BNA y Mercado Pago"], ["recibos", "Recibos de sueldo (Drive)"], ["facu", "Campus de UFASTA"], ["listas", "Agus, fútbol y proyectos"], ["prod", "Productividad del BNA"], ["semanal", "El Semanal (Drive)"]];
 function estadoPartes(est) {
   const hace = (t) => { const m = Math.round((Date.now() - t) / 60000); return m < 1 ? "recién" : m < 60 ? "hace " + m + " min" : "hace " + Math.round(m / 60) + " h"; };
   const filas = PARTES.filter(([k]) => est[k]).map(([k, n]) => {

@@ -1,5 +1,16 @@
 # Novedades de Orbe
 
+## v0.20.0 · 28/10/2026
+
+El Semanal dentro de Orbe.
+
+- El Semanal en Inicio, entre el buscador y los universos: la tapa de la última edición con su titular, el dibujo de la semana que cerró y cuándo sale la próxima. Dice «Nueva» hasta que la abrís.
+- Al tocarla, la edición se abre adentro de Orbe con su diseño completo; «Drive» lleva al Google Doc.
+- Se lee sin señal: Orbe guarda la última edición en el celu cada vez que la encuentra.
+- Se abre con tu huella (o tu PIN), como Finanzas y BNA, porque trae tu plata, tu sueldo y tus turnos.
+- El Diario entra por el mismo botón: si hay uno más nuevo que El Semanal, el botón muestra ese.
+- Si Orbe no puede leer tu Drive, el botón lo dice en vez de mostrar datos viejos o inventados.
+
 ## v0.19.0 · 28/10/2026
 
 Análisis económico con tu historial.

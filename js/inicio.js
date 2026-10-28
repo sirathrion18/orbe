@@ -11,6 +11,7 @@ import { resumenMes, datosFinanzas } from "./finanzas.js";
 import { datosEconomia } from "./economia.js";
 import { movimientoDolar } from "./extras.js";
 import { presupuesto, preguntas } from "./presupuesto.js";
+import { ultimaEdicion, esNueva, proximaSemanal } from "./semanal.js";
 
 export const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -486,11 +487,46 @@ export function renderInicio(datos, ctx, clima, tema) {
           <input id="q" type="search" autocomplete="off" placeholder="Buscar, o «gasto 3500 súper»"></label>
         <div class="resultados" id="resultados" role="listbox"></div>
       </div>
+      ${wSemanal()}
       <div class="universos">${UNIVERSOS.map((u) => `<a class="u" href="#/u/${u.id}"><span class="u-ico" style="color:${colorUniverso(datos, u, tema)}">${ICONOS["u_" + u.id] || ""}</span>${esc(u.nombre)}</a>`).join("")}</div>
       <p class="pie">${MARCA}<br>${pieAgenda(datos)} · <a href="#/novedades">novedades</a> · <a href="privacidad.html">privacidad</a></p>
     </div>
   </div>
   <button class="fab" data-accion="idea" aria-label="Anotar una idea">${ICONOS.mas}</button>`;
+}
+
+// ---------- El Semanal ----------
+// La tapa de la última edición: logo, titular, el dibujo de la semana y cuándo sale la próxima.
+// Si Orbe todavía no pudo leer Drive, lo dice; nunca muestra un número que no vio.
+export const logoSemanal = (nombre = "El Semanal", cls = "") => {
+  const [a, ...b] = nombre.split(" ");
+  return `<span class="sem-logo ${cls}"><span class="el">${esc(a)}</span> ${esc(b.join(" "))}</span>`;
+};
+const dm = (iso) => { const [, m, d] = iso.split("-"); return Number(d) + "/" + Number(m); };
+export function wSemanal() {
+  const e = ultimaEdicion();
+  const fil = '<span class="filetes"></span>';
+  if (!e) {
+    const err = leer("semanalError") || "";
+    const motivo = !permisosG().drive ? "Para verla acá, conectá Drive en Ajustes."
+      : /api-apagada:drive/.test(err) ? "Para verla acá falta prender Drive en tu proyecto de Google (una sola vez)."
+      : err === "sin-ediciones" ? "Todavía no encontré ediciones en tu Drive."
+      : "Todavía no la busqué en tu Drive.";
+    return `<a class="sem" href="#/semanal" aria-label="El Semanal">${fil}<span class="fila">${logoSemanal()}</span><span class="sem-nota">${esc(motivo)}</span></a>`;
+  }
+  const f = new Date(e.fecha + "T12:00:00");
+  let pie;
+  if (e.tipo === "semanal") {
+    const desde = new Date(f); desde.setDate(f.getDate() - 6);
+    const rango = desde.getMonth() === f.getMonth() ? `del ${desde.getDate()} al ${dm(e.fecha)}` : `del ${desde.getDate()}/${desde.getMonth() + 1} al ${dm(e.fecha)}`;
+    pie = `<span>${e.numero ? "N.º " + esc(e.numero) + " · " : ""}${rango}</span>`;
+  } else pie = `<span>${DIAS[f.getDay()].slice(0, 3)} ${dm(e.fecha)}</span>`;
+  const p = proximaSemanal();
+  pie += `<span>Próxima: ${DIAS[p.getDay()].slice(0, 3)} ${p.getDate()}/${p.getMonth() + 1}, 20:00</span>`;
+  const dib = e.dibujo ? `<svg class="sem-dib" viewBox="${esc(e.dibujo.viewBox)}" preserveAspectRatio="xMidYMid meet" aria-hidden="true">${e.dibujo.partes}</svg>` : "";
+  return `<a class="sem" href="#/semanal" aria-label="${esc(e.nombre)}${e.numero ? " N.º " + esc(e.numero) : ""}: ${esc(e.titular)}">${fil}
+    <span class="fila">${logoSemanal(e.nombre)}${esNueva(e) ? '<span class="nueva">Nueva</span>' : ""}</span>
+    ${e.titular ? `<span class="tapa">${esc(e.titular)}</span>` : ""}${dib}<span class="sem-pie">${pie}</span></a>`;
 }
 
 // Después de pintar: animar el anillo y ubicar la banda de River en el centro del círculo.

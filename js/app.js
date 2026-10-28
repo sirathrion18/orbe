@@ -4,7 +4,7 @@ import * as G from "./google.js";
 import { construirContexto } from "./contexto.js";
 import { renderInicio, despuesInicio, esc, colorUniverso, regresiva } from "./inicio.js";
 import { ICONOS } from "./iconos.js";
-import { renderRiver, renderUniverso, renderBloqueo, renderIdeas, renderAgenda, renderRespiro, renderDatos, renderAjustes, renderNovedades, renderNoEncontrado, hojaMovimiento, hojaTp, hojaMateria, hojaAsignar, hojaAgus, hojaPartido, hojaPasos, hojaPesos, hojaGasto } from "./paginas.js";
+import { renderRiver, renderUniverso, renderBloqueo, renderIdeas, renderAgenda, renderRespiro, renderDatos, renderAjustes, renderNovedades, renderNoEncontrado, renderSemanal, hojaMovimiento, hojaTp, hojaMateria, hojaAsignar, hojaAgus, hojaPartido, hojaPasos, hojaPesos, hojaGasto } from "./paginas.js";
 import { HOJAS_PRESU, leerConfigPresu, cruzar, responder as responderPresu, confirmarIngreso } from "./presupuesto.js";
 import { agregarManual } from "./finanzas.js";
 import { HOJAS_ESC, leerEscalafon, cargarConformado, datosEsc } from "./escalafon.js";
@@ -22,6 +22,7 @@ import { responder } from "./preguntas.js";
 import { fijarEconomia, leerEconomia, datosEconomia, idEconomia } from "./economia.js";
 import { huellaActiva, huellaDisponible, registrarHuella, verificarHuella, sacarHuella } from "./huella.js";
 import { UNIVERSOS, SECCIONES } from "./config.js";
+import { actualizarSemanal, htmlEdicion, marcarLeida } from "./semanal.js";
 import { leer, guardar, borrar, todo, borrarTodo, sesion } from "./almacen.js";
 import { sol } from "./sol.js";
 
@@ -87,6 +88,10 @@ function pintar(refresco = false) {
     const bloqueado = u && u.bloqueo && (leer("pin") || huellaActiva()) && !sesion("abierto-" + id);
     html = bloqueado ? renderBloqueo(id, huellaActiva(), !!leer("pin")) : renderUniverso(id, estado.datos, estado.ctx, tema);
   }
+  else if (r === "/semanal") {
+    const bloqueado = (leer("pin") || huellaActiva()) && !sesion("abierto-semanal");
+    html = bloqueado ? renderBloqueo("semanal", huellaActiva(), !!leer("pin")) : renderSemanal();
+  }
   else if (r === "/ideas") html = renderIdeas();
   else if (r === "/agenda") html = renderAgenda(estado.datos, estado.ctx, tema);
   else if (r === "/respiro") html = renderRespiro();
@@ -107,6 +112,12 @@ function pintar(refresco = false) {
   document.body.classList.toggle("con-barra", !esInicio);
   riverEnNegrita(app);
   if (esInicio) { despuesInicio(app, !refresco); conectarBuscador(); }
+  const lector = app.querySelector(".lector-ed");
+  if (lector) {
+    // srcdoc en vez de una dirección: la edición viene de lo guardado, así abre sin señal. Sin scripts, con los links afuera.
+    if (lector.srcdoc !== htmlEdicion()) lector.srcdoc = htmlEdicion();
+    marcarLeida();
+  }
   document.title = esInicio ? "Orbe" : "Orbe · " + (app.querySelector("h1")?.textContent.trim() || "");
 }
 
@@ -566,7 +577,7 @@ document.addEventListener("visibilitychange", async () => {
   if (document.visibilityState === "hidden") { sesion("ocultoDesde", Date.now()); if (prodPendiente()) mandarProd().catch(() => {}); return; }
   const fuera = sesion("ocultoDesde");
   sesion("ocultoDesde", null);
-  if (fuera && Date.now() - fuera > 15 * 60000) UNIVERSOS.forEach((u) => u.bloqueo && sesion("abierto-" + u.id, null));
+  if (fuera && Date.now() - fuera > 15 * 60000) { UNIVERSOS.forEach((u) => u.bloqueo && sesion("abierto-" + u.id, null)); sesion("abierto-semanal", null); }
   if (!estado.datos) return;
   pintar(true);
   const ag = leer("agenda");
@@ -658,6 +669,11 @@ async function refrescarTodo(forzar = false) {
     if (G.permisos().drive && (forzar || Date.now() - (leer("recibosCuando") || 0) > 6 * 3600000)) {
       try { const n = await leerRecibos(); guardar("recibosCuando", Date.now(), true); estadoParte("recibos"); if (n) await leerPlanilla(); }
       catch (e) { estadoParte("recibos", e.message); fallas.push(["recibos", e.message]); }
+    }
+    // El Semanal: la última edición de tu Drive, guardada para leer sin señal (se fija cada media hora).
+    if (G.permisos().drive) {
+      try { if (await actualizarSemanal(forzar)) pintar(true); estadoParte("semanal"); }
+      catch (e) { guardar("semanalError", e.message, true); estadoParte("semanal", e.message); }
     }
     if (idEconomia()) {
       const eco = datosEconomia();
