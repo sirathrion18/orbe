@@ -7,6 +7,7 @@ import { ICONOS } from "./iconos.js";
 import { renderRiver, renderUniverso, renderBloqueo, renderIdeas, renderAgenda, renderRespiro, renderDatos, renderAjustes, renderNovedades, renderNoEncontrado, hojaMovimiento, hojaTp, hojaMateria, hojaAsignar, hojaAgus, hojaPartido, hojaPasos, hojaPesos, hojaGasto } from "./paginas.js";
 import { HOJAS_PRESU, leerConfigPresu, cruzar, responder as responderPresu, confirmarIngreso } from "./presupuesto.js";
 import { agregarManual } from "./finanzas.js";
+import { HOJAS_ESC, leerEscalafon, cargarConformado, datosEsc } from "./escalafon.js";
 import { HOJAS_PROD, leerProd, datosProd, compararOficial, mandar as mandarProd, hayPendientes as prodPendiente, cambiar as prodCambiar, fijar as prodFijar, aplicarPreset, guardarPesos, cantidadesDe, isoHoy } from "./productividad.js";
 import { HOJAS_LISTAS, leerListas, datosListas, traerGithub, agregarAgus, tildarAgus, anotarPartido, guardarProximos } from "./listas.js";
 import { sincronizar, activa as sincroActiva } from "./sincro.js";
@@ -498,6 +499,11 @@ document.addEventListener("submit", async (e) => {
     agregarManual({ monto, desc: d.desc.trim(), medio: d.medio || "efectivo", mitad: !!d.mitad })
       .then(() => cruzar()).then(() => { avisar("Gasto cargado"); pintar(true); })
       .catch((err) => avisar("No se pudo: " + textoError(err.message)));
+  } else if (tipo === "conformado") {
+    const monto = Number(String(d.monto).replace(/\./g, "").replace(",", "."));
+    if (!(monto > 100000)) { avisar("Revisá el monto del conformado"); return; }
+    avisar("Guardando…");
+    cargarConformado(d.mes, monto).then(() => { avisar("Grilla recalculada"); pintar(true); }).catch((err) => avisar("No se pudo: " + textoError(err.message)));
   } else if (tipo === "prod-otra") {
     if (d.tarea) { prodCambiar(sesion("prodFecha") || isoHoy(), d.tarea, 1, () => pintar(true)); vibrar(); pintar(true); }
   } else if (tipo === "prod-pesos") {
@@ -635,6 +641,7 @@ async function refrescarTodo(forzar = false) {
   if (!fallas.length) {
     try {
       if (forzar || !leer("presuConfig") || Date.now() - leer("presuConfig").cuando > 6 * 3600000) await leerConfigPresu().catch(() => {});
+      if (forzar || !datosEsc() || Date.now() - datosEsc().cuando > 6 * 3600000) await leerEscalafon().catch(() => {});
       const r = await actualizarFinanzas(forzar);
       await cruzar().catch(() => {});
       estadoParte("mails", null, r && (r.frenado || r.quedan) ? "trayendo el historial de a poco" : "");
@@ -657,7 +664,7 @@ async function refrescarTodo(forzar = false) {
 }
 
 // Hojas que Orbe crea solo en tu planilla si todavía no están.
-const HOJAS_EXTRA = { ...HOJAS_FACU, ...HOJAS_LISTAS, ...HOJAS_PROD, ...HOJAS_PRESU };
+const HOJAS_EXTRA = { ...HOJAS_FACU, ...HOJAS_LISTAS, ...HOJAS_PROD, ...HOJAS_PRESU, ...HOJAS_ESC };
 // Lo que dice el LEEME de tu planilla sobre cada hoja que Orbe fue sumando (mismo estilo que las demás).
 const LEEME = [
   "MATERIAS: tus materias de UFASTA, con pistas para reconocer los mails del campus, profe, aula, links y notas.",
@@ -669,6 +676,9 @@ const LEEME = [
   "MOVIMIENTOS, columnas diario y cruce: «sí» cuenta para el presupuesto diario, «no» no cuenta, «agus» es plata de la división (va al colchón), «dup» es un mail que se unió con un gasto que cargaste (cruce = el otro). Vacío = automático.",
   "COBROS: los días de cobro del año y los extras de cada uno. Cada período del diario va de un cobro al día antes del siguiente.",
   "AJUSTES: descuentos acordados en cuotas (como el lavarropas que Agus resta de la división): monto, desde qué mes, cuota de ese mes y total de cuotas.",
+  "ESCALAFON: la grilla base de la rama Administrativa (cargo, coeficiente, sueldo, ROE, devolución de aportes) del mes de referencia; «tuyo» marca tu cargo.",
+  "CONFORMADOS: el sueldo mínimo (Auxiliar E) de cada mes. Con cada uno nuevo, toda la grilla sube en la misma proporción.",
+  "BANCARIO: la fórmula del Día del Bancario de cada año: suma fija + valor por coeficiente.",
   "PESOS_PRODUCTIVIDAD: cuánto vale cada tarea (puntos por unidad) y cuántos minutos lleva; grupo carga, control, ms (MS y cambio de cartera), otras o meta. Las filas «meta» dicen desde qué fecha vale cada meta diaria y los minutos efectivos."
 ];
 const NOMBRE_PARTE = { facu: "el campus de UFASTA", sincro: "la sincronización", mails: "los mails", economia: "ECONOMÍA", agenda: "la agenda", recibos: "los recibos", listas: "Agus, fútbol y proyectos", prod: "la productividad" };

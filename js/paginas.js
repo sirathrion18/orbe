@@ -6,6 +6,7 @@ import { esc, colorTipo, colorUniverso, datosPartido, resultadoTxt, torneoCorto,
 import { DIAS, DIAS_CORTOS, bloquesDe, bloquesFecha, pendientesCon, cuandoTexto, duracion, hhmm, MODOS, lunesDe, minutosDia, sumaTipo } from "./contexto.js";
 import { datosListas, proximaAnual } from "./listas.js";
 import { presupuesto } from "./presupuesto.js";
+import { datosEsc, cargoEn, conformadoDe, tuCargo, proximoCargo, grillaVsRecibo, estimadoNeto } from "./escalafon.js";
 import { datosProd, resumenDia, banda, PRESETS, presetPuntos, historial, mesesConDatos, isoHoy, metaDe, HISTORICO, OFICIAL, hayPendientes } from "./productividad.js";
 import { permisos as permisosG } from "./google.js";
 import { leer, todo, sesion as sesionLeer } from "./almacen.js";
@@ -219,7 +220,7 @@ const PAGINAS = {
     if (tab === "prod") return pestanas + bloqueProductividad(ctx) + nunca;
     return `${pestanas}${aviso}${semana(0)}${semana(1)}${horas}${sueldo}
       <section class="bloque"><h2>Fichar</h2><p>Media hora antes de entrar, Inicio te recuerda fichar en Teams. Tocás «Listo» y desaparece hasta el día siguiente.</p></section>
-      ${nunca}`;
+      ${bloqueEscalafon(ctx, $)}${nunca}`;
   },
 
   ufasta(datos, ctx) {
@@ -761,4 +762,41 @@ export function hojaGasto() {
     <div class="grupo"><span>Cómo pagaste</span><div class="chips">${medios.map(([v, t], i) => `<label class="chip ${i === 0 ? "on" : ""}"><input type="radio" class="sr" name="medio" value="${v}" ${i === 0 ? "checked" : ""}>${t}</label>`).join("")}</div></div>
     <div class="grupo"><label style="display:flex;gap:10px;align-items:center"><input type="checkbox" name="mitad" style="width:20px;height:20px"> Es de los dos (cuenta tu mitad)</label></div>
     <div class="grupo" style="display:flex;gap:10px"><button type="button" class="btn sec" data-accion="cerrar-hoja" style="flex:1">Cancelar</button><button class="btn" style="flex:2">Guardar</button></div></form>`;
+}
+
+// ---------- BNA · Escalafón ----------
+const pct1 = (x) => (Math.round(x * 10) / 10).toLocaleString("es-AR", { maximumFractionDigits: 1 });
+function bloqueEscalafon(ctx, $) {
+  const e = datosEsc();
+  const mesHoy = isoHoy(ctx.fecha).slice(0, 7);
+  const nombreMes = (m) => { const [y, mm] = m.split("-").map(Number); return MESES_C[mm - 1] + "-" + String(y).slice(2); };
+  if (!e || !e.cargos.length || !e.conformados.length) return `<section class="bloque"><h2>Escalafón</h2><p class="vacio">Llega con tus semillas: la grilla, los conformados y el Día del Bancario viven en tu planilla.</p></section>`;
+  const conf = conformadoDe(mesHoy, e);
+  const yo = tuCargo(e), g = yo && cargoEn(yo, mesHoy, e);
+  const prox = proximoCargo(e), gp = prox && cargoEn(prox, mesHoy, e);
+  const vs = grillaVsRecibo(e);
+  const sig = new Date(ctx.fecha.getFullYear(), ctx.fecha.getMonth() + 1, 1);
+  const est = estimadoNeto(isoHoy(sig).slice(0, 7), e);
+  // Evolución de tu cargo con cada conformado cargado.
+  const evo = yo ? e.conformados.map((c) => ({ mes: c.mes, total: cargoEn(yo, c.mes, e)?.total || 0 })).filter((x) => x.total) : [];
+  const max = Math.max(...evo.map((x) => x.total), 1);
+  const acum = evo.length > 1 ? (evo[evo.length - 1].total / evo[0].total - 1) * 100 : null;
+  const tabla = e.cargos.map((c) => cargoEn(c, mesHoy, e)).filter(Boolean);
+  return `<section class="bloque escalafon"><h2>Escalafón <span class="tag">Administrativa · conformado ${nombreMes(conf.mes)} ${$(conf.conformado)}</span></h2>
+    ${g ? `<div class="tu-cargo"><span class="k">Tu cargo · ${esc(g.cargo)} (coef. ${String(g.coef).replace(".", ",")})</span>
+      <div class="trio"><div><span class="k">Sueldo</span><b>${$(g.sueldo)}</b></div><div><span class="k">ROE</span><b>${$(g.roe)}</b></div><div><span class="k">Dev. aport.</span><b>${$(g.dev)}</b></div></div>
+      <div class="trio" style="margin-top:8px"><div><span class="k">Total</span><b>${$(g.total)}</b></div><div><span class="k">Día del Bancario</span><b>${g.bancario ? $(g.bancario) : "—"}</b></div><div></div></div>
+      ${gp ? `<p class="fuente-dato">Como ${esc(gp.cargo)}: ${$(gp.total)} (+${$(gp.total - g.total)} por mes).</p>` : ""}</div>` : ""}
+    ${vs ? `<h2 style="margin-top:18px">Grilla y recibo</h2><ul class="lista">
+      <li><span>Según grilla (${nombreMes(vs.grilla.mes)})<br><small class="vacio">sueldo + ROE + dev. aportes</small></span><span class="der" style="font-size:18px">${$(vs.grilla.total)}</span></li>
+      <li><span>Te depositaron (recibo ${vs.recibo.mes.slice(5)}/${vs.recibo.mes.slice(0, 4)})<br><small class="vacio">neto, antes del descuento complementario</small></span><span class="der" style="font-size:18px">${$(vs.recibo.neto)}</span></li>
+      <li><span>Descuentos de ley<br><small class="vacio">jubilación, obra social y demás</small></span><span class="der" style="font-size:18px">${$(vs.descuentos)} · ${pct1((1 - vs.proporcion) * 100)}%</span></li>
+      ${est ? `<li><span>Próximo recibo, estimado<br><small class="vacio">con la grilla de ${nombreMes(est.grilla.mes)}</small></span><span class="der" style="font-size:18px">≈ ${$(est.neto)}</span></li>` : ""}</ul>` : ""}
+    ${evo.length > 1 ? `<h2 style="margin-top:18px">Evolución de tu cargo <span class="tag">+${pct1(acum)}% desde ${nombreMes(evo[0].mes)}</span></h2>
+      <div class="barras-esc">${evo.map((x, i) => `<div><span class="v">${i ? "+" + pct1((x.total / evo[i - 1].total - 1) * 100) + "%" : ""}</span><i style="height:${Math.round(x.total / max * 88)}px"></i><span>${nombreMes(x.mes)}</span></div>`).join("")}</div>` : ""}
+    <details class="mas"><summary>Toda la grilla (${tabla.length} cargos)</summary><div class="tabla-esc"><table><thead><tr><th>Cargo</th><th>Coef.</th><th>Sueldo</th><th>Total</th><th>Bancario</th></tr></thead><tbody>
+      ${tabla.map((c) => `<tr class="${c.tuyo ? "yo" : ""}"><td>${esc(c.cargo)}</td><td>${String(c.coef).replace(".", ",")}</td><td>${$(c.sueldo)}</td><td>${$(c.total)}</td><td>${c.bancario ? $(c.bancario) : "—"}</td></tr>`).join("")}</tbody></table></div></details>
+    <form class="form" data-form="conformado" style="margin-top:14px;flex-wrap:wrap"><input type="month" name="mes" required value="${isoHoy(ctx.fecha).slice(0, 7)}" aria-label="Mes" style="flex:1 1 140px">
+      <input name="monto" inputmode="decimal" required placeholder="Conformado nuevo" aria-label="Conformado" style="flex:1 1 140px"><button class="btn">Cargar</button></form>
+    <p class="fuente-dato">Cuando sale un acuerdo nuevo, cargás el conformado (el sueldo de Auxiliar E) y toda la grilla se recalcula. Valores estimados ±0,5%, como las grillas que circulan.</p></section>`;
 }

@@ -467,3 +467,17 @@ form.evento { display: grid; gap: 10px; }
 .w.pregunta .chips { margin-top: 4px; gap: 6px; }
 .w.pregunta .chip { padding: 8px 12px; font-size: 13px; background: var(--bg); }
 .w.pregunta.girando { opacity: .5; pointer-events: none; }
+
+/* v0.18: escalafón */
+.tu-cargo { padding: 14px; border-radius: 14px; border: 1px solid var(--line); background: var(--bg); }
+.tu-cargo > .k { display: block; font-size: 10px; font-weight: 600; letter-spacing: .1em; color: var(--muted); text-transform: uppercase; margin-bottom: 10px; }
+.barras-esc { display: flex; align-items: flex-end; gap: 8px; height: 130px; margin-top: 10px; }
+.barras-esc > div { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 4px; font-size: 10px; color: var(--muted); min-width: 0; }
+.barras-esc i { width: 100%; background: #4F7DF3; border-radius: 5px 5px 2px 2px; opacity: .85; }
+.barras-esc .v { font-weight: 700; color: var(--text); }
+.tabla-esc { overflow-x: auto; margin-top: 8px; }
+.tabla-esc table { width: 100%; border-collapse: collapse; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.tabla-esc th, .tabla-esc td { padding: 6px 6px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+.tabla-esc th:first-child, .tabla-esc td:first-child { text-align: left; white-space: normal; }
+.tabla-esc tr.yo td { font-weight: 700; background: var(--urg-bg); }
+input[type="month"] { height: 46px; padding: 0 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); color: var(--text); font-size: 15px; }

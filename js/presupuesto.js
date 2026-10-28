@@ -8,6 +8,7 @@ import { leer, guardar } from "./almacen.js";
 import { leerRangos } from "./hoja.js";
 import { datosEconomia, MESES_AR } from "./economia.js";
 import { datosFinanzas, actualizarMovs } from "./finanzas.js";
+import { estimadoNeto } from "./escalafon.js";
 
 const dos = (n) => String(n).padStart(2, "0");
 export const iso = (d) => d.getFullYear() + "-" + dos(d.getMonth() + 1) + "-" + dos(d.getDate());
@@ -88,7 +89,12 @@ function ingresoDe(p) {
   const reg = (datosFinanzas()?.meses || []).find((x) => x.mes === p.clave);
   const neto = reg && /neto \$\s?([\d.]+)/i.exec(reg.fuente || "");
   const monto = neto ? Number(neto[1].replace(/\./g, "")) : reg?.disponible || null;
-  return { monto, fuente: neto ? "neto de tu recibo (propuesta)" : reg ? "disponible de tu recibo (propuesta)" : null, propuesta: true };
+  if (monto) return { monto, fuente: neto ? "neto de tu recibo (propuesta)" : "disponible de tu recibo (propuesta)", propuesta: true };
+  // Sin recibo todavía: lo estimo con la grilla de tu cargo y lo que te llegó neto la última vez.
+  const [y, m] = p.clave.split("-").map(Number);
+  const mesRecibo = new Date(y, m - 2, 1);
+  const est = estimadoNeto(mesRecibo.getFullYear() + "-" + dos(mesRecibo.getMonth() + 1));
+  return { monto: est?.neto || null, fuente: est ? "estimado con la grilla (propuesta)" : null, propuesta: true };
 }
 
 // Cuota de un ajuste (ej. el lavarropas) en un período: «4 de 12», o null si ya terminó o no empezó.

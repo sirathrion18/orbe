@@ -1,6 +1,18 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.18.0",
+    fecha: "28/10/2026",
+    titulo: "Escalafón en BNA.",
+    cambios: [
+      "BNA › Horarios y sueldo › Escalafón: tu cargo (Auxiliar C) con sueldo, ROE, devolución de aportes, total y Día del Bancario; cuánto sería como Auxiliar B.",
+      "Cargás el conformado nuevo cuando sale un acuerdo y toda la grilla se recalcula: cada cargo sube en la misma proporción, igual que las grillas que circulan.",
+      "Grilla contra recibo: cuánto te llega neto de lo que dice la grilla, y una estimación del próximo recibo.",
+      "Evolución de tu cargo con el aumento de cada acuerdo y el acumulado.",
+      "El presupuesto diario usa esa estimación como ingreso propuesto cuando todavía no llegó el recibo."
+    ]
+  },
+  {
     version: "0.17.0",
     fecha: "28/10/2026",
     titulo: "Presupuesto diario.",
