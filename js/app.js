@@ -26,6 +26,8 @@ import { actualizarSemanal, htmlEdicion, marcarLeida, pendientesDeSemanal } from
 import { escribirResumen } from "./resumen.js";
 import { leer, guardar, borrar, todo, borrarTodo, sesion } from "./almacen.js";
 import { sol } from "./sol.js";
+import { guinoActivo } from "./guinos.js";
+import { pendientesDeSuscripciones, hojaSuscripcion, guardarSuscripcion, borrarSuscripcion } from "./suscripciones.js";
 import { renderChecklists, formChecklist, crear as crearChecklist, tildar as tildarChk, sumarItem, sacarItem, usarDeNuevo, borrarChecklist, itemsDeTexto, usarColores } from "./checklists.js";
 
 const app = document.getElementById("app");
@@ -78,11 +80,12 @@ function pintar(refresco = false) {
   const demo = sesion("demo");
   // Lo que se deriva de Finanzas (pagar las tarjetas) se suma a los pendientes del calendario.
   if (!estado.datos.pendientesBase) estado.datos.pendientesBase = estado.datos.pendientes || [];
-  estado.datos.pendientes = [...estado.datos.pendientesBase, ...pendientesDeTarjetas(datosFinanzas()), ...pendientesDeTps(datosFacu()), ...pendientesDeSemanal()];
+  estado.datos.pendientes = [...estado.datos.pendientesBase, ...pendientesDeTarjetas(datosFinanzas()), ...pendientesDeTps(datosFacu()), ...pendientesDeSemanal(), ...pendientesDeSuscripciones()];
   estado.ctx = construirContexto(estado.datos, demo);
   const r = ruta();
   let html;
   const esInicio = r === "/" || r === "";
+  estado.ctx.guino = esInicio ? guinoActivo(estado.ctx.fecha, sesion("demoGuino")) : null;
   if (esInicio) html = renderInicio(estado.datos, estado.ctx, estado.clima, tema);
   else if (r.startsWith("/u/")) {
     const id = r.slice(3);
@@ -112,6 +115,8 @@ function pintar(refresco = false) {
   else if (r === "/novedades") html = renderNovedades();
   else html = renderNoEncontrado();
 
+  // Día de River: la banda roja cruza también las demás pantallas.
+  if (!esInicio && estado.ctx.modo === "river") html = '<div class="banda banda-pag" aria-hidden="true"></div>' + html;
   app.innerHTML = franjaSesion() + html + barraInferior(r, tema);
   document.body.classList.add("con-barra");
   document.body.classList.toggle("dock-nombres", !!leer("dockNombres"));
@@ -404,6 +409,18 @@ document.addEventListener("click", (e) => {
     avisar("Volvió a la lista"); pintar(true);
   }
   else if (a === "cerrar-hoja") cerrarHoja();
+  else if (a === "sus-editar") abrirHoja(hojaSuscripcion(el.dataset.id || ""), "Suscripción");
+  else if (a === "sus-borrar") {
+    if (el.dataset.seguro !== "1") { el.dataset.seguro = "1"; el.textContent = "Tocá de nuevo"; return; }
+    borrarSuscripcion(el.dataset.id); cerrarHoja(); avisar("Suscripción borrada"); pintar(true);
+  }
+  else if (a === "demo-guino") { sesion("demoGuino", el.dataset.g || null); avisar(el.dataset.g ? "Probando el guiño " + el.textContent + ": andá a Inicio" : "Guiños en modo real"); pintar(); }
+  else if (a === "guinos") { guardar("guinos", leer("guinos", true) === false); vibrar(); pintar(true); }
+  else if (a === "arana") {
+    // La arañita sube por su hilo y se va.
+    e.preventDefault(); vibrar(); el.classList.add("sube"); setTimeout(() => el.remove(), 900);
+  }
+  else if (a === "hud") { const c = document.querySelector(".hud-cont"); if (c) { c.classList.remove("escanea"); void c.offsetWidth; c.classList.add("escanea"); vibrar(); } }
   else if (a === "demo") { sesion("demo", el.dataset.modo || null); avisar(el.dataset.modo ? "Probando: " + el.textContent : "Volviste al modo real"); pintar(); }
   else if (a === "super-borrar") { const l = leer("super", []); l.splice(Number(el.dataset.i), 1); guardar("super", l); pintar(); }
   else if (a === "medita") meditar(Number(el.dataset.min));
@@ -547,6 +564,11 @@ document.addEventListener("submit", async (e) => {
   const tipo = f.dataset.form;
   if (tipo === "super") { const l = leer("super", []); l.push({ t: d.t.trim(), ok: false }); guardar("super", l); vibrar(); pintar(); document.querySelector('[data-form="super"] input')?.focus(); }
   else if (tipo === "idea") { guardarIdea(d.t.trim(), ""); pintar(); }
+  else if (tipo === "sus") {
+    const sus = guardarSuscripcion(d, f.dataset.id || "");
+    if (!sus) { avisar("Faltan el nombre o la fecha de renovación"); return; }
+    cerrarHoja(); avisar(`${sus.nombre} guardada`); pintar(true);
+  }
   else if (tipo === "chk-nuevo") {
     const c = crearChecklist(d.titulo, d.items, d.u || "");
     if (!c) { avisar("Sumá al menos un ítem"); return; }
@@ -653,6 +675,25 @@ window.addEventListener("hashchange", () => { cerrarHoja(); clearInterval(timerM
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") { cerrarHoja(); const b = document.querySelector(".buscador.flotante"); if (b && !b.hidden) b.hidden = true; }
 });
+// Guiño Arácnido: manteniendo apretado el + sale un hilo de telaraña hacia arriba.
+let thwip = null, thwipHecho = false;
+document.addEventListener("pointerdown", (e) => {
+  const fab = e.target.closest(".fab");
+  if (!fab || !document.querySelector(".inicio.guino-arana")) return;
+  thwipHecho = false;
+  thwip = setTimeout(() => {
+    thwipHecho = true; vibrar();
+    const r = fab.getBoundingClientRect();
+    const x1 = r.left + r.width / 2, y1 = r.top + 4, x2 = Math.max(24, x1 - 120 - Math.random() * 120), y2 = 0;
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("class", "thwip"); svg.setAttribute("aria-hidden", "true");
+    svg.innerHTML = `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" pathLength="1"/><text x="${(x1 + x2) / 2 + 12}" y="${(y1 + y2) / 2}">thwip</text>`;
+    document.body.appendChild(svg); setTimeout(() => svg.remove(), 1400);
+  }, 450);
+});
+["pointerup", "pointercancel"].forEach((t) => document.addEventListener(t, () => clearTimeout(thwip)));
+document.addEventListener("click", (e) => { if (thwipHecho && e.target.closest(".fab")) { e.stopImmediatePropagation(); e.preventDefault(); thwipHecho = false; } }, true);
+
 // Universos: manteniendo apretado un ícono aparece su nombre.
 let apretado = null;
 document.addEventListener("pointerdown", (e) => {

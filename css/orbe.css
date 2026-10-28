@@ -732,3 +732,92 @@ textarea.chk-lineas { height: 202px; padding: 6px 14px 6px 46px; line-height: 32
 .interruptor[aria-checked="true"] i::after { transform: translateX(18px); background: var(--bg); }
 .interruptor:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; border-radius: 8px; }
 .diseno .interruptores + .fuente-dato { margin-top: 6px; }
+
+/* ---------- v0.25 · Guiños (dibujos genéricos, ningún personaje) ---------- */
+.inicio { position: relative; }
+/* Arácnido */
+.tela.tela-izq { left: 0; right: auto; width: 120px; height: 120px; opacity: .22; }
+.arana { position: absolute; z-index: 5; top: 44px; right: 10px; width: 36px; padding: 0; border: 0; background: none; color: var(--text);
+  display: flex; flex-direction: column; align-items: center; cursor: pointer; transform-origin: 50% 0; animation: hamaca 3.4s ease-in-out 2.1s infinite; }
+.arana .hilo { width: 1px; height: 170px; background: var(--muted); animation: bajar-hilo 1.6s cubic-bezier(.3, .8, .3, 1) .5s both; }
+.arana svg { width: 30px; height: 30px; margin-top: -2px; transition: opacity .3s .5s; }
+.arana.sube { animation: none; }
+.arana.sube .hilo { animation: subir-hilo .8s cubic-bezier(.6, 0, .8, .4) forwards; }
+.arana.sube svg { opacity: 0; }
+@keyframes bajar-hilo { from { height: 0; } to { height: 170px; } }
+@keyframes subir-hilo { from { height: 170px; } to { height: 0; } }
+@keyframes hamaca { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
+.thwip { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 50; pointer-events: none; }
+.thwip line { stroke: var(--text); stroke-width: 1.4; stroke-dasharray: 1; stroke-dashoffset: 1; animation: tirar .22s ease-out forwards, fuera .5s ease-in .9s forwards; }
+.thwip text { font-family: var(--serif); font-style: italic; font-size: 20px; fill: var(--accent); animation: fuera .5s ease-in .9s forwards; }
+@keyframes tirar { to { stroke-dashoffset: 0; } }
+@keyframes fuera { to { opacity: 0; } }
+/* Laboratorio */
+:root { --hud: #0E9FB8; }
+:root[data-theme="oscuro"] { --hud: #3FD7F0; }
+.hud-cont { position: relative; width: max-content; margin: 22px auto 0; }
+.hud-cont .anillo { margin: 0; }
+.hud { position: absolute; inset: -18px; width: calc(100% + 36px); height: calc(100% + 36px); color: var(--hud); pointer-events: none; overflow: visible; }
+.hud-giro { transform-origin: 100px 100px; animation: giro 18s linear infinite; }
+.hud-giro2 { transform-origin: 100px 100px; animation: giro 32s linear infinite reverse; }
+.hud-barrido { transform-origin: 100px 100px; opacity: 0; }
+.hud-cont.escanea .hud-barrido { animation: barrido 1.6s ease-in-out .3s 1; }
+@keyframes giro { to { transform: rotate(360deg); } }
+@keyframes barrido { 0% { opacity: .9; transform: rotate(0); } 85% { opacity: .9; } 100% { opacity: 0; transform: rotate(360deg); } }
+.hud-lectura { display: flex; align-items: center; gap: 8px; max-width: 100%; margin: 26px auto 0; padding: 7px 12px; border-radius: 999px;
+  border: 1px solid var(--hud); background: none; color: var(--text); font: 500 12px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; cursor: pointer; }
+.hud-lectura .pt { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--hud); animation: titila 1.2s steps(2) infinite; }
+.hud-lectura .txt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@keyframes titila { 50% { opacity: .2; } }
+/* Decreto */
+.inicio.guino-decreto { --accent: #2F7D4F; }
+:root[data-theme="oscuro"] .inicio.guino-decreto { --accent: #6FC08F; }
+.w.decreto { position: relative; gap: 6px; padding: 16px 16px 15px 72px; text-decoration: none; color: #E9EEE9; background: #1E2420;
+  background-image: linear-gradient(135deg, rgba(255, 255, 255, .05), transparent 55%); border: 1.5px solid #3E8E5E; }
+.decreto .sello { position: absolute; left: 14px; top: 16px; width: 44px; height: 44px; color: #3E8E5E; transform: rotate(-12deg); animation: sellar .5s cubic-bezier(.2, 1.6, .4, 1) .3s both; }
+.decreto .sello svg { width: 100%; height: 100%; display: block; }
+.decreto .dk { font-family: var(--serif); font-style: italic; font-size: 15px; color: #8FD3A8; }
+.decreto .dt { font-family: var(--serif); font-size: 19px; line-height: 1.25; }
+.decreto .df { font-size: 12px; color: #A9B5AC; }
+@keyframes sellar { from { opacity: 0; transform: rotate(-12deg) scale(1.9); } }
+/* TVA */
+.inicio.guino-tva { --accent: #B9651A; }
+:root[data-theme="oscuro"] .inicio.guino-tva { --accent: #E89A45; }
+.guino-tva .w.urg { background: color-mix(in srgb, var(--accent) 13%, var(--bg)); }
+.tva-bloque { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-top: 14px; color: var(--accent); }
+.linea-tva { width: 220px; height: 36px; }
+.tva-txt { font-size: 12px; font-weight: 600; letter-spacing: .02em; }
+.sello-tva { margin-top: 8px; padding: 4px 10px; border: 2px solid var(--accent); border-radius: 6px; color: var(--accent);
+  font: 700 11px/1.2 var(--sans); letter-spacing: .14em; text-transform: uppercase; transform: rotate(-4deg); opacity: .9;
+  animation: sellar-tva .5s cubic-bezier(.2, 1.6, .4, 1) .4s both; }
+@keyframes sellar-tva { from { opacity: 0; transform: rotate(-4deg) scale(1.9); } }
+@media (min-width: 920px) {
+  .arana { right: auto; left: 430px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .arana, .arana .hilo, .hud-giro, .hud-giro2, .hud-cont.escanea .hud-barrido, .decreto .sello, .sello-tva, .hud-lectura .pt { animation: none; }
+}
+.inicio.compacto .arana { top: 40px; }
+.decreto .dt { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* ---------- v0.25 · Suscripciones ---------- */
+.sus-lista { list-style: none; margin: 0; padding: 0; }
+.sus-lista li + li { border-top: 1px solid var(--line); }
+.sus-fila { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; width: 100%; padding: 10px 0; border: 0; background: none;
+  color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.sus-izq, .sus-der { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.sus-der { align-items: flex-end; text-align: right; flex: none; }
+.sus-fila b { font-size: 16px; font-weight: 600; }
+.sus-fila small { font-size: 12px; color: var(--muted); line-height: 1.35; }
+.sus-fila em { font-style: normal; font-weight: 600; color: var(--accent); }
+.campo-sus { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+.campo-sus > span { font-size: 11px; font-weight: 600; letter-spacing: .1em; color: var(--muted); text-transform: uppercase; }
+.campo-sus input { height: 46px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); color: var(--text); font: inherit; font-size: 16px; min-width: 0; }
+.sus-dos { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: end; margin-top: 12px; }
+.sus-dos .campo-sus { margin-top: 0; }
+
+/* ---------- v0.25 · Día de River en toda la app ---------- */
+.banda { width: 1700px; }
+.banda-pag { top: 120px; left: calc(50% - 850px); }
+.banda-pag ~ .pagina { position: relative; }
+.promiedos .btn { display: block; text-align: center; text-decoration: none; }

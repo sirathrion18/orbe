@@ -1,6 +1,18 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.25.0",
+    fecha: "28/10/2026",
+    titulo: "Guiños, día de River en toda la app, Promiedos y suscripciones.",
+    cambios: [
+      "Guiños: con el switch de Ajustes › Diseño prendido, una o dos veces por día, en un momento al azar, Inicio se viste por 15 minutos de Arácnido (telarañas, una arañita que baja colgada y se va si la tocás, y un hilo de telaraña manteniendo apretado el +), Laboratorio (el reloj como pantalla que escanea tu día), Decreto (Urgente como decreto real, con sello verde) o TVA (la línea temporal sagrada, con una rama por cada cosa urgente). Apagado: Orbe sobria y seria, sin guiños ni días Marvel.",
+      "En Ajustes › Diseño se puede probar cada guiño, y ahí se mudó «Probar modos del día».",
+      "Día de River: si River juega hoy, toda la app se pone en modo River desde la mañana hasta un rato después del partido, con la banda roja cruzando también las demás pantallas.",
+      "River › Promiedos: un botón para seguir el partido y accesos a River (fixture y plantel) y a los partidos del día. Promiedos no tiene API pública, así que Orbe te lleva directo a sus páginas.",
+      "Finanzas › Suscripciones: cargás lo que se renueva solo cada mes (en dólares o en pesos), con el equivalente en pesos al dólar tarjeta del día. Unos días antes de renovar aparece en Urgente con lo que pasa si no lo revisás.",
+    ],
+  },
+  {
     version: "0.24.0",
     fecha: "28/10/2026",
     titulo: "Checklists, barra de universos abajo y Ajustes › Diseño.",

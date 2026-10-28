@@ -13,6 +13,7 @@ import { movimientoDolar } from "./extras.js";
 import { presupuesto, preguntas } from "./presupuesto.js";
 import { ultimaEdicion, esNueva, proximaSemanal } from "./semanal.js";
 import { wChecklists, usarColores } from "./checklists.js";
+import { decoracion, hudSobre, decreto, lineaTva } from "./guinos.js";
 
 export const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -43,6 +44,7 @@ function elegirSaludo(datos, ctx, clima) {
   if (ctx.cumple) cat = "cumple";
   else if (ctx.modo === "madrugada") cat = "madrugada";
   else if (ctx.modo === "river") cat = "river";
+  else if (ctx.guino) cat = ctx.guino === "arana" ? "marvel" : ctx.guino;
   else if (ctx.modo === "marvel") cat = "marvel";
   else if (ctx.modo === "noche") cat = "noche";
   else if (entregaHoy) cat = "entrega";
@@ -322,6 +324,7 @@ function wTransporte() {
 
 function wUrgente(datos, ctx) {
   const lista = urgentesTodos(datos, ctx);
+  if (ctx.guino === "decreto") return decreto(lista, cuandoTexto, esc);
   if (!lista.length) {
     if (ctx.modo === "libre" || ctx.modo === "noche") {
       const libre = ctx.modo === "libre";
@@ -333,7 +336,8 @@ function wUrgente(datos, ctx) {
   }
   // Tarjeta finita, a lo ancho: lo más urgente en una línea; el resto vive en la página de Urgente.
   const [p, ...resto] = lista;
-  return `<div class="w urg urg-corta"><div class="fila"><span class="k">${p.dias < 0 ? "Vencido" : "Urgente"} · ${lista.length}</span>
+  const etiqueta = ctx.guino === "tva" ? "Rama temporal" : p.dias < 0 ? "Vencido" : "Urgente";
+  return `<div class="w urg urg-corta"><div class="fila"><span class="k">${etiqueta} · ${lista.length}</span>
       <span class="cuando-c">${cuandoTexto(p.dias)}</span>
       <button class="hecho" data-accion="hecho" data-clave="${esc(p.clave)}" aria-label="Marcar ${esc(p.titulo)} como hecho">${ICONOS.check}</button></div>
     <a class="urg-linea" href="#/urgente" aria-label="Abrir todo lo urgente"><span class="tit">${esc(p.titulo)}</span>${p.monto ? `<span class="monto">${esc(p.monto)}</span>` : ""}<span class="mas">${resto.length ? "+" + resto.length + " ›" : "›"}</span></a></div>`;
@@ -520,13 +524,15 @@ export function renderInicio(datos, ctx, climaDatos, tema) {
   const oculto = new Set(leer("inicioOcultos", []));
   const ver = (k, html) => (oculto.has(k) ? "" : html);
   usarColores((u) => colorUniverso(datos, u, tema));
+  const reloj = ctx.guino === "lab" ? hudSobre(anillo(datos, ctx, tema), ctx, datos, climaDatos, urgentesTodos(datos, ctx).length) : anillo(datos, ctx, tema);
   const river = ver("river", wRiverMini(ctx));
   const clima = ver("clima", wClima(climaDatos, ctx));
   const cuadros = clima && river ? clima + river : (clima || river).replace(/class="w (clima marco|riv-mini)/, 'class="w $1 ancho');
   return `
   ${ctx.modo === "river" ? '<div class="banda" aria-hidden="true"></div>' : ""}
-  ${ctx.modo === "marvel" ? TELA : ""}
-  <div class="inicio ${compacto ? "compacto" : ""}">
+  ${ctx.modo === "marvel" || ctx.guino === "arana" ? TELA : ""}
+  <div class="inicio ${compacto ? "compacto" : ""} ${ctx.guino ? "guino-" + ctx.guino : ""}">
+    ${decoracion(ctx.guino)}
     <div class="col-a">
       <div class="top"><span class="fecha-hora">${fechaTxt} <span class="hora">· <span id="hora-top">${hhmm(ctx.min)}</span><span class="seg" id="seg-top">:${seg}</span></span>${ctx.demo ? ' <a class="ejemplo" href="#/ajustes" style="text-decoration:none">Prueba</a>' : ""}</span>
         <span class="der">
@@ -539,7 +545,7 @@ export function renderInicio(datos, ctx, climaDatos, tema) {
           <input id="q" type="search" autocomplete="off" placeholder="Buscar, o «gasto 3500 súper»"></label>
         <div class="resultados" id="resultados" role="listbox"></div>
       </div>
-      ${compacto ? `<div class="cab">${anillo(datos, ctx, tema)}${saludo}</div>` : `${saludo}${anillo(datos, ctx, tema)}${leyenda(datos, ctx, tema)}`}
+      ${compacto ? `<div class="cab">${anillo(datos, ctx, tema)}${saludo}</div>` : `${saludo}${reloj}${ctx.guino === "tva" ? lineaTva(urgentesTodos(datos, ctx).length) : leyenda(datos, ctx, tema)}`}
     </div>
     <div class="col-b">
       ${tira(ctx, datos)}
@@ -607,6 +613,6 @@ export function despuesInicio(app, animar = true) {
   if (banda && an) {
     const ra = app.getBoundingClientRect(), rn = an.getBoundingClientRect();
     banda.style.top = (rn.top - ra.top + rn.height / 2 - 23) + "px";
-    banda.style.left = (rn.left - ra.left + rn.width / 2 - 410) + "px";
+    banda.style.left = (rn.left - ra.left + rn.width / 2 - banda.offsetWidth / 2) + "px";
   }
 }

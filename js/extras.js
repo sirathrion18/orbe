@@ -12,7 +12,7 @@ export async function traerDolar() {
     if (!r.ok) throw new Error("dolar");
     const j = await r.json();
     const de = (casa) => j.find((x) => x.casa === casa);
-    const d = { cuando: Date.now(), oficial: de("oficial"), mep: de("bolsa"), blue: de("blue") };
+    const d = { cuando: Date.now(), oficial: de("oficial"), mep: de("bolsa"), blue: de("blue"), tarjeta: de("tarjeta") };
     const hist = leer("dolarHist", {});
     hist[isoHoy()] = { oficial: d.oficial?.venta, mep: d.mep?.venta };
     const dias = Object.keys(hist).sort().slice(-15);

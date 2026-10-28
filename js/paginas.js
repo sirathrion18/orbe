@@ -18,6 +18,8 @@ import { RUBROS } from "./rubros.js";
 import { datosFacu, promedio } from "./facu.js";
 import { datosEconomia, linkEconomia, idEconomia } from "./economia.js";
 import { ultimaEdicion, htmlEdicion } from "./semanal.js";
+import { GUINOS, guinosPrendidos } from "./guinos.js";
+import { bloqueSuscripciones } from "./suscripciones.js";
 
 const MESES_LARGOS = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 
@@ -374,7 +376,7 @@ const PAGINAS = {
     const pestF = `<div class="pestanas" role="tablist">${[["periodo", "Este período"], ["analisis", "Análisis"]].map(([id, t]) =>
       `<button class="pestana ${tabF === id ? "on" : ""}" role="tab" aria-selected="${tabF === id}" data-accion="fin-tab" data-tab="${id}">${t}</button>`).join("")}</div>`;
     if (tabF === "analisis") return pestF + bloqueAnalisis($);
-    return `${pestF}${aviso}${wPregunta() ? `<section class="preg-fin">${wPregunta()}</section>` : ""}${bloquePeriodo(ctx, $)}${bloqueEconomia(ctx, $)}${cabeza}${dolar}${revisar}${topes}${rubros}
+    return `${pestF}${aviso}${wPregunta() ? `<section class="preg-fin">${wPregunta()}</section>` : ""}${bloquePeriodo(ctx, $)}${bloqueEconomia(ctx, $)}${cabeza}${bloqueSuscripciones(ctx.fecha)}${dolar}${revisar}${topes}${rubros}
       <section class="bloque"><h2>Vencimientos ${datos.agenda ? "" : '<span class="ejemplo">Ejemplo</span>'}</h2><ul class="lista">${venc.map((d) => `<li style="align-items:flex-start"><span style="display:flex;flex-direction:column;gap:4px;min-width:0"><span>${esc(d.titulo)}${d.vernet ? ' <span class="tag">Vernet</span>' : ""}${d.nota ? ` <span class="tag">${esc(d.nota)}</span>` : ""}</span>${d.monto ? `<b>${esc(d.monto)}</b>` : ""}<span class="der ${d.dias <= 7 && !d.vernet ? "rojo" : ""}" style="font-size:17px">${cuandoTexto(d.dias)}</span></span>
         <button class="hecho" style="margin:0" data-accion="hecho" data-clave="${esc(d.clave)}" aria-label="Marcar ${esc(d.titulo)} como hecho">${ICONOS.check}</button></li>`).join("") || '<li class="vacio">Nada pendiente.</li>'}</ul>
         ${leer("hechos", []).length ? '<button class="link" style="margin-top:12px;font-size:13px" data-accion="deshacer-hechos">Volver a mostrar los marcados como hechos</button>' : ""}</section>
@@ -570,7 +572,7 @@ const DIBUJO_MODO = {
   normal: '<svg viewBox="0 0 64 56" aria-hidden="true"><rect x="8" y="6" width="30" height="3" rx="1.5"/><rect x="8" y="12" width="20" height="3" rx="1.5"/><circle cx="32" cy="32" r="11" fill="none" stroke-width="2.5"/><circle cx="14" cy="50" r="2.4"/><circle cx="23" cy="50" r="2.4"/><circle cx="32" cy="50" r="2.4"/><circle cx="41" cy="50" r="2.4"/><circle cx="50" cy="50" r="2.4"/></svg>',
   compacto: '<svg viewBox="0 0 64 56" aria-hidden="true"><circle cx="16" cy="14" r="7.5" fill="none" stroke-width="2.2"/><rect x="28" y="9" width="28" height="3" rx="1.5"/><rect x="28" y="15" width="18" height="3" rx="1.5"/><rect x="8" y="28" width="48" height="8" rx="3" opacity=".55"/><rect x="8" y="40" width="23" height="11" rx="3" opacity=".55"/><rect x="33" y="40" width="23" height="11" rx="3" opacity=".55"/></svg>'
 };
-function bloqueDiseno(tema, f, muestra) {
+function bloqueDiseno(tema, f, muestra, demo) {
   const compacto = !!leer("inicioCompacto");
   const ocultos = new Set(leer("inicioOcultos", []));
   const modo = (k, n, d) => `<button class="muestra modo-ini ${compacto === k ? "on" : ""}" data-accion="inicio-compacto" data-v="${k ? 1 : 0}" aria-pressed="${compacto === k}">${DIBUJO_MODO[k ? "compacto" : "normal"]}<b>${n}</b><small>${d}</small></button>`;
@@ -584,6 +586,13 @@ function bloqueDiseno(tema, f, muestra) {
     <h3 class="sub-aj">Tema</h3>
     <div class="chips">${[["auto", "Automático"], ["claro", "Claro"], ["oscuro", "Oscuro"]].map(([k, n]) => `<button class="chip ${tema === k ? "on" : ""}" data-accion="tema-fijo" data-tema="${k}">${n}</button>`).join("")}</div>
     <p class="fuente-dato">Automático: claro de día y oscuro desde la puesta del sol en Buenos Aires. El botón de Inicio lo cambia hasta la próxima salida o puesta.</p>
+    <h3 class="sub-aj">Guiños</h3>
+    <ul class="interruptores"><li><button class="interruptor" role="switch" aria-checked="${guinosPrendidos()}" data-accion="guinos"><span><b>Prendidos</b><small>${guinosPrendidos() ? "Una o dos veces por día, en un momento al azar, Inicio se viste de Arácnido, Laboratorio, Decreto o TVA por 15 minutos." : "Apagado: Orbe sobria y seria, sin guiños ni días especiales."}</small></span><i aria-hidden="true"></i></button></li></ul>
+    <p class="fuente-dato" style="margin:10px 0 8px">Probar un guiño ahora (se apaga al cerrar Orbe):</p>
+    <div class="chips"><button class="chip ${!sesionLeer("demoGuino") ? "on" : ""}" data-accion="demo-guino" data-g="">Real</button>${GUINOS.map(([k, n]) => `<button class="chip ${sesionLeer("demoGuino") === k ? "on" : ""}" data-accion="demo-guino" data-g="${k}">${n}</button>`).join("")}</div>
+    <h3 class="sub-aj">Probar modos del día</h3>
+    <div class="chips"><button class="chip ${!demo ? "on" : ""}" data-accion="demo" data-modo="">Real</button>${MODOS.map((m) => `<button class="chip ${demo === m ? "on" : ""}" data-accion="demo" data-modo="${m}">${m === "normal" ? "Normal" : m === "libre" ? "Día libre" : m === "river" ? "River" : m === "marvel" ? "Guiño Marvel" : "Noche"}</button>`).join("")}</div>
+    <p class="fuente-dato">Simula el día y la hora de cada modo. Se apaga al cerrar Orbe.</p>
     <h3 class="sub-aj">Tipografía del reloj</h3>
     <div class="muestras">${RELOJES.map((x) => muestra("reloj", x)).join("")}</div>
     <h3 class="sub-aj">Tipografía del saludo</h3>
@@ -605,7 +614,7 @@ export function renderAjustes(estadoTema, demo, hayPin, google) {
       <b style="font-family:${FAMILIA[k]}">${grupo === "reloj" ? "10:24" : "Buen día"}</b><small>${n} · ${d}</small></button>`;
   return `<div class="pagina">${volver}<h1>Ajustes</h1><p class="bajada">${MARCA} versión ${VERSION}.</p>
     ${google.aviso ? `<section class="bloque" role="alert" style="background:var(--urg-bg)"><p>${esc(google.aviso)}</p></section>` : ""}
-    ${bloqueDiseno(tema, f, muestra)}
+    ${bloqueDiseno(tema, f, muestra, demo)}
     <section class="bloque"><h2>Cuenta de Google</h2>${tarjeta}
       <p class="vacio" style="margin-top:12px;font-size:12px">La sesión dura 30 días y se renueva sola cada vez que usás Orbe. Orbe nunca ve tu contraseña.</p></section>
 
@@ -631,8 +640,6 @@ export function renderAjustes(estadoTema, demo, hayPin, google) {
         <input type="time" name="f${d}" value="${esc(h.fin || "")}" aria-label="Salida ${DIAS[d]}">`; }).join("")}</div>
         <button class="btn ancho-completo" style="margin-top:14px">Guardar horario</button></form></section>
 
-    <section class="bloque"><h2>Probar modos del día</h2><div class="chips"><button class="chip ${!demo ? "on" : ""}" data-accion="demo" data-modo="">Real</button>${MODOS.map((m) => `<button class="chip ${demo === m ? "on" : ""}" data-accion="demo" data-modo="${m}">${m === "normal" ? "Normal" : m === "libre" ? "Día libre" : m === "river" ? "River" : m === "marvel" ? "Guiño Marvel" : "Noche"}</button>`).join("")}</div>
-      <p class="vacio" style="margin-top:12px;font-size:13px">Simula el día y la hora de cada modo. Se apaga al cerrar Orbe.</p></section>
     <section class="bloque"><h2>Bloqueo de Finanzas y Bienestar</h2>
       <p style="margin-bottom:12px">Huella en este dispositivo: <b>${google.huella ? "activada" : "apagada"}</b></p>
       <div class="chips">${google.huella ? '<button class="btn sec" data-accion="huella-sacar">Apagar la huella</button>' : '<button class="btn" data-accion="huella-activar">Activar huella</button>'}</div>
@@ -734,13 +741,17 @@ export function renderRiver(ctx) {
   const prox = (rv.proximos || []).slice(1);
   const R = (u) => u.gf > u.gc ? "G" : u.gf < u.gc ? "P" : "E";
   const ult = rv.ultimos || (rv.ultimo ? [rv.ultimo] : []);
-  const t = rv.tabla;
+  const t = rv.tabla && rv.tabla.pos ? rv.tabla : null;
   return `<div class="pagina">${vuelta}${hero}
     ${prox.length ? `<section class="bloque"><h2>Lo que sigue</h2><ul class="lista">${prox.map((x) => { const dx = datosPartido(x, ctx.fecha); return `<li><span>${x.clasico ? "<b>Superclásico</b> · " : ""}${x.local ? "vs " : "en cancha de "}${esc(x.rival)}<br><small class="vacio">${esc(torneoCorto(x.torneo))}</small></span><span class="tag">${dx.dia} · ${dx.hora}</span></li>`; }).join("")}</ul></section>` : ""}
     ${ult.length ? `<section class="bloque"><h2>Últimos resultados</h2><ul class="lista">${ult.map((x) => `<li><span><span class="res res-${R(x)}">${R(x)}</span> ${x.gf}-${x.gc}${x.penales ? ` (${x.penales[0]}-${x.penales[1]} pen.)` : ""} ${x.local ? "vs" : "en cancha de"} ${esc(x.rival)}<br><small class="vacio">${esc(torneoCorto(x.torneo))}</small></span><span class="tag">${new Date(x.fecha).getDate()}/${new Date(x.fecha).getMonth() + 1}</span></li>`).join("")}</ul></section>` : ""}
     ${t ? `<section class="bloque"><h2>Tabla <span class="tag">${esc(t.zona)}</span></h2><div class="trio">
       <div><span class="k">Posición</span><b>${t.pos}° de ${t.equipos}</b></div><div><span class="k">Puntos</span><b>${t.pts}</b></div><div><span class="k">PJ · G-E-P</span><b>${t.pj} · ${t.g}-${t.e}-${t.p}</b></div></div>
       <p class="fuente-dato">${esc(torneoCorto(t.torneo))}. Diferencia de gol: ${t.dg > 0 ? "+" : ""}${t.dg}.</p></section>` : ""}
+    <section class="bloque promiedos"><h2>Promiedos</h2>
+      ${ctx.modo === "river" ? '<a class="btn ancho-completo" href="https://www.promiedos.com.ar/team/river-plate/igi" target="_blank" rel="noopener" style="margin-bottom:10px">Seguir el partido en Promiedos</a>' : ""}
+      <div class="chips"><a class="chip" href="https://www.promiedos.com.ar/team/river-plate/igi" target="_blank" rel="noopener">River: fixture y plantel</a><a class="chip" href="https://www.promiedos.com.ar/" target="_blank" rel="noopener">Partidos de hoy</a></div>
+      <p class="fuente-dato">Promiedos no tiene una API pública: Orbe te lleva directo a sus páginas (o a la app, si la tenés).</p></section>
     <section class="bloque"><h2>Accesos</h2><div class="chips"><a class="chip" href="https://www.cariverplate.com.ar" target="_blank" rel="noopener">Sitio oficial</a><a class="chip" href="https://www.espn.com.ar/futbol/equipo/_/id/16/river-plate" target="_blank" rel="noopener">River en ESPN</a></div></section></div>`;
 }
 

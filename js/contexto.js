@@ -86,6 +86,11 @@ export function construirContexto(datos, demo) {
   const cumpleManana = ag?.cumples?.[isoManana] || [];
   const avisos = ag?.avisos?.[iso] || [];
   const partido = hoy.find((b) => b.tipo === "river");
+  // Día de River: si el próximo (o el último) partido es hoy, toda la app se pone en modo River
+  // desde que arranca el día hasta un par de horas después del final.
+  const rv = leer("river");
+  const esHoy = (x) => { if (!x?.fecha) return false; const d = new Date(x.fecha); return d.getFullYear() === fecha.getFullYear() && d.getMonth() === fecha.getMonth() && d.getDate() === fecha.getDate(); };
+  const juegaHoy = [rv?.proximo, rv?.ultimo].find((x) => esHoy(x) && fecha.getTime() < new Date(x.fecha).getTime() + 4 * 3600000) || null;
   // El anillo pasa a mañana cuando termina tu último evento, nunca antes de las 21.
   const finUltimo = hoy.reduce((m, b) => Math.max(m, b.fin), 0);
   const corte = Math.max(21 * 60, finUltimo);
@@ -100,10 +105,10 @@ export function construirContexto(datos, demo) {
 
   let modo = "normal";
   if (demo) modo = demo;
-  else if (partido && min < partido.fin + 60) modo = "river";
+  else if ((partido && min < partido.fin + 60) || juegaHoy) modo = "river";
   else if (min < 5 * 60) modo = "madrugada";
   else if (min >= corte) modo = "noche";
-  else if ((estreno && estreno.dias <= 14) || diaDeGuino) modo = "marvel";
+  else if (((estreno && estreno.dias <= 14) || diaDeGuino) && leer("guinos", true) !== false) modo = "marvel";
   else if (!hayObligaciones) modo = "libre";
 
   // Alarmas: las del calendario "Alarmas" (puente desde el celu) más la cargada a mano en Orbe.
@@ -121,7 +126,7 @@ export function construirContexto(datos, demo) {
   const alarmaHoy = alarmasFuturas.find((t) => t < finHoy) || null;
 
   const s = sol(fecha, datos.ciudad.lat, datos.ciudad.lon);
-  return { fecha, dia, min, hoy, manana, partido, estreno, viaje, cumple, modo, sol: s, demo: !!demo,
+  return { fecha, dia, min, hoy, manana, partido, juegaHoy, estreno, viaje, cumple, modo, sol: s, demo: !!demo,
     feriado, diaLibre, cumpleHoy, cumpleManana, avisos, corte, proximaAlarma, alarmaManual, alarmaManana, alarmaHoy };
 }
 

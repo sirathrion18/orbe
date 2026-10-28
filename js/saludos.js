@@ -106,6 +106,18 @@ export const SALUDOS = {
     "Con poderes, {n}.", "Un gran poder. Una gran agenda, {n}.", "Tu amigo y vecino. Mate en mano, {n}.",
     "Spidey sense activado. Vamos, {n}."
   ],
+  lab: [
+    "Modo Stark activado, {n}.", "Sistemas en línea, {n}.", "Orbe, a lo J.A.R.V.I.S. Buen día, {n}.",
+    "Escaneo completo. Todo listo, {n}.", "Traje puesto. Vamos, {n}.", "Reactor al cien. Arrancamos, {n}."
+  ],
+  decreto: [
+    "Doom no saluda, {n}. Doom convoca.", "Por decreto real, hoy se rinde, {n}.", "Latveria aprueba tu agenda, {n}.",
+    "El soberano te recibe, {n}.", "Doom decreta: hoy se gana, {n}."
+  ],
+  tva: [
+    "Variante {n}, presentate.", "Por todo el tiempo. Siempre, {n}.", "Propósito glorioso, {n}.",
+    "La línea temporal te espera, {n}.", "Expediente abierto, {n}."
+  ],
   entrega: [
     "Hoy se entrega, {n}. Vos podés.", "Día de entrega, {n}.", "Último empujón, {f}."
   ],
