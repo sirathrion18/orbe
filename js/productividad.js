@@ -3,6 +3,7 @@
 // que Orbe completa una vez desde «Orbe · semillas», en tu Drive. Solo tus números: nada de compañeros.
 import { leer, guardar } from "./almacen.js";
 import { leerRangos, escribirVarios, agregar, aFecha } from "./hoja.js";
+import { api, pedirPase } from "./google.js";
 
 export const HOJAS_PROD = {
   PESOS_PRODUCTIVIDAD: { cab: ["tarea", "puntos", "minutos", "grupo"], filas: [], semillas: "PESOS_PRODUCTIVIDAD" },
@@ -10,6 +11,9 @@ export const HOJAS_PROD = {
   PRODUCTIVIDAD: { cab: ["fecha", "tarea", "cantidad", "puntos"], filas: [], semillas: "PRODUCTIVIDAD", clave: [0, 1] }
 };
 export const HISTORICO = "Otras (histórico)";
+// Fila que deja la comparación con la planilla del banco: el ajuste para que el día dé igual al oficial.
+// Que exista quiere decir «día verificado».
+export const OFICIAL = "Oficial (banco)";
 
 const n = (v) => { const x = Number(String(v ?? "").replace(",", ".")); return Number.isFinite(x) ? x : 0; };
 const r4 = (x) => Math.round(x * 10000) / 10000;
@@ -179,7 +183,7 @@ export function historial(mes, hoy = isoHoy()) {
     const r = resumenDia(f);
     const b = banda(r.total, r.meta?.meta);
     // Hoy, mientras está en curso, no cuenta para el promedio ni se marca «Bajo».
-    return { fecha: f, total: r.total, meta: r.meta?.meta || null, enCurso: f === hoy, banda: f === hoy && b?.id === "bajo" ? null : b };
+    return { fecha: f, total: r.total, meta: r.meta?.meta || null, enCurso: f === hoy, verificado: !!r.c[OFICIAL], banda: f === hoy && b?.id === "bajo" ? null : b };
   }).filter((d) => d.total > 0);
   const cerrados = lista.filter((d) => !d.enCurso);
   const prom = cerrados.length ? cerrados.reduce((s, d) => s + d.total, 0) / cerrados.length : null;
@@ -188,3 +192,86 @@ export function historial(mes, hoy = isoHoy()) {
   return { mes, dias: lista, cerrados: cerrados.length, promedio: prom, enMeta, meta: metaMes?.meta || null, banda: prom !== null ? banda(prom, metaMes?.meta) : null };
 }
 export const mesesConDatos = () => [...new Set((datosProd()?.filas || []).map((f) => f.fecha.slice(0, 7)))].sort();
+
+// Fija una fila sin peso (el ajuste oficial): cantidad 1 = verificado, puntos = diferencia.
+function fijarCrudo(fecha, tarea, cantidad, puntos) {
+  const pp = pend();
+  pp[clave(fecha, tarea)] = { cantidad, puntos: r4(puntos) };
+  guardar("prodPend", pp, true);
+}
+
+// ---------- Comparar con la planilla oficial del banco ----------
+// Lee el Excel de tu carpeta PRODUCTIVIDAD en Drive, hoja «Mediciones», y se queda SOLO con tu fila.
+// Nada de compañeros se guarda: el archivo se lee en memoria y se descarta.
+const TU_FILA = "Dubois";
+const MESES_X = { ene: 1, feb: 2, mar: 3, abr: 4, may: 5, jun: 6, jul: 7, ago: 8, sep: 9, set: 9, oct: 10, nov: 11, dic: 12 };
+let cargandoX = null;
+function cargarSheetJS() {
+  if (window.XLSX) return Promise.resolve(window.XLSX);
+  if (cargandoX) return cargandoX;
+  cargandoX = new Promise((ok, mal) => {
+    const s = document.createElement("script");
+    s.src = "vendor/sheetjs/xlsx.mini.min.js";
+    s.onload = () => ok(window.XLSX); s.onerror = () => mal(new Error("sheetjs"));
+    document.head.appendChild(s);
+  });
+  return cargandoX;
+}
+
+export function leerMediciones(XLSX, buffer, anioRef) {
+  const wb = XLSX.read(buffer, { type: "array", sheets: ["Mediciones"] });
+  const ws = wb.Sheets.Mediciones;
+  if (!ws) return null;
+  const filas = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: null });
+  const cab = filas.find((r) => r && r.filter((v) => typeof v === "string" && /^\d{1,2}-[a-zé]{3}$/i.test(v.trim())).length > 5);
+  const yo = filas.find((r) => r && r.some((v) => typeof v === "string" && v.trim().toLowerCase() === TU_FILA.toLowerCase()));
+  if (!cab || !yo) return null;
+  const dias = {};
+  cab.forEach((h, i) => {
+    const m = typeof h === "string" && h.trim().toLowerCase().match(/^(\d{1,2})-([a-zé]{3})$/);
+    if (!m || !MESES_X[m[2]] || typeof yo[i] !== "number" || yo[i] <= 0) return;
+    const mes = MESES_X[m[2]];
+    const anio = mes > anioRef.mes + 1 ? anioRef.anio - 1 : anioRef.anio;
+    dias[anio + "-" + String(mes).padStart(2, "0") + "-" + m[1].padStart(2, "0")] = Math.round(yo[i] * 100) / 100;
+  });
+  return dias;
+}
+
+export async function compararOficial() {
+  const DRIVE = "https://www.googleapis.com/drive/v3/files";
+  const q = (s) => DRIVE + "?fields=files(id,name,modifiedTime)&orderBy=modifiedTime desc&pageSize=20&q=" + encodeURIComponent(s);
+  const carpetas = (await api(q("name = 'PRODUCTIVIDAD' and mimeType = 'application/vnd.google-apps.folder' and trashed = false"))).files || [];
+  let archivos = [];
+  for (const c of carpetas) archivos = archivos.concat((await api(q(`'${c.id}' in parents and mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' and trashed = false`))).files || []);
+  archivos.sort((a, b) => b.modifiedTime.localeCompare(a.modifiedTime));
+  if (!archivos.length) throw new Error("sin-archivo");
+  const XLSX = await cargarSheetJS();
+  let mejor = null;
+  for (const f of archivos.slice(0, 4)) {
+    const r = await fetch(DRIVE + "/" + f.id + "?alt=media", { headers: { Authorization: "Bearer " + await pedirPase() } });
+    if (!r.ok) continue;
+    const mod = new Date(f.modifiedTime);
+    let dias = null;
+    try { dias = leerMediciones(XLSX, new Uint8Array(await r.arrayBuffer()), { anio: mod.getFullYear(), mes: mod.getMonth() + 1 }); } catch (e) { dias = null; }
+    if (!dias || !Object.keys(dias).length) continue;
+    const ultimo = Object.keys(dias).sort().pop();
+    if (!mejor || ultimo > mejor.ultimo) mejor = { archivo: f.name, ultimo, dias };
+  }
+  if (!mejor) throw new Error("sin-tu-fila");
+  // Solo se compara desde que Orbe tiene datos tuyos (las semillas de octubre en adelante).
+  const p = datosProd();
+  const desde = (p?.filas || []).map((x) => x.fecha).sort()[0] || "0000";
+  const res = { archivo: mejor.archivo, hasta: mejor.ultimo, verificados: 0, ajustados: 0, nuevos: 0 };
+  Object.entries(mejor.dias).filter(([f]) => f >= desde).forEach(([fecha, oficial]) => {
+    const c = cantidadesDe(fecha);
+    const base = Object.entries(c).filter(([t]) => t !== OFICIAL).reduce((s, [, v]) => s + v.puntos, 0);
+    const dif = r4(oficial - base);
+    if (!Object.keys(c).filter((t) => t !== OFICIAL).length) res.nuevos++;
+    else if (Math.abs(dif) < 0.01) res.verificados++;
+    else res.ajustados++;
+    fijarCrudo(fecha, OFICIAL, 1, Math.abs(dif) < 0.01 ? 0 : dif);
+  });
+  guardar("prodOficial", { cuando: Date.now(), ...res }, true);
+  await mandar();
+  return res;
+}

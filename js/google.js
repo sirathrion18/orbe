@@ -150,17 +150,32 @@ export async function leerAgenda() {
       if (fin < hoy) {
         // Lo pasado se guarda resumido para las cuentas del mes (horas del BNA, gym y fútbol).
         const t = tipoDe(titulo + " " + (c.summary || "") + " " + c.id);
-        if (minutos > 15 && t !== "otro") (historial[dia] = historial[dia] || []).push({ tipo: t, min: minutos });
+        if (minutos > 15 && t !== "otro") (historial[dia] = historial[dia] || []).push({ tipo: t, min: minutos, a: ini.getTime(), b: fin.getTime(), creado: e.created || "" });
         return;
       }
       if (minutos <= 15) { (avisos[dia] = avisos[dia] || []).push({ titulo, inicio: hhmm(ini) }); return; } // recordatorios: fuera del anillo
       const tipo = tipoDe(titulo + " " + (c.summary || "") + " " + c.id);
       const finTxt = iso(fin) === dia ? hhmm(fin) : "23:59";
-      (porDia[dia] = porDia[dia] || []).push({ inicio: hhmm(ini), fin: finTxt, titulo: NOMBRES[tipo] || titulo, original: titulo, tipo });
+      (porDia[dia] = porDia[dia] || []).push({ inicio: hhmm(ini), fin: finTxt, titulo: NOMBRES[tipo] || titulo, original: titulo, tipo,
+        a: ini.getTime(), b: fin.getTime(), creado: e.created || "", cal: c.summary || "" });
     });
   }));
+  // Si dos eventos del mismo tipo se pisan (por ejemplo, un horario viejo del BNA en otro calendario),
+  // queda el creado más recientemente y el otro se anota como conflicto para avisarte.
+  const conflictos = {};
+  const depurar = (lista, dia, avisar) => {
+    const quedan = [];
+    [...lista].sort((x, y) => String(y.creado).localeCompare(String(x.creado))).forEach((ev) => {
+      const pisa = ev.tipo !== "otro" && quedan.find((q) => q.tipo === ev.tipo && ev.a < q.b && q.a < ev.b);
+      if (pisa) { if (avisar) (conflictos[dia] = conflictos[dia] || []).push({ tipo: ev.tipo, descartado: hhmm(new Date(ev.a)) + "–" + hhmm(new Date(ev.b)), cal: ev.cal, queda: pisa.inicio + "–" + pisa.fin }); }
+      else quedan.push(ev);
+    });
+    return quedan.sort((x, y) => x.a - y.a);
+  };
+  Object.keys(porDia).forEach((d) => { porDia[d] = depurar(porDia[d], d, true); });
+  Object.keys(historial).forEach((d) => { historial[d] = depurar(historial[d], d, false).map(({ tipo, min }) => ({ tipo, min })); });
   const agenda = { cuando: Date.now(), porDia, avisos, feriados, libres, cumples, pendientes: [...pendientes.values()],
-    alarmas: [...alarmas].sort((a, b) => a - b), historial };
+    alarmas: [...alarmas].sort((a, b) => a - b), historial, conflictos };
   guardar("agenda", agenda);
   return agenda;
 }

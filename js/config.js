@@ -1,17 +1,17 @@
 // Estructura de Orbe: qué universos hay y qué trae cada uno.
 // Esto es diseño, no datos: no hay nada personal acá.
-export const VERSION = "0.15.1";
+export const VERSION = "0.16.0";
 
 // ID de cliente de Google (es público por diseño: no es una contraseña).
 // Se crea en Google Cloud con el origen https://orbe-5es.pages.dev
 export const GOOGLE_CLIENT_ID = "775947921311-t5edjab9rq99eng3fd3dh1bs5c1jd8e7.apps.googleusercontent.com";
 
 export const UNIVERSOS = [
-  { id: "agus", nombre: "Agus", corto: "Agus", color: "#E46A7E",
-    bajada: "El universo compartido: compras, comidas y planes de los dos.",
+  { id: "agus", nombre: "Amorcitos", corto: "Amorcitos", color: "#E46A7E",
+    bajada: "Lo de los dos: compras, comidas, planes y fechas.",
     palabras: "pareja super compras menu comidas planes" },
   { id: "bna", nombre: "BNA", corto: "BNA", color: "tipo:bna", bloqueo: true,
-    bajada: "Tus horarios y tus recibos. Nada del banco como empleador.",
+    bajada: "Tu productividad, tus horarios y tu sueldo.",
     palabras: "trabajo laburo horario recibo sueldo turnos" },
   { id: "ufasta", nombre: "UFASTA", corto: "UFASTA", color: "tipo:ufasta",
     bajada: "Tus materias, entregas, notas y lo nuevo del campus.",

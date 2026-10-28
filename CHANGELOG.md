@@ -1,5 +1,15 @@
 # Novedades de Orbe
 
+## v0.16.0 · 28/10/2026
+
+Lunes, River, Amorcitos, reloj y productividad verificada.
+
+- Lunes arreglado: si dos eventos del BNA se pisan, queda el más nuevo y BNA te avisa qué descartó. El horario fijo del lunes pasó a 8:00–15:30.
+- River: la cuenta regresiva va apilada adentro de la banda (días, horas, minutos; en la página de River, también segundos). «Liga Profesional» en criollo, estadio con nombre corto y River siempre en negrita, en todo Orbe.
+- El universo Agus ahora se llama Amorcitos.
+- El reloj de Inicio tiene rayitas a las 3, 9, 15 y 21, y rayitas finas en el resto de las horas.
+- Productividad: botón «Comparar con la planilla del banco». Lee tu Excel de la carpeta PRODUCTIVIDAD (solo tu fila), deja con ✓ los días que coinciden, ajusta los que no y suma los que faltaban.
+
 ## v0.15.1 · 28/10/2026
 
 Arreglo de las semillas y del aviso de Drive.

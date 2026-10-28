@@ -2,10 +2,10 @@
 import { cargarDatos, cargarClima, mezclar } from "./fuente.js";
 import * as G from "./google.js";
 import { construirContexto } from "./contexto.js";
-import { renderInicio, despuesInicio, esc, colorUniverso } from "./inicio.js";
+import { renderInicio, despuesInicio, esc, colorUniverso, regresiva } from "./inicio.js";
 import { ICONOS } from "./iconos.js";
 import { renderRiver, renderUniverso, renderBloqueo, renderIdeas, renderAgenda, renderRespiro, renderDatos, renderAjustes, renderNovedades, renderNoEncontrado, hojaMovimiento, hojaTp, hojaMateria, hojaAsignar, hojaAgus, hojaPartido, hojaPasos, hojaPesos } from "./paginas.js";
-import { HOJAS_PROD, leerProd, datosProd, mandar as mandarProd, hayPendientes as prodPendiente, cambiar as prodCambiar, fijar as prodFijar, aplicarPreset, guardarPesos, cantidadesDe, isoHoy } from "./productividad.js";
+import { HOJAS_PROD, leerProd, datosProd, compararOficial, mandar as mandarProd, hayPendientes as prodPendiente, cambiar as prodCambiar, fijar as prodFijar, aplicarPreset, guardarPesos, cantidadesDe, isoHoy } from "./productividad.js";
 import { HOJAS_LISTAS, leerListas, datosListas, traerGithub, agregarAgus, tildarAgus, anotarPartido, guardarProximos } from "./listas.js";
 import { sincronizar, activa as sincroActiva } from "./sincro.js";
 import { leerPlanilla, traerMails, corregir, datosFinanzas, pendientesDeTarjetas, guardarTope } from "./finanzas.js";
@@ -101,9 +101,35 @@ function pintar(refresco = false) {
 
   app.innerHTML = franjaSesion() + html + (esInicio ? "" : barraInferior(r, tema));
   document.body.classList.toggle("con-barra", !esInicio);
+  riverEnNegrita(app);
   if (esInicio) { despuesInicio(app, !refresco); conectarBuscador(); }
   document.title = esInicio ? "Orbe" : "Orbe · " + (app.querySelector("h1")?.textContent.trim() || "");
 }
+
+// «River», siempre en negrita, en todo Orbe.
+function riverEnNegrita(raiz) {
+  const w = document.createTreeWalker(raiz, NodeFilter.SHOW_TEXT, {
+    acceptNode: (n) => /\bRiver\b/.test(n.nodeValue) && !n.parentElement.closest("b, strong, input, textarea, select, option, script, style, .riv")
+      ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT
+  });
+  const nodos = [];
+  while (w.nextNode()) nodos.push(w.currentNode);
+  nodos.forEach((n) => {
+    const frag = document.createDocumentFragment();
+    n.nodeValue.split(/(\bRiver\b)/).forEach((parte) => {
+      if (parte === "River") { const b = document.createElement("b"); b.className = "riv"; b.textContent = "River"; frag.append(b); }
+      else if (parte) frag.append(document.createTextNode(parte));
+    });
+    n.replaceWith(frag);
+  });
+}
+
+// La cuenta regresiva de River se mueve sola: segundos en su página, minutos en Inicio.
+setInterval(() => {
+  document.querySelectorAll(".regre[data-hasta]").forEach((el) => {
+    if (el.dataset.seg === "1" || new Date().getSeconds() === 0) el.outerHTML = regresiva(Number(el.dataset.hasta), el.dataset.seg === "1");
+  });
+}, 1000);
 
 // Franja de arriba cuando hay que volver a conectar: un toque y listo.
 function franjaSesion() {
@@ -322,6 +348,11 @@ document.addEventListener("click", (e) => {
   else if (a === "prod-mes") { if (el.dataset.mes) { sesion("prodMes", el.dataset.mes); pintar(true); } }
   else if (a === "prod-ir") { sesion("prodFecha", el.dataset.fecha === isoHoy() ? null : el.dataset.fecha); window.scrollTo({ top: 0, behavior: "smooth" }); pintar(true); }
   else if (a === "prod-pesos") abrirHoja(hojaPesos(), "Editar pesos");
+  else if (a === "prod-comparar") {
+    avisar("Comparando con la planilla del banco…");
+    compararOficial().then((r) => { avisar(`Listo: ${r.verificados} coinciden, ${r.ajustados} ajustados, ${r.nuevos} agregados`); pintar(true); })
+      .catch((e) => avisar(e.message === "sin-archivo" ? "No encontré la carpeta PRODUCTIVIDAD con el Excel en tu Drive" : e.message === "sin-tu-fila" ? "No encontré tu fila en «Mediciones»" : "No se pudo: " + textoError(e.message)));
+  }
   else if (a === "agus-nuevo") abrirHoja(hojaAgus(el.dataset.tipo), "Agregar");
   else if (a === "partido-nuevo") abrirHoja(hojaPartido(), "Anotar partido");
   else if (a === "proyecto-pasos") {
@@ -671,7 +702,18 @@ function leerHojaDelLink() {
 window.addEventListener("hashchange", () => { if (leerHojaDelLink()) refrescarTodo(true); });
 
 // ---------- Arranque ----------
+// Ajustes de una sola vez entre versiones.
+function migrar() {
+  // v0.16: los lunes ahora son de 8:00 a 15:30 (antes 9:45 a 17:15).
+  if (!leer("migr016")) {
+    const h = leer("horario", {});
+    if (h[1] && h[1].inicio === "09:45" && h[1].fin === "17:15") { h[1] = { inicio: "08:00", fin: "15:30" }; guardar("horario", h); }
+    guardar("migr016", true, true);
+  }
+}
+
 (async function arrancar() {
+  migrar();
   try {
     const { datos } = await cargarDatos();
     estado.datos = datos;

@@ -1,6 +1,18 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.16.0",
+    fecha: "28/10/2026",
+    titulo: "Lunes, River, Amorcitos, reloj y productividad verificada.",
+    cambios: [
+      "Lunes arreglado: si dos eventos del BNA se pisan, queda el más nuevo y BNA te avisa qué descartó. El horario fijo del lunes pasó a 8:00–15:30.",
+      "River: la cuenta regresiva va apilada adentro de la banda (días, horas, minutos; en la página de River, también segundos). «Liga Profesional» en criollo, estadio con nombre corto y River siempre en negrita, en todo Orbe.",
+      "El universo Agus ahora se llama Amorcitos.",
+      "El reloj de Inicio tiene rayitas a las 3, 9, 15 y 21, y rayitas finas en el resto de las horas.",
+      "Productividad: botón «Comparar con la planilla del banco». Lee tu Excel de la carpeta PRODUCTIVIDAD (solo tu fila), deja con ✓ los días que coinciden, ajusta los que no y suma los que faltaban."
+    ]
+  },
+  {
     version: "0.15.1",
     fecha: "28/10/2026",
     titulo: "Arreglo de las semillas y del aviso de Drive.",

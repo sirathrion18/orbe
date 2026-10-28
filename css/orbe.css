@@ -379,23 +379,27 @@ form.evento { display: grid; gap: 10px; }
 @media (min-width: 560px) { .fila-evento { grid-template-columns: 1.4fr 1fr 1fr; } .fila-evento input[type=date] { grid-column: auto; } }
 @media (prefers-reduced-motion: no-preference) { .meta { transition: border-color .3s; } }
 
-/* v0.14: River (blanco con la banda roja cruzada) y el aviso de fichar */
+/* River: tarjeta blanca con la banda roja cruzada; la cuenta regresiva va apilada adentro de la banda */
 .w.river { position: relative; overflow: hidden; text-decoration: none; color: #111; background: #FFFFFF;
-  border: 1px solid rgba(0,0,0,.08); padding-right: 104px; }
-.w.river::before { content: ""; position: absolute; inset: 0; pointer-events: none;
-  background: linear-gradient(106deg, transparent 0 72%, #E2001A 72% 90%, transparent 90%); }
-.w.river > * { position: relative; }
+  border: 1px solid rgba(0,0,0,.08); padding-right: 118px; min-height: 118px; justify-content: center; }
+.w.river > :not(.banda-river) { position: relative; z-index: 1; }
 .w.river .k { color: #E2001A; }
 .w.river .sub { color: #555; }
 .w.river .tit { font-family: var(--serif); font-weight: 400; font-size: 24px; line-height: 1.1; }
-.w.river .falta { position: absolute; right: 26px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; align-items: center;
-  color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.25); }
-.w.river .falta b { font-family: var(--serif); font-weight: 400; font-size: 40px; line-height: 1; }
-.w.river .falta small { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.banda-river { position: absolute; top: 0; bottom: 0; right: 0; width: 112px; background: #E2001A;
+  clip-path: polygon(38% 0, 100% 0, 100% 0, 62% 100%, 0 100%, 0 100%); display: flex; align-items: center; justify-content: center; }
+.w.river .banda-river { clip-path: polygon(34% 0, 100% 0, 66% 100%, 0 100%); }
+.regre { display: flex; flex-direction: column; align-items: center; gap: 1px; color: #fff; font-variant-numeric: tabular-nums; text-shadow: 0 1px 2px rgba(0,0,0,.2); }
+.regre > span { display: flex; align-items: baseline; gap: 2px; line-height: 1; }
+.regre b { font-family: var(--serif); font-weight: 400; font-size: 20px; }
+.regre small { font-size: 9px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; opacity: .9; }
 .w.river.clasico { box-shadow: 0 0 0 2px #E2001A inset; }
-.w.river.hero { margin-top: 18px; padding: 22px 116px 22px 20px; }
+.w.river.hero { margin-top: 18px; padding: 22px 132px 22px 20px; min-height: 150px; }
+.w.river.hero .banda-river { width: 128px; }
 .w.river.hero .tit { font-size: 30px; }
-.w.river.hero .falta b { font-size: 48px; }
+.w.river.hero .regre b { font-size: 22px; }
+.w.river b.riv, .w.river .tit b { font-weight: 700; }
+@media (min-width: 900px) { .w.river .tit { font-size: 22px; } }
 .res { display: inline-flex; width: 22px; height: 22px; border-radius: 6px; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; margin-right: 6px; }
 .res-G { background: #1F9D55; color: #fff; } .res-E { background: var(--line); } .res-P { background: #E2001A; color: #fff; }
 .tira-bna { border-color: #4F7DF3; }
@@ -453,3 +457,5 @@ form.evento { display: grid; gap: 10px; }
 .peso { display: grid; grid-template-columns: 1fr 86px 58px; gap: 8px; align-items: center; margin-top: 8px; }
 .peso .nombre { font-size: 14px; }
 .peso.cab span { font-size: 10px; font-weight: 600; letter-spacing: .1em; color: var(--muted); text-transform: uppercase; }
+.riv { font-weight: 700; }
+.verif { display: inline-flex; width: 18px; height: 18px; border-radius: 9px; background: #1F9D55; color: #fff; font: 700 11px/18px var(--sans); justify-content: center; vertical-align: 3px; margin-right: 4px; }

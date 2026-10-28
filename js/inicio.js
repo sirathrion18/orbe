@@ -110,9 +110,13 @@ function anillo(datos, ctx, tema) {
     return `<circle class="seg" cx="130" cy="130" r="${r}" fill="none" stroke="${colorTipo(datos, b.tipo, tema)}" stroke-width="${carril ? 7 : 9}"
       stroke-linecap="round" stroke-dasharray="0 ${circ}" data-largo="${largo}" data-circ="${circ}" stroke-dashoffset="${-ini}" ${pasado ? 'stroke-opacity=".4"' : ""}/>`;
   }).join("");
-  const marcas = [0, 6, 12, 18].map((h) => {
-    const a = h / 24 * 2 * Math.PI;
-    return `<circle cx="${130 + 117 * Math.sin(a)}" cy="${130 - 117 * Math.cos(a)}" r="1.6" style="fill:var(--muted)" opacity=".6"/>`;
+  // Esfera de reloj de 24 h: puntitos a las 0, 6, 12 y 18; rayitas a las 3, 9, 15 y 21; rayitas finas en el resto.
+  const marcas = Array.from({ length: 24 }, (_, h) => {
+    const a = h / 24 * 2 * Math.PI, sx = Math.sin(a), cy = -Math.cos(a);
+    if (h % 6 === 0) return `<circle cx="${130 + 117 * sx}" cy="${130 + 117 * cy}" r="1.6" style="fill:var(--muted)" opacity=".6"/>`;
+    const media = h % 3 === 0, r1 = media ? 112 : 114, r2 = 120;
+    return `<line x1="${(130 + r1 * sx).toFixed(2)}" y1="${(130 + r1 * cy).toFixed(2)}" x2="${(130 + r2 * sx).toFixed(2)}" y2="${(130 + r2 * cy).toFixed(2)}"
+      style="stroke:var(--muted)" stroke-width="${media ? 1.6 : 0.8}" stroke-linecap="round" opacity="${media ? 0.55 : 0.35}"/>`;
   }).join("");
   const a = ctx.min / 1440 * 2 * Math.PI;
   const punto = noche ? "" : `<circle cx="${130 + 100 * Math.sin(a)}" cy="${130 + -100 * Math.cos(a)}" r="7" style="fill:var(--text);stroke:var(--bg)" stroke-width="4"/>`;
@@ -346,17 +350,46 @@ export function datosPartido(p, desde) {
 }
 export const resultadoTxt = (u) => (u.gf > u.gc ? "Ganó" : u.gf < u.gc ? "Perdió" : "Empató") + " " + u.gf + "-" + u.gc + (u.penales ? " (" + u.penales[0] + "-" + u.penales[1] + " pen.)" : "") + " vs " + u.rival;
 
+// Nombres en criollo: ESPN los manda en inglés y largos.
+export function torneoCorto(t) {
+  const x = String(t || "");
+  if (/liga profesional|\blpf\b|primera/i.test(x)) return "Liga Profesional";
+  if (/copa argentina/i.test(x)) return "Copa Argentina";
+  if (/libertadores/i.test(x)) return "Libertadores";
+  if (/sudamericana/i.test(x)) return "Sudamericana";
+  if (/trofeo de campeones|supercopa/i.test(x)) return x.replace(/^argentine\s+/i, "");
+  return x.replace(/^argentine\s+/i, "");
+}
+export function estadioCorto(e) {
+  const x = String(e || "");
+  if (/bombonera|alberto j/i.test(x)) return "La Bombonera";
+  if (/monumental|vespucio liberti/i.test(x)) return "El Monumental";
+  const par = x.match(/\(([^)]+)\)/);
+  return par ? par[1] : x;
+}
+// Cuenta regresiva apilada: días / horas / minutos (y segundos en la página de River).
+export function regresiva(fecha, conSegundos) {
+  let s = Math.max(0, Math.floor((new Date(fecha).getTime() - Date.now()) / 1000));
+  const d = Math.floor(s / 86400); s -= d * 86400;
+  const h = Math.floor(s / 3600); s -= h * 3600;
+  const m = Math.floor(s / 60); s -= m * 60;
+  const partes = [[d, "d"], [h, "h"], [m, "m"]].concat(conSegundos ? [[s, "s"]] : []).filter(([v], i) => i > 0 || v > 0);
+  return `<span class="regre" data-hasta="${new Date(fecha).getTime()}" data-seg="${conSegundos ? 1 : 0}">${partes.map(([v, u]) => `<span><b>${String(v).padStart(u === "d" ? 1 : 2, "0")}</b><small>${u}</small></span>`).join("")}</span>`;
+}
+
 function wRiver(ctx) {
   const rv = leer("river");
   if (!rv || (!rv.proximo && !rv.ultimo)) return "";
   const p = rv.proximo, u = rv.ultimo;
   const d = p && datosPartido(p, ctx.fecha);
-  const jugando = p && d.dias === 0 && Date.now() >= new Date(p.fecha).getTime() && Date.now() < new Date(p.fecha).getTime() + 2 * 3600000;
+  const inicio = p ? new Date(p.fecha).getTime() : 0;
+  const jugando = p && Date.now() >= inicio && Date.now() < inicio + 2 * 3600000;
+  const banda = !p ? "" : jugando ? '<span class="banda-river"><span class="regre"><span><b>EN</b><small>juego</small></span></span></span>'
+    : `<span class="banda-river">${regresiva(p.fecha, false)}</span>`;
   return `<a class="w ancho river ${p?.clasico ? "clasico" : ""}" href="#/river" aria-label="River: abrir todo lo del club">
-    <div class="fila"><span class="k">${p?.clasico ? "Superclásico" : "River"}${p?.torneo ? " · " + esc(p.torneo) : ""}</span></div>
-    ${d ? `<span class="falta">${jugando ? "<b>Ya</b><small>jugando</small>" : d.dias <= 0 ? "<b>Hoy</b>" : d.dias === 1 ? "<b>1</b><small>día</small>" : "<b>" + d.dias + "</b><small>días</small>"}</span>` : ""}
-    ${p ? `<span class="tit">${esc(d.titulo)}</span><span class="sub">${d.dia} · ${d.hora}${p.estadio ? " · " + esc(p.estadio) : ""}</span>` : '<span class="tit">Sin partido confirmado</span>'}
-    ${u ? `<span class="sub">Último: ${esc(resultadoTxt(u))}</span>` : ""}</a>`;
+    <span class="k">${p?.clasico ? "Superclásico" : "River"}${p?.torneo ? " · " + esc(torneoCorto(p.torneo)) : ""}</span>
+    ${p ? `<span class="tit">${esc(d.titulo)}</span><span class="sub">${d.dia} · ${d.hora}${p.estadio ? " · " + esc(estadioCorto(p.estadio)) : ""}</span>` : '<span class="tit">Sin partido confirmado</span>'}
+    ${u ? `<span class="sub">Último: ${esc(resultadoTxt(u))}</span>` : ""}${banda}</a>`;
 }
 
 function wPasos(datos) {

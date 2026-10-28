@@ -2,10 +2,10 @@
 import { UNIVERSOS, PROMOS, PROMOS_SIEMPRE, VERSION } from "./config.js";
 import { NOVEDADES } from "./novedades.js";
 import { ICONOS, MARCA } from "./iconos.js";
-import { esc, colorTipo, colorUniverso, datosPartido, resultadoTxt } from "./inicio.js";
+import { esc, colorTipo, colorUniverso, datosPartido, resultadoTxt, torneoCorto, estadioCorto, regresiva } from "./inicio.js";
 import { DIAS, DIAS_CORTOS, bloquesDe, bloquesFecha, pendientesCon, cuandoTexto, duracion, hhmm, MODOS, lunesDe, minutosDia, sumaTipo } from "./contexto.js";
 import { datosListas, proximaAnual } from "./listas.js";
-import { datosProd, resumenDia, banda, PRESETS, presetPuntos, historial, mesesConDatos, isoHoy, metaDe, HISTORICO, hayPendientes } from "./productividad.js";
+import { datosProd, resumenDia, banda, PRESETS, presetPuntos, historial, mesesConDatos, isoHoy, metaDe, HISTORICO, OFICIAL, hayPendientes } from "./productividad.js";
 import { permisos as permisosG } from "./google.js";
 import { leer, todo, sesion as sesionLeer } from "./almacen.js";
 import { datosFinanzas, resumenMes, topesSugeridos } from "./finanzas.js";
@@ -155,6 +155,21 @@ const PAGINAS = {
     const pm = new Date(ctx.fecha.getFullYear(), ctx.fecha.getMonth(), 1), um = new Date(ctx.fecha.getFullYear(), ctx.fecha.getMonth() + 1, 0);
     const mes = sumaTipo(datos, pm, um, "bna", ctx.fecha);
     const h = (min) => (Math.round(min / 6) / 10).toLocaleString("es-AR") + " h";
+    // Choques: dos eventos del BNA el mismo día, o el calendario distinto del horario fijo.
+    const ag = datos.agenda;
+    const avisosHorario = [];
+    if (ag) {
+      Object.entries(ag.conflictos || {}).filter(([d]) => d >= isoHoy(ctx.fecha)).forEach(([d, cs]) => cs.filter((c) => c.tipo === "bna").forEach((c) =>
+        avisosHorario.push(`${diaLargo(d)}: dejé ${c.queda} y descarté ${c.descartado}${c.cal ? " (calendario «" + esc(c.cal) + "»)" : ""}.`)));
+      const fijo = leer("horario", {});
+      for (let i = 0; i < 7; i++) {
+        const f = new Date(ctx.fecha.getFullYear(), ctx.fecha.getMonth(), ctx.fecha.getDate() + i);
+        const h = fijo[f.getDay()], cal = (ag.porDia[isoHoy(f)] || []).find((b) => b.tipo === "bna");
+        if (h && h.inicio && cal && (cal.inicio !== h.inicio || cal.fin !== h.fin)) avisosHorario.push(`${diaLargo(isoHoy(f))}: el calendario dice ${cal.inicio}–${cal.fin} y tu horario fijo ${h.inicio}–${h.fin}.`);
+      }
+    }
+    const aviso = avisosHorario.length ? `<section class="bloque aviso-suave"><h2>Ojo con los horarios</h2><ul class="lista">${[...new Set(avisosHorario)].map((t) => `<li><span>${t}</span></li>`).join("")}</ul>
+      <p class="fuente-dato">El horario fijo se cambia en Ajustes; el del calendario, en Google Calendar.</p></section>` : "";
     const horas = `<section class="bloque"><h2>Horas</h2><div class="trio">
         <div><span class="k">Semana</span><b>${h(sem.hecho)}</b><span class="fuente-dato" style="margin:0">de ${h(sem.hecho + sem.agenda)}</span></div>
         <div><span class="k">${MESES_LARGOS[ctx.fecha.getMonth()]}</span><b>${h(mes.hecho)}</b><span class="fuente-dato" style="margin:0">de ${h(mes.hecho + mes.agenda)}</span></div>
@@ -174,7 +189,7 @@ const PAGINAS = {
       `<button class="pestana ${tab === id ? "on" : ""}" role="tab" aria-selected="${tab === id}" data-accion="bna-tab" data-tab="${id}">${t}</button>`).join("")}</div>`;
     const nunca = `<section class="bloque"><h2>Lo que nunca entra</h2><p class="vacio">Solo tus números: nada de clientes, compañeros ni el contenido de los informes.</p></section>`;
     if (tab === "prod") return pestanas + bloqueProductividad(ctx) + nunca;
-    return `${pestanas}${semana(0)}${semana(1)}${horas}${sueldo}
+    return `${pestanas}${aviso}${semana(0)}${semana(1)}${horas}${sueldo}
       <section class="bloque"><h2>Fichar</h2><p>Media hora antes de entrar, Inicio te recuerda fichar en Teams. Tocás «Listo» y desaparece hasta el día siguiente.</p></section>
       ${nunca}`;
   },
@@ -254,7 +269,7 @@ const PAGINAS = {
     return `${semanaHtml}${futbol}
       <section class="bloque"><h2>Meditación</h2><div class="medita"><span class="reloj" id="medita-reloj">05:00</span>
         <div class="chips">${[3, 5, 10].map((m) => `<button class="chip" data-accion="medita" data-min="${m}">${m} min</button>`).join("")}<button class="chip" data-accion="medita-parar">Parar</button></div></div></section>
-      <section class="bloque"><h2>Comida</h2><p>El menú de la semana vive en el universo compartido.</p><div class="chips" style="margin-top:12px"><a class="chip" href="#/u/agus">Ver menú con Agus</a></div></section>
+      <section class="bloque"><h2>Comida</h2><p>El menú de la semana vive en Amorcitos.</p><div class="chips" style="margin-top:12px"><a class="chip" href="#/u/agus">Ver menú con Agus</a></div></section>
       ${pronto("Pasos y sueño", "Llegan con Satélite, la mini app Android que lee Health Connect de tu celu y del reloj.")}
       ${pronto("Rutina de gym", "La armamos más adelante.")}`;
   },
@@ -589,19 +604,19 @@ export function renderRiver(ctx) {
   if (!rv || (!rv.proximo && !rv.ultimo)) return `<div class="pagina">${vuelta}<section class="bloque"><p class="vacio">Todavía no llegaron los datos. Tocá ↻ en Inicio.</p></section></div>`;
   const p = rv.proximo;
   const d = p && datosPartido(p, ctx.fecha);
-  const hero = p ? `<section class="w river ancho hero ${p.clasico ? "clasico" : ""}"><div class="fila"><span class="k">${p.clasico ? "Superclásico" : "Próximo partido"} · ${esc(p.torneo)}</span></div>
-      <span class="tit">${esc(d.titulo)}</span><span class="sub">${d.dia} · ${d.hora}${p.estadio ? " · " + esc(p.estadio) : ""}</span>
-      <span class="falta">${d.dias <= 0 ? "<b>Hoy</b>" : d.dias === 1 ? "<b>1</b><small>día</small>" : "<b>" + d.dias + "</b><small>días</small>"}</span></section>` : "";
+  const hero = p ? `<section class="w river ancho hero ${p.clasico ? "clasico" : ""}"><span class="k">${p.clasico ? "Superclásico" : "Próximo partido"} · ${esc(torneoCorto(p.torneo))}</span>
+      <span class="tit">${esc(d.titulo)}</span><span class="sub">${d.dia} · ${d.hora}${p.estadio ? " · " + esc(estadioCorto(p.estadio)) : ""}</span>
+      <span class="banda-river">${regresiva(p.fecha, true)}</span></section>` : "";
   const prox = (rv.proximos || []).slice(1);
   const R = (u) => u.gf > u.gc ? "G" : u.gf < u.gc ? "P" : "E";
   const ult = rv.ultimos || (rv.ultimo ? [rv.ultimo] : []);
   const t = rv.tabla;
   return `<div class="pagina">${vuelta}${hero}
-    ${prox.length ? `<section class="bloque"><h2>Lo que sigue</h2><ul class="lista">${prox.map((x) => { const dx = datosPartido(x, ctx.fecha); return `<li><span>${x.clasico ? "<b>Superclásico</b> · " : ""}${x.local ? "vs " : "en cancha de "}${esc(x.rival)}<br><small class="vacio">${esc(x.torneo)}</small></span><span class="tag">${dx.dia} · ${dx.hora}</span></li>`; }).join("")}</ul></section>` : ""}
-    ${ult.length ? `<section class="bloque"><h2>Últimos resultados</h2><ul class="lista">${ult.map((x) => `<li><span><span class="res res-${R(x)}">${R(x)}</span> ${x.gf}-${x.gc}${x.penales ? ` (${x.penales[0]}-${x.penales[1]} pen.)` : ""} ${x.local ? "vs" : "en cancha de"} ${esc(x.rival)}<br><small class="vacio">${esc(x.torneo)}</small></span><span class="tag">${new Date(x.fecha).getDate()}/${new Date(x.fecha).getMonth() + 1}</span></li>`).join("")}</ul></section>` : ""}
+    ${prox.length ? `<section class="bloque"><h2>Lo que sigue</h2><ul class="lista">${prox.map((x) => { const dx = datosPartido(x, ctx.fecha); return `<li><span>${x.clasico ? "<b>Superclásico</b> · " : ""}${x.local ? "vs " : "en cancha de "}${esc(x.rival)}<br><small class="vacio">${esc(torneoCorto(x.torneo))}</small></span><span class="tag">${dx.dia} · ${dx.hora}</span></li>`; }).join("")}</ul></section>` : ""}
+    ${ult.length ? `<section class="bloque"><h2>Últimos resultados</h2><ul class="lista">${ult.map((x) => `<li><span><span class="res res-${R(x)}">${R(x)}</span> ${x.gf}-${x.gc}${x.penales ? ` (${x.penales[0]}-${x.penales[1]} pen.)` : ""} ${x.local ? "vs" : "en cancha de"} ${esc(x.rival)}<br><small class="vacio">${esc(torneoCorto(x.torneo))}</small></span><span class="tag">${new Date(x.fecha).getDate()}/${new Date(x.fecha).getMonth() + 1}</span></li>`).join("")}</ul></section>` : ""}
     ${t ? `<section class="bloque"><h2>Tabla <span class="tag">${esc(t.zona)}</span></h2><div class="trio">
       <div><span class="k">Posición</span><b>${t.pos}° de ${t.equipos}</b></div><div><span class="k">Puntos</span><b>${t.pts}</b></div><div><span class="k">PJ · G-E-P</span><b>${t.pj} · ${t.g}-${t.e}-${t.p}</b></div></div>
-      <p class="fuente-dato">${esc(t.torneo)}. Diferencia de gol: ${t.dg > 0 ? "+" : ""}${t.dg}.</p></section>` : ""}
+      <p class="fuente-dato">${esc(torneoCorto(t.torneo))}. Diferencia de gol: ${t.dg > 0 ? "+" : ""}${t.dg}.</p></section>` : ""}
     <section class="bloque"><h2>Accesos</h2><div class="chips"><a class="chip" href="https://www.cariverplate.com.ar" target="_blank" rel="noopener">Sitio oficial</a><a class="chip" href="https://www.espn.com.ar/futbol/equipo/_/id/16/river-plate" target="_blank" rel="noopener">River en ESPN</a></div></section></div>`;
 }
 
@@ -653,7 +668,8 @@ function bloqueProductividad(ctx) {
   const hist = r.c[HISTORICO];
   const tareas = `<section class="bloque"><h2>Tareas</h2><ul class="lista contadores">
       ${habituales.map((t) => fila(t, r.c[t.tarea]?.cantidad)).join("")}${usadas.map((t) => fila(t, r.c[t.tarea]?.cantidad)).join("")}
-      ${hist ? `<li class="contador"><span><b>${HISTORICO}</b><br><small class="vacio">MS, cambios de cartera y otras, del total del banco</small></span><span></span><span class="pts">${f1(hist.puntos)}</span></li>` : ""}</ul>
+      ${hist ? `<li class="contador"><span><b>${HISTORICO}</b><br><small class="vacio">MS, cambios de cartera y otras, del total del banco</small></span><span></span><span class="pts">${f1(hist.puntos)}</span></li>` : ""}
+      ${r.c[OFICIAL] ? `<li class="contador"><span><b>✓ Verificado con la planilla del banco</b><br><small class="vacio">${Math.abs(r.c[OFICIAL].puntos) >= 0.05 ? "Ajuste para que dé igual al oficial" : "Coincide con el oficial"}</small></span><span></span><span class="pts">${Math.abs(r.c[OFICIAL].puntos) >= 0.05 ? (r.c[OFICIAL].puntos > 0 ? "+" : "") + f1(r.c[OFICIAL].puntos) : ""}</span></li>` : ""}</ul>
     <form class="form" data-form="prod-otra"><select name="tarea" aria-label="Otra tarea" required><option value="">Otras tareas…</option>${otras.map((t) => `<option value="${esc(t.tarea)}">${esc(t.tarea)} · ${f1(t.puntos).replace(",0", "")}</option>`).join("")}</select><button class="btn">Sumar</button></form></section>`;
 
   // Presets
@@ -684,9 +700,11 @@ function bloqueProductividad(ctx) {
       <div><span class="k">Mejor día</span><b>${f1(Math.max(...hi.dias.map((d) => d.total)))}</b></div></div>
       ${grafico}
       ${((fila) => { const ds = hi.dias.slice().reverse(); return `<ul class="lista dias-prod">${ds.slice(0, 5).map(fila).join("")}</ul>` +
-        (ds.length > 5 ? `<details class="mas"><summary>Ver los ${ds.length} días</summary><ul class="lista dias-prod">${ds.slice(5).map(fila).join("")}</ul></details>` : ""); })((d) => `<li><button class="dia-prod" data-accion="prod-ir" data-fecha="${d.fecha}"><span>${diaLargo(d.fecha)}</span><span class="der">${f1(d.total)}${d.banda ? ` <span class="chip-banda chica b-${d.banda.id}">${d.banda.txt}</span>` : d.enCurso ? ' <span class="tag">en curso</span>' : ""}</span></button></li>`)}`
+        (ds.length > 5 ? `<details class="mas"><summary>Ver los ${ds.length} días</summary><ul class="lista dias-prod">${ds.slice(5).map(fila).join("")}</ul></details>` : ""); })((d) => `<li><button class="dia-prod" data-accion="prod-ir" data-fecha="${d.fecha}"><span>${diaLargo(d.fecha)}</span><span class="der">${f1(d.total)}${d.verificado ? ' <span class="verif" title="Verificado con la planilla del banco">✓</span>' : ""}${d.banda ? ` <span class="chip-banda chica b-${d.banda.id}">${d.banda.txt}</span>` : d.enCurso ? ' <span class="tag">en curso</span>' : ""}</span></button></li>`)}`
       : '<p class="vacio">Sin días cargados en este mes.</p>'}
-    <p class="fuente-dato">Bandas: más de la meta Óptimo, hasta un 10% abajo Esperado, menos es Bajo. La meta va según la fecha.</p></section>`;
+    <p class="fuente-dato">Bandas: más de la meta Óptimo, hasta un 10% abajo Esperado, menos es Bajo. La meta va según la fecha.</p>
+    ${(() => { const o = leer("prodOficial"); return `<div class="chips" style="margin-top:12px"><button class="chip" data-accion="prod-comparar">Comparar con la planilla del banco</button></div>
+      <p class="fuente-dato">${o ? `Última comparación: ${new Date(o.cuando).toLocaleDateString("es-AR")} con «${esc(o.archivo)}» (hasta el ${o.hasta.slice(8)}/${o.hasta.slice(5, 7)}): ${o.verificados} coinciden, ${o.ajustados} ajustados, ${o.nuevos} agregados. ` : ""}Lee tu carpeta PRODUCTIVIDAD de Drive y toma solo tu fila; los días que coinciden quedan con ✓.</p>`; })()}</section>`;
 
   const pie = `<section class="bloque"><h2>Pesos y metas</h2><p>Cuánto vale cada tarea y la meta de cada período. Si el banco cambia un peso, lo cambiás acá y vale desde ese día: lo ya cargado no se mueve.</p>
     <div class="chips" style="margin-top:12px"><button class="chip" data-accion="prod-pesos">Editar pesos</button>${linkHoja() ? `<a class="chip" href="${esc(linkHoja())}" target="_blank" rel="noopener">Abrir la planilla</a>` : ""}</div>
