@@ -3,7 +3,7 @@ import { proximaAnual } from "./listas.js";
 import { SALUDOS } from "./saludos.js";
 import { UNIVERSOS } from "./config.js";
 import { ICONOS, TELA, MARCA } from "./iconos.js";
-import { DIAS, MESES, hhmm, duracion, urgentes, cuandoTexto, pendientesCon } from "./contexto.js";
+import { DIAS, MESES, hhmm, duracion, urgentes, urgentesTodos, cuandoTexto, pendientesCon } from "./contexto.js";
 import { permisos as permisosG } from "./google.js";
 import { describirClima } from "./fuente.js";
 import { leer } from "./almacen.js";
@@ -115,7 +115,7 @@ function anillo(datos, ctx, tema) {
   // Esfera de reloj de 24 h: puntitos a las 0, 6, 12 y 18; rayitas a las 3, 9, 15 y 21; rayitas finas en el resto.
   const marcas = Array.from({ length: 24 }, (_, h) => {
     const a = h / 24 * 2 * Math.PI, sx = Math.sin(a), cy = -Math.cos(a);
-    if (h % 6 === 0) return `<circle cx="${130 + 117 * sx}" cy="${130 + 117 * cy}" r="1.6" style="fill:var(--muted)" opacity=".6"/>`;
+    if (h % 6 === 0) return `<circle cx="${130 + 117 * sx}" cy="${130 + 117 * cy}" r="3.2" style="fill:var(--muted)" opacity=".8"/>`;
     const media = h % 3 === 0, r1 = media ? 112 : 114, r2 = 120;
     return `<line x1="${(130 + r1 * sx).toFixed(2)}" y1="${(130 + r1 * cy).toFixed(2)}" x2="${(130 + r2 * sx).toFixed(2)}" y2="${(130 + r2 * cy).toFixed(2)}"
       style="stroke:var(--muted)" stroke-width="${media ? 1.6 : 0.8}" stroke-linecap="round" opacity="${media ? 0.55 : 0.35}"/>`;
@@ -270,14 +270,40 @@ function ratoDeEstudio(ctx, datos) {
 }
 
 // ---------- Widgets ----------
+// Dibujos de línea para el clima: trazo fino del color del texto y un solo acento (el sol en ámbar, el rayo en rojo).
+// Nada de cielo azul: con el sol amarillo serían los colores de Boca.
+const SOL = "#D97706";
+const rayos = (cx, cy, r1, r2) => Array.from({ length: 8 }, (_, i) => { const a = i * Math.PI / 4;
+  return `<line x1="${(cx + Math.cos(a) * r1).toFixed(1)}" y1="${(cy + Math.sin(a) * r1).toFixed(1)}" x2="${(cx + Math.cos(a) * r2).toFixed(1)}" y2="${(cy + Math.sin(a) * r2).toFixed(1)}"/>`; }).join("");
+const NUBE = '<path d="M30 98 a16 16 0 0 1 8-30 a22 22 0 0 1 42 4 a14 14 0 0 1 4 26 z" style="fill:var(--bg)" stroke="currentColor" stroke-width="1.8" opacity=".75"/>';
+const NUBE_ALTA = '<path d="M36 50 a14 14 0 0 1 7-26 a20 20 0 0 1 38 3 a13 13 0 0 1 4 23 z" style="fill:var(--bg)" stroke="currentColor" stroke-width="1.8" opacity=".75"/>';
+const gotas = (xs) => '<g stroke="currentColor" stroke-width="1.6" stroke-linecap="round" opacity=".55">' + xs.map(([x, y]) => `<line x1="${x}" y1="${y}" x2="${x - 4}" y2="${y + 9}"/>`).join("") + "</g>";
+const DIBUJOS = {
+  sol: `<g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" opacity=".5">${rayos(60, 58, 32, 41)}</g><circle cx="60" cy="58" r="23" fill="none" stroke="${SOL}" stroke-width="2"/>`,
+  parcial: `<g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" opacity=".5">${rayos(60, 50, 30, 38)}</g><circle cx="60" cy="50" r="21" fill="none" stroke="${SOL}" stroke-width="2"/>${NUBE}`,
+  nube: '<path d="M48 60 a12 12 0 0 1 6-22 a17 17 0 0 1 32 2 a11 11 0 0 1 3 20 z" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".4"/>' + NUBE,
+  lluvia: NUBE_ALTA + gotas([[48, 58], [62, 62], [76, 58], [56, 74], [70, 76]]),
+  tormenta: NUBE_ALTA + `<path d="M62 54 l-8 14 h9 l-6 14" fill="none" stroke="#C8102E" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>` + gotas([[46, 58], [80, 58]]),
+  luna: '<path d="M74 34 a26 26 0 1 0 14 40 a20 20 0 1 1 -14 -40 z" fill="none" stroke="currentColor" stroke-width="1.8" opacity=".75"/><g fill="currentColor" opacity=".5"><circle cx="34" cy="40" r="1.6"/><circle cx="26" cy="64" r="1.2"/><circle cx="46" cy="24" r="1.2"/></g>',
+  niebla: '<g stroke="currentColor" stroke-width="1.8" stroke-linecap="round" opacity=".55"><line x1="20" y1="56" x2="96" y2="56"/><line x1="30" y1="68" x2="104" y2="68"/><line x1="16" y1="80" x2="88" y2="80"/><line x1="28" y1="92" x2="100" y2="92"/></g>'
+};
+export function dibujoClima(codigo, deNoche) {
+  const d = describirClima(codigo);
+  let k = d.icono;
+  if (codigo === 45 || codigo === 48) k = "niebla";
+  if (deNoche && (k === "sol" || k === "parcial")) k = "luna";
+  return `<svg class="clima-dib" viewBox="0 0 120 120" aria-hidden="true">${DIBUJOS[k] || DIBUJOS.parcial}</svg>`;
+}
+
 function wClima(clima, ctx) {
   const noche = clima && clima.manana && ctx && ctx.modo === "noche";
   const c = noche ? { ...clima.manana, temp: clima.manana.max } : clima;
-  if (!c) return `<div class="w clima"><span class="k">CABA</span><div class="fila-clima"><span class="grande">—</span></div><span class="sub">Sin datos del clima</span></div>`;
+  if (!c) return `<div class="w clima marco"><span class="k">CABA</span><div class="fila-clima"><span class="grande">—</span></div><span class="sub">Sin datos del clima</span></div>`;
   const d = describirClima(c.codigo);
-  return `<div class="w clima"><div class="fila"><span class="k">${noche ? "Mañana" : "CABA"}</span><span class="ico">${ICONOS[d.icono]}</span></div>
+  const h = ctx ? Math.floor(ctx.min / 60) : 12;
+  return `<div class="w clima marco"><span class="k">${noche ? "Mañana" : "CABA"}</span>
     <div class="fila-clima"><span class="grande">${c.temp}°</span><span class="minmax"><span>↑${c.max}°</span><span>↓${c.min}°</span></span></div>
-    <span class="sub">${d.estado}</span></div>`;
+    <span class="sub">${d.estado}</span>${dibujoClima(c.codigo, !noche && (h >= 20 || h < 6))}</div>`;
 }
 
 // Transporte: estado en vivo de tus líneas de subte (E, H, A) y tus colectivos.
@@ -288,32 +314,32 @@ function wTransporte() {
   const mal = vivo ? LINEAS.filter(([l]) => t.lineas[l] && !t.lineas[l].ok).map(([l]) => l) : [];
   const sub = !vivo ? (t?.error === "sin-configurar" ? "Esperando las credenciales de la Ciudad" : "Sin datos en vivo")
     : mal.length ? "Problemas en la " + mal.join(", ") : "Subte normal";
-  return `<div class="w trans ${mal.length ? "con-problemas" : ""}"><span class="k">Transporte</span>
+  return `<div class="w ancho trans ${mal.length ? "con-problemas" : ""}"><span class="k">Transporte</span>
     <div class="lineas">${LINEAS.map(([l, c]) => `<span class="linea ${vivo && mal.includes(l) ? "mal" : ""}" style="background:${c}">${l}</span>`).join("")}<span class="cole">42 · 26 · 135</span></div>
     <span class="sub">${sub}</span></div>`;
 }
 
 function wUrgente(datos, ctx) {
-  const lista = urgentes(datos, ctx);
+  const lista = urgentesTodos(datos, ctx);
   if (!lista.length) {
     if (ctx.modo === "libre" || ctx.modo === "noche") {
       const libre = ctx.modo === "libre";
-      return `<a class="w alto" href="${libre ? "#/u/proyectos" : "#/respiro"}" style="text-decoration:none"><span class="k">${libre ? "Para disfrutar" : "Para cerrar"}</span>
+      return `<a class="w urg-vacio" href="${libre ? "#/u/proyectos" : "#/respiro"}" style="text-decoration:none"><span class="k">${libre ? "Para disfrutar" : "Para cerrar"}</span>
         <span class="tit">${libre ? "Nada urgente. Una partida en a64, un capítulo o un plan." : "Nada pendiente. Un rato de respiro antes de dormir."}</span>
         <span class="sub">${libre ? "Abrir Proyectos" : "Abrir Respiro"}</span></a>`;
     }
-    return `<div class="w alto"><span class="k">Urgente</span><span class="tit">Nada urgente</span><span class="sub">Todo en orden por ahora</span></div>`;
+    return `<a class="w urg-vacio" href="#/urgente" style="text-decoration:none"><span class="k">Urgente</span><span class="tit">Nada urgente</span><span class="sub">Todo en orden por ahora</span></a>`;
   }
-  const [p, segundo] = lista;
-  const resto = lista.length - (segundo ? 2 : 1);
-  return `<div class="w urg alto"><div class="fila"><span class="k">${p.dias < 0 ? "Vencido" : "Urgente"}</span>
+  // La tarjeta lleva a la página de Urgente, donde vive todo lo urgente de cualquier universo.
+  const [p, ...resto] = lista;
+  const despues = resto.slice(0, 2).map((x) => esc(x.titulo.split(" · ")[0]) + " (" + cuandoTexto(x.dias) + ")").join(", ");
+  return `<div class="w urg"><div class="fila"><span class="k">${p.dias < 0 ? "Vencido" : "Urgente"} · ${lista.length}</span>
       <button class="hecho" data-accion="hecho" data-clave="${esc(p.clave)}" aria-label="Marcar ${esc(p.titulo)} como hecho">${ICONOS.check}</button></div>
-    <a href="${esc(p.ruta || "#/u/" + (p.universo || "finanzas"))}" style="text-decoration:none;display:flex;flex-direction:column;gap:6px">
+    <a href="#/urgente" style="text-decoration:none;display:flex;flex-direction:column;gap:6px" aria-label="Abrir todo lo urgente">
       <span class="tit">${esc(p.titulo)}</span>
       ${p.monto ? `<span class="monto">${esc(p.monto)}</span>` : ""}
       <span class="cuando">${cuandoTexto(p.dias)}</span>
-      ${segundo ? `<span class="sub">Después: ${esc(segundo.titulo)} · ${cuandoTexto(segundo.dias)}</span>` : ""}
-      ${resto > 0 ? `<span class="sub">+${resto} más</span>` : ""}</a></div>`;
+      ${resto.length ? `<span class="sub">Después: ${despues}${resto.length > 2 ? ` y ${resto.length - 2} más` : ""} ›</span>` : ""}</a></div>`;
 }
 
 const pesos = (n) => "$\u00a0" + Math.round(n).toLocaleString("es-AR");
@@ -349,7 +375,7 @@ function wDiario(datos, ctx) {
 }
 
 // Lo que no coincide entre lo que cargaste y los mails: de a una pregunta, con botones.
-function wPregunta() {
+export function wPregunta() {
   const q = preguntas();
   if (!q.length) return "";
   const x = q[0], m = x.m, d = new Date(m.ts);
@@ -360,9 +386,16 @@ function wPregunta() {
     <div class="chips">${x.botones.map(([r, t]) => `<button class="chip" data-accion="presu-responder" data-id="${esc(x.id)}" data-r="${r}">${t}</button>`).join("")}</div></div>`;
 }
 
+// En Inicio, las preguntas de plata quedan en una línea que lleva a Finanzas, donde se contestan.
+function avisoPreguntas() {
+  const n = preguntas().length;
+  if (!n) return "";
+  return `<a class="aviso-plata" href="#/u/finanzas"><span class="pt"></span><span><b>${n} ${n === 1 ? "pregunta" : "preguntas"} de plata</b> para contestar en Finanzas</span><span class="fl">›</span></a>`;
+}
+
 function wPlata(datos, ctx) {
   const d = wDiario(datos, ctx);
-  if (d) return wPregunta() + d;
+  if (d) return d;
   const r = resumenMes(datosFinanzas(), ctx.fecha);
   const e = datosEconomia();
   const m = e && e.meses[ctx.fecha.getMonth()];
@@ -444,6 +477,23 @@ function wRiver(ctx) {
     ${u ? `<span class="sub">Último: ${esc(resultadoTxt(u))}</span>` : ""}${banda}</a>`;
 }
 
+// River en cuadradito: el próximo partido, la cuenta de días y horas, y la franja roja.
+function wRiverMini(ctx) {
+  const rv = leer("river");
+  if (!rv || (!rv.proximo && !rv.ultimo)) return "";
+  const p = rv.proximo, u = rv.ultimo;
+  if (!p) return `<a class="w riv-mini" href="#/river"><span class="k">River</span><span class="vs">Último</span><span class="cuando2">${esc(resultadoTxt(u))}</span><span class="franja"></span></a>`;
+  const d = datosPartido(p, ctx.fecha);
+  const falta = new Date(p.fecha).getTime() - Date.now();
+  const jugando = falta <= 0 && falta > -2 * 3600000;
+  const dd = Math.max(0, Math.floor(falta / 86400000)), hh = Math.max(0, Math.floor(falta % 86400000 / 3600000));
+  const cuenta = jugando ? "<b>En juego</b>" : dd ? `<b>${dd}</b>d <b>${String(hh).padStart(2, "0")}</b>h` : `<b>${hh}</b>h <b>${String(Math.max(0, Math.floor(falta % 3600000 / 60000))).padStart(2, "0")}</b>m`;
+  return `<a class="w riv-mini ${p.clasico ? "clasico" : ""}" href="#/river" aria-label="River: abrir todo lo del club">
+    <span class="k">${p.clasico ? "Superclásico" : esc(torneoCorto(p.torneo) || "River")}</span>
+    <span class="vs">River vs ${esc(String(p.rival || "").replace(/ Juniors$| Club$/, ""))}</span>
+    <span class="cuando2">${d.dia.replace(/^([A-Za-zÁÉÍÓÚáéíóú]{3})[a-záéíóú]+ /, "$1 ")} · ${d.hora}</span><span class="cuenta">${cuenta}</span><span class="franja"></span></a>`;
+}
+
 function wPasos(datos) {
   const p = datos.pasos;
   const dif = Math.round((p.hoy / p.promedio - 1) * 100);
@@ -465,30 +515,39 @@ export function renderInicio(datos, ctx, clima, tema) {
   const f = ctx.fecha;
   const fechaTxt = DIAS[f.getDay()] + " " + f.getDate() + " " + MESES[f.getMonth()].slice(0, 3);
   const temaIcono = tema === "oscuro" ? ICONOS.sol : ICONOS.luna;
+  const compacto = !!leer("inicioCompacto");
+  const ahora = new Date();
+  const seg = String(ahora.getSeconds()).padStart(2, "0");
+  // Universos: íconos redondos debajo del reloj (en el modo compacto, botones con nombre).
+  const uniIconos = `<nav class="u-fila" aria-label="Universos">${UNIVERSOS.map((u) => `<a class="uf" href="#/u/${u.id}" aria-label="${esc(u.nombre)}" title="${esc(u.nombre)}" data-nombre="${esc(u.nombre)}"><span class="u-ico" style="color:${colorUniverso(datos, u, tema)}">${ICONOS["u_" + u.id] || ""}</span></a>`).join("")}</nav>`;
+  const uniChips = `<nav class="u-chips" aria-label="Universos">${UNIVERSOS.map((u) => `<a class="uc" href="#/u/${u.id}"><span class="u-ico" style="color:${colorUniverso(datos, u, tema)}">${ICONOS["u_" + u.id] || ""}</span>${esc(u.nombre)}</a>`).join("")}</nav>`;
+  const saludo = `<div class="saludo"><h1>${elegirSaludo(datos, ctx, clima)}</h1></div>`;
+  const river = wRiverMini(ctx);
   return `
   ${ctx.modo === "river" ? '<div class="banda" aria-hidden="true"></div>' : ""}
   ${ctx.modo === "marvel" ? TELA : ""}
-  <div class="inicio">
+  <div class="inicio ${compacto ? "compacto" : ""}">
     <div class="col-a">
-      <div class="top"><span>${fechaTxt}${ctx.demo ? ' <a class="ejemplo" href="#/ajustes" style="text-decoration:none">Prueba</a>' : ""}</span>
-        <span class="der"><span id="reloj">${hhmm(ctx.min)}</span>
+      <div class="top"><span class="fecha-hora">${fechaTxt} <span class="hora">· <span id="hora-top">${hhmm(ctx.min)}</span><span class="seg" id="seg-top">:${seg}</span></span>${ctx.demo ? ' <a class="ejemplo" href="#/ajustes" style="text-decoration:none">Prueba</a>' : ""}</span>
+        <span class="der">
+          <button class="icon-btn" data-accion="buscar" aria-label="Buscar o escribir un comando">${ICONOS.buscar}</button>
           <button class="icon-btn" data-accion="actualizar-todo" aria-label="Actualizar todo">${ICONOS.recargar}</button>
           <button class="icon-btn" data-accion="tema" aria-label="Pasar a modo ${tema === "oscuro" ? "claro" : "oscuro"}">${temaIcono}</button>
           <a class="icon-btn" href="#/ajustes" aria-label="Ajustes">${ICONOS.ajustes}</a></span></div>
-      <div class="saludo"><h1>${elegirSaludo(datos, ctx, clima)}</h1><p>${esc(bajada(ctx))}</p></div>
-      ${anillo(datos, ctx, tema)}
-      ${leyenda(datos, ctx, tema)}
-    </div>
-    <div class="col-b">
-      ${tira(ctx, datos)}
-      <div class="widgets">${wClima(clima, ctx)}${wUrgente(datos, ctx)}${wTransporte()}${wPlata(datos, ctx)}${wRiver(ctx)}</div>
-      <div class="buscador" role="search">
+      <div class="buscador flotante" role="search" hidden>
         <label class="campo"><span class="sr">Buscar o escribir un comando</span>${ICONOS.buscar}
           <input id="q" type="search" autocomplete="off" placeholder="Buscar, o «gasto 3500 súper»"></label>
         <div class="resultados" id="resultados" role="listbox"></div>
       </div>
+      ${compacto ? `<div class="cab">${anillo(datos, ctx, tema)}${saludo}</div>` : `${saludo}${anillo(datos, ctx, tema)}${leyenda(datos, ctx, tema)}${uniIconos}`}
+    </div>
+    <div class="col-b">
+      ${tira(ctx, datos)}
+      ${compacto ? uniChips : ""}
+      <div class="widgets">${wUrgente(datos, ctx)}${river ? wClima(clima, ctx) : wClima(clima, ctx).replace("w clima marco", "w clima marco ancho")}${river}${wPlata(datos, ctx)}</div>
+      ${avisoPreguntas()}
       ${wSemanal()}
-      <div class="universos">${UNIVERSOS.map((u) => `<a class="u" href="#/u/${u.id}"><span class="u-ico" style="color:${colorUniverso(datos, u, tema)}">${ICONOS["u_" + u.id] || ""}</span>${esc(u.nombre)}</a>`).join("")}</div>
+      ${wTransporte()}
       <p class="pie">${MARCA}<br>${pieAgenda(datos)} · <a href="#/novedades">novedades</a> · <a href="privacidad.html">privacidad</a></p>
     </div>
   </div>

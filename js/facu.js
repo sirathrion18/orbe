@@ -110,7 +110,8 @@ export async function guardarMateria(materia, campos) {
 export function pendientesDeTps(f) {
   if (!f) return [];
   return f.tps.filter((t) => !t.hecho && /^\d{4}-\d{2}-\d{2}$/.test(t.fecha)).map((t) => ({
-    titulo: t.titulo, tipo: "facu", universo: "ufasta", fecha: t.fecha, nota: t.materia, clave: ("tp|" + t.id).toLowerCase(), tp: t.id
+    titulo: t.titulo, tipo: "facu", universo: "ufasta", fecha: t.fecha, nota: t.materia, clave: ("tp|" + t.id).toLowerCase(), tp: t.id,
+    fuente: t.fuente || "Campus de UFASTA"
   }));
 }
 

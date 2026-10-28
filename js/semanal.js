@@ -66,7 +66,7 @@ function urgentesDe(doc) {
     const j = JSON.parse(doc.querySelector('script#orbe-urgentes[type="application/json"]')?.textContent || "[]");
     return (Array.isArray(j) ? j : []).filter((u) => u && typeof u.titulo === "string" && /^\d{4}-\d{2}-\d{2}$/.test(u.vence || ""))
       .slice(0, 12).map((u) => ({ titulo: u.titulo.slice(0, 90), vence: u.vence, monto: typeof u.monto === "string" ? u.monto.slice(0, 30) : "",
-        nota: typeof u.nota === "string" ? u.nota.slice(0, 90) : "", link: /^https:\/\/mail\.google\.com\//.test(u.link || "") ? u.link : "" }));
+        nota: typeof u.nota === "string" ? u.nota.slice(0, 90) : "", impacto: typeof u.impacto === "string" ? u.impacto.slice(0, 160) : "", link: /^https:\/\/mail\.google\.com\//.test(u.link || "") ? u.link : "" }));
   } catch (e) { return []; }
 }
 
@@ -76,7 +76,8 @@ export function pendientesDeSemanal(e = ultimaEdicion(), hoy = new Date()) {
   // Hasta que vencen (o los tildás): lo que ya pasó deja de aparecer.
   return e.urgentes.filter((u) => u.vence >= h).map((u) => ({
     titulo: u.titulo, tipo: "vencimiento", universo: "semanal", ruta: "#/semanal", fecha: u.vence, monto: u.monto,
-    nota: (u.nota ? u.nota + " · " : "") + e.nombre + (e.numero ? " N.º " + e.numero : ""), clave: ("semanal|" + u.titulo + "|" + u.vence).toLowerCase()
+    nota: u.nota || "", impacto: u.impacto || "", link: u.link || "",
+    fuente: e.nombre + (e.numero ? " N.º " + e.numero : ""), clave: ("semanal|" + u.titulo + "|" + u.vence).toLowerCase()
   }));
 }
 

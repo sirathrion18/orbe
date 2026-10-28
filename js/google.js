@@ -93,7 +93,7 @@ function pendienteDe(titulo, fecha) {
   return {
     titulo: limpio, monto: m ? m[0].replace(/\s/g, " ").replace("$ ", "$ ") : null, fecha,
     tipo: facu ? "facu" : /tarjeta|visa|master/i.test(titulo) ? "tarjeta" : "vencimiento",
-    universo: facu ? "ufasta" : "finanzas", vernet: /vernet/i.test(titulo),
+    universo: facu ? "ufasta" : "finanzas", vernet: /vernet/i.test(titulo), fuente: "Tu calendario",
     clave: (limpio + "|" + fecha).toLowerCase()
   };
 }

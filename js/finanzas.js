@@ -192,6 +192,9 @@ export function pendientesDeTarjetas(fin) {
       titulo: "Pagar " + d.nombre, tipo: "pago-tarjeta", universo: "finanzas", fecha: String(d.vence),
       monto: "$ " + Math.round(d.saldo).toLocaleString("es-AR"),
       nota: "total para no financiar" + (d.cuota ? " · mínimo $ " + Math.round(d.cuota).toLocaleString("es-AR") : ""),
-      clave: ("tarjeta|" + d.nombre + "|" + d.vence).toLowerCase()
+      clave: ("tarjeta|" + d.nombre + "|" + d.vence).toLowerCase(),
+      // Qué pasa si no se paga todo: sale de la tasa que trae tu planilla (del resumen), no se inventa.
+      impacto: d.tasa > 0 ? "Si pagás menos del total, lo que queda paga " + String(d.tasa).replace(".", ",") + " % de interés por mes." : "",
+      fuente: d.fuente || ""
     }));
 }

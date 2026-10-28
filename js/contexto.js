@@ -134,6 +134,11 @@ export function urgentes(datos, ctx) {
   return lista;
 }
 
+// Todo lo urgente de cualquier universo, para la página de Urgente: lo vencido del último mes y lo de los próximos 7 días.
+export function urgentesTodos(datos, ctx) {
+  return pendientesCon(datos, ctx.fecha).filter((p) => !p.vernet && p.dias >= -30 && p.dias <= 7);
+}
+
 export const cuandoTexto = (dias) =>
   dias < -1 ? "venció hace " + -dias + " días" : dias === -1 ? "venció ayer" :
   dias === 0 ? "hoy" : dias === 1 ? "mañana" : "en " + dias + " días";

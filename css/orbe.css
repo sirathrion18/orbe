@@ -522,3 +522,104 @@ svg .eje { font-size: 10px; fill: var(--muted); font-family: var(--sans); }
 .lector-meta { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .lector-drive { font-size: 13px; font-weight: 600; color: var(--accent); text-decoration: none; padding: 8px; }
 .lector-ed { flex: 1; width: 100%; border: 0; background: #FFFFFF; }
+
+/* ---------- Inicio v0.23: todo más a mano ---------- */
+.top .fecha-hora { white-space: nowrap; }
+.top .hora { color: var(--text); }
+.top .seg { color: var(--muted); font-weight: 500; }
+.buscador.flotante { margin-top: 12px; }
+.saludo { margin-top: 10px; }
+.saludo h1 { font-size: 32px; line-height: 1.05; }
+.anillo { width: 220px; height: 220px; margin-top: 14px; }
+.u-fila { display: flex; justify-content: center; gap: 12px; margin-top: 14px; }
+.uf { display: inline-flex; text-decoration: none; -webkit-touch-callout: none; user-select: none; }
+.uf .u-ico { width: 46px; height: 46px; border-radius: 23px; background: var(--tile); display: flex; align-items: center; justify-content: center; }
+.uf .u-ico svg { width: 21px; height: 21px; }
+.widgets { margin-top: 12px; }
+.widgets .w.urg, .widgets .w.urg-vacio { grid-column: 1 / -1; grid-row: auto; }
+.widgets .w.clima, .widgets .w.trans { grid-column: auto; }
+.widgets .w.clima.ancho { grid-column: 1 / -1; }
+.w.clima.marco { position: relative; overflow: hidden; background: var(--bg); border: 1.5px solid var(--text); min-height: 128px; }
+.w.clima.marco > :not(.clima-dib) { position: relative; z-index: 1; }
+.w.clima.marco .sub { max-width: 62%; }
+.clima-dib { position: absolute; z-index: 0; right: -14px; bottom: -26px; width: 92px; height: 92px; color: var(--text); pointer-events: none; }
+.riv-mini { position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 3px; padding: 14px 50px 14px 14px; border-radius: 18px;
+  border: 1.5px solid #E2001A; background: var(--bg); color: var(--text); text-decoration: none; min-width: 0; }
+.riv-mini > :not(.franja) { position: relative; z-index: 1; }
+.riv-mini .k { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #E2001A; }
+.riv-mini .vs { font-family: var(--serif); font-size: 21px; line-height: 1.05; }
+.riv-mini .cuando2 { white-space: nowrap; }
+.riv-mini .cuando2 { font-size: 12px; color: var(--muted); }
+.riv-mini .cuenta { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.riv-mini .cuenta b { font-family: var(--serif); font-weight: 400; font-size: 20px; color: var(--text); }
+.riv-mini .franja { position: absolute; right: -14px; top: -12px; width: 40px; height: 150%; background: #E2001A; transform: rotate(14deg); }
+.aviso-plata { display: flex; align-items: center; gap: 10px; margin-top: 10px; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--line);
+  font-size: 13.5px; color: var(--text); text-decoration: none; }
+.aviso-plata .pt { width: 8px; height: 8px; border-radius: 4px; background: var(--accent); flex: none; }
+.aviso-plata .fl { margin-left: auto; font-size: 20px; color: var(--muted); }
+.col-b > .w.trans { margin-top: 12px; }
+.fab { width: 44px; height: 44px; border-radius: 22px; bottom: 18px; right: max(16px, calc(50% - 214px)); }
+.fab svg { width: 18px; height: 18px; }
+/* Modo compacto (opcional, en Ajustes): el reloj chico al lado del saludo y los universos con nombre */
+.inicio.compacto .cab { display: flex; align-items: center; gap: 14px; margin-top: 10px; }
+.inicio.compacto .cab .anillo { width: 150px; height: 150px; margin: 0; flex: none; }
+.inicio.compacto .cab .centro .big { font-size: 30px; }
+.inicio.compacto .cab .centro .sub { font-size: 10px; max-width: 100px; }
+.inicio.compacto .cab .centro .lbl { font-size: 9px; }
+.inicio.compacto .cab .saludo { margin: 0; }
+.inicio.compacto .cab .saludo h1 { font-size: 26px; }
+.u-chips { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+.uc { display: flex; align-items: center; gap: 8px; padding: 10px; border-radius: 14px; background: var(--tile); font-size: 12px; font-weight: 500;
+  color: var(--text); text-decoration: none; min-width: 0; }
+.uc .u-ico { width: 18px; height: 18px; flex: none; }
+@media (min-width: 920px) {
+  .saludo h1 { font-size: 46px; }
+  .anillo { width: 300px; height: 300px; margin-top: 24px; }
+  .inicio.compacto .cab .anillo { width: 200px; height: 200px; }
+  .inicio.compacto .cab .saludo h1 { font-size: 38px; }
+  .fab { right: 32px; bottom: 28px; }
+}
+
+/* ---------- Urgente: banda roja ---------- */
+.urg-pag { --r: #C8102E; margin: -18px -20px 0; }
+:root[data-theme="oscuro"] .urg-pag { --r: #E5484D; }
+.cab-urg { display: flex; gap: 10px; align-items: flex-start; padding: 22px 20px 22px; background: var(--r); color: #fff; border-radius: 0 0 26px 26px; }
+.cab-urg .atras { width: 36px; height: 36px; border-radius: 18px; display: flex; align-items: center; justify-content: center; flex: none; margin-top: 2px;
+  color: #fff; border: 1px solid rgba(255, 255, 255, .5); }
+.cab-urg .atras svg { width: 18px; height: 18px; }
+.cab-urg .sup { margin: 0; font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: rgba(255, 255, 255, .88); }
+.cab-urg h1 { margin: 6px 0 2px; font-family: var(--serif); font-weight: 400; font-size: 46px; line-height: 1; color: #fff; }
+.cab-urg .resumen { margin: 4px 0 0; font-size: 14px; color: rgba(255, 255, 255, .88); }
+.urg-lista { padding: 0 16px 30px; }
+.urg-lista .g { display: flex; justify-content: space-between; align-items: center; margin: 18px 4px 8px; font-size: 11px; font-weight: 700;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--r); }
+.urg-lista .g span { font-size: 11px; border-radius: 999px; padding: 2px 8px; background: var(--urg-bg); color: var(--r); }
+.urg-lista .it { display: flex; gap: 12px; padding: 14px; border-radius: 18px; margin-bottom: 10px; background: var(--bg); border: 1.5px solid var(--r); }
+.urg-lista .tilde { flex: none; width: 30px; height: 30px; border-radius: 15px; display: flex; align-items: center; justify-content: center; padding: 0;
+  background: transparent; border: 1.5px solid var(--r); color: var(--r); }
+.urg-lista .tilde svg { width: 15px; height: 15px; opacity: .45; }
+.urg-lista .tilde:hover svg { opacity: 1; }
+.urg-lista .cuerpo { flex: 1; min-width: 0; }
+.umeta { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 11.5px; }
+.umeta .uni { display: inline-flex; align-items: center; gap: 5px; font-weight: 600; color: var(--muted); }
+.umeta .uni svg { width: 14px; height: 14px; }
+.umeta .cuando { font-family: var(--serif); font-size: 18px; white-space: nowrap; }
+.umeta .cuando.rojo { color: var(--r); }
+.urg-lista h3 { margin: 6px 0 0; font-size: 16px; font-weight: 600; line-height: 1.25; }
+.urg-lista .monto { margin: 2px 0 0; font-size: 15px; font-weight: 600; }
+.urg-lista .imp { margin: 8px 0 0; font-size: 13px; line-height: 1.35; padding: 8px 10px; border-radius: 10px; background: var(--urg-bg); }
+.urg-lista .imp b { color: var(--r); }
+.urg-lista .imp.nada { background: transparent; padding: 0; font-style: italic; color: var(--muted); }
+.urg-lista .nota { margin: 6px 0 0; font-size: 13px; line-height: 1.35; }
+.urg-lista .src { margin: 8px 0 0; font-size: 11.5px; color: var(--muted); }
+.urg-lista .src .ir { color: var(--r); font-weight: 600; text-decoration: none; }
+.urg-lista .hechos { margin: 20px 4px 0; }
+.urg-lista .hechos summary { font-size: 12px; font-weight: 600; cursor: pointer; }
+.urg-lista .hechos ul { list-style: none; margin: 8px 0 0; padding: 0; }
+.urg-lista .hechos li { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 6px 0; }
+.urg-lista .hechos .ok svg { width: 14px; height: 14px; }
+.urg-lista .hechos small { margin-left: auto; font-size: 11px; color: var(--muted); white-space: nowrap; }
+.urg-lista .link { border: 0; background: none; padding: 0; color: inherit; text-decoration: underline; font-size: inherit; cursor: pointer; }
+.preg-fin { margin-top: 14px; }
+.preg-fin .w { display: flex; }
+@media (min-width: 920px) { .urg-pag { margin: 0 auto; max-width: 680px; } .cab-urg { border-radius: 26px; } }

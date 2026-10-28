@@ -2,8 +2,8 @@
 import { UNIVERSOS, PROMOS, PROMOS_SIEMPRE, VERSION } from "./config.js";
 import { NOVEDADES } from "./novedades.js";
 import { ICONOS, MARCA } from "./iconos.js";
-import { logoSemanal, esc, colorTipo, colorUniverso, datosPartido, resultadoTxt, torneoCorto, estadioCorto, regresiva } from "./inicio.js";
-import { DIAS, DIAS_CORTOS, bloquesDe, bloquesFecha, pendientesCon, cuandoTexto, duracion, hhmm, MODOS, lunesDe, minutosDia, sumaTipo } from "./contexto.js";
+import { wPregunta, logoSemanal, esc, colorTipo, colorUniverso, datosPartido, resultadoTxt, torneoCorto, estadioCorto, regresiva } from "./inicio.js";
+import { urgentesTodos, DIAS, DIAS_CORTOS, bloquesDe, bloquesFecha, pendientesCon, cuandoTexto, duracion, hhmm, MODOS, lunesDe, minutosDia, sumaTipo } from "./contexto.js";
 import { datosListas, proximaAnual } from "./listas.js";
 import { presupuesto } from "./presupuesto.js";
 import { analisis, datosHist } from "./analisis.js";
@@ -374,7 +374,7 @@ const PAGINAS = {
     const pestF = `<div class="pestanas" role="tablist">${[["periodo", "Este período"], ["analisis", "Análisis"]].map(([id, t]) =>
       `<button class="pestana ${tabF === id ? "on" : ""}" role="tab" aria-selected="${tabF === id}" data-accion="fin-tab" data-tab="${id}">${t}</button>`).join("")}</div>`;
     if (tabF === "analisis") return pestF + bloqueAnalisis($);
-    return `${pestF}${aviso}${bloquePeriodo(ctx, $)}${bloqueEconomia(ctx, $)}${cabeza}${dolar}${revisar}${topes}${rubros}
+    return `${pestF}${aviso}${wPregunta() ? `<section class="preg-fin">${wPregunta()}</section>` : ""}${bloquePeriodo(ctx, $)}${bloqueEconomia(ctx, $)}${cabeza}${dolar}${revisar}${topes}${rubros}
       <section class="bloque"><h2>Vencimientos ${datos.agenda ? "" : '<span class="ejemplo">Ejemplo</span>'}</h2><ul class="lista">${venc.map((d) => `<li style="align-items:flex-start"><span style="display:flex;flex-direction:column;gap:4px;min-width:0"><span>${esc(d.titulo)}${d.vernet ? ' <span class="tag">Vernet</span>' : ""}${d.nota ? ` <span class="tag">${esc(d.nota)}</span>` : ""}</span>${d.monto ? `<b>${esc(d.monto)}</b>` : ""}<span class="der ${d.dias <= 7 && !d.vernet ? "rojo" : ""}" style="font-size:17px">${cuandoTexto(d.dias)}</span></span>
         <button class="hecho" style="margin:0" data-accion="hecho" data-clave="${esc(d.clave)}" aria-label="Marcar ${esc(d.titulo)} como hecho">${ICONOS.check}</button></li>`).join("") || '<li class="vacio">Nada pendiente.</li>'}</ul>
         ${leer("hechos", []).length ? '<button class="link" style="margin-top:12px;font-size:13px" data-accion="deshacer-hechos">Volver a mostrar los marcados como hechos</button>' : ""}</section>
@@ -419,6 +419,48 @@ export function renderBloqueo(id, conHuella, conPin) {
   return `<div class="pagina">${volver}<h1>${esc(u.nombre)}</h1><p class="bajada">${u.id ? "Este universo está bloqueado." : "Trae tu plata, tu sueldo y tus turnos: se abre con " + (conHuella ? "tu huella." : "tu PIN.")}</p>
     ${conHuella ? `<button class="btn ancho-completo" data-accion="huella-abrir" data-id="${id}" style="height:56px;font-size:16px">Abrir con huella</button>` : ""}
     ${conPin ? `<form class="form" data-form="pin" data-id="${id}" style="margin-top:${conHuella ? 18 : 12}px"><input name="pin" type="password" inputmode="numeric" autocomplete="off" placeholder="${conHuella ? "o con el PIN" : "PIN"}" aria-label="PIN" required><button class="btn">Entrar</button></form>` : ""}</div>`;
+}
+
+// ---------- Urgente ----------
+// Todo lo urgente de cualquier universo en un solo lugar: se tilda acá mismo, y cada cosa dice de dónde sale
+// y qué pasa si no se hace (solo cuando la fuente lo dice).
+const NOMBRE_UNI = (id) => id === "semanal" ? ["El Semanal", ""] : (() => { const u = UNIVERSOS.find((x) => x.id === id); return u ? [u.nombre, ICONOS["u_" + u.id] || ""] : ["Agenda", ""]; })();
+export function renderUrgente(datos, ctx) {
+  const lista = urgentesTodos(datos, ctx);
+  const f = ctx.fecha;
+  const ahora = new Date();
+  const hora = String(ahora.getHours()).padStart(2, "0") + ":" + String(ahora.getMinutes()).padStart(2, "0");
+  const venc = lista.filter((p) => p.dias < 0).length;
+  const unis = [...new Set(lista.map((p) => NOMBRE_UNI(p.universo || "finanzas")[0]))];
+  const resumen = !lista.length ? "Nada urgente. Todo en orden por ahora."
+    : `${lista.length} ${lista.length === 1 ? "cosa" : "cosas"}${venc ? ` · ${venc} ${venc === 1 ? "vencida" : "vencidas"}` : ""} · de ${unis.length > 1 ? unis.slice(0, -1).join(", ") + " y " + unis[unis.length - 1] : unis[0]}`;
+  const item = (p) => {
+    const [un, ui] = NOMBRE_UNI(p.universo || "finanzas");
+    const ir = p.link ? `<a class="ir" href="${esc(p.link)}" target="_blank" rel="noopener">Abrir el mail ›</a>`
+      : `<a class="ir" href="${esc(p.ruta || "#/u/" + (p.universo || "finanzas"))}">Ver en ${esc(un)} ›</a>`;
+    return `<article class="it">
+      <button class="tilde" data-accion="hecho" data-clave="${esc(p.clave)}" aria-label="Marcar ${esc(p.titulo)} como hecho">${ICONOS.check}</button>
+      <div class="cuerpo">
+        <div class="umeta"><span class="uni">${ui}<span>${esc(un)}</span></span><span class="cuando ${p.dias <= 1 ? "rojo" : ""}">${cuandoTexto(p.dias)}</span></div>
+        <h3>${esc(p.titulo)}</h3>${p.monto ? `<p class="monto">${esc(p.monto)}</p>` : ""}
+        ${p.impacto ? `<p class="imp"><b>Si no lo hacés:</b> ${esc(p.impacto)}</p>` : '<p class="imp nada">La fuente no dice qué pasa si no se hace.</p>'}
+        ${p.nota && p.tipo !== "facu" ? `<p class="nota">${esc(p.nota)}</p>` : ""}
+        <p class="src">${esc(p.fuente || "")}${p.fuente ? " · " : ""}${ir}</p>
+      </div></article>`;
+  };
+  const grupos = [["Vencido", (p) => p.dias < 0], ["Hoy y mañana", (p) => p.dias >= 0 && p.dias <= 1], ["Esta semana", (p) => p.dias > 1]]
+    .map(([t, fn]) => { const its = lista.filter(fn); return its.length ? `<h2 class="g">${t}<span>${its.length}</span></h2>${its.map(item).join("")}` : ""; }).join("");
+  // Lo que tildaste hoy, por si te equivocaste.
+  const hc = leer("hechosCuando", {});
+  const hoy0 = new Date(f.getFullYear(), f.getMonth(), f.getDate()).getTime();
+  const hechos = (datos.pendientes || []).map((p) => ({ ...p, clave: p.clave || (p.titulo + "|" + (p.fecha || p.dias)).toLowerCase() }))
+    .filter((p) => hc[p.clave] >= hoy0);
+  const hora2 = (t) => { const d = new Date(t); return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); };
+  return `<div class="urg-pag">
+    <header class="cab-urg"><a class="atras" href="#/" aria-label="Volver a Inicio">${ICONOS.volver}</a>
+      <div><p class="sup">${DIAS[f.getDay()]} ${f.getDate()} ${MESES_LARGOS[f.getMonth()].slice(0, 3)} · ${hora}</p><h1>Urgente</h1><p class="resumen">${resumen}</p></div></header>
+    <div class="urg-lista">${grupos || '<p class="vacio" style="margin:24px 4px">Cuando algo venza o tenga fecha cerca, aparece acá, venga del universo que venga.</p>'}
+    ${hechos.length ? `<details class="hechos" open><summary>Hecho hoy · ${hechos.length}</summary><ul>${hechos.map((p) => `<li><span class="ok">${ICONOS.check}</span><s>${esc(p.titulo)}</s><small>${hora2(hc[p.clave])} · <button class="link" data-accion="deshacer-hecho" data-clave="${esc(p.clave)}">deshacer</button></small></li>`).join("")}</ul></details>` : ""}</div></div>`;
 }
 
 // ---------- El Semanal ----------
@@ -568,6 +610,8 @@ export function renderAjustes(estadoTema, demo, hayPin, google) {
         <input type="time" name="f${d}" value="${esc(h.fin || "")}" aria-label="Salida ${DIAS[d]}">`; }).join("")}</div>
         <button class="btn ancho-completo" style="margin-top:14px">Guardar horario</button></form></section>
 
+    <section class="bloque"><h2>Inicio</h2><div class="chips">${[[false, "Reloj grande"], [true, "Compacto"]].map(([k, n]) => `<button class="chip ${!!leer("inicioCompacto") === k ? "on" : ""}" data-accion="inicio-compacto" data-v="${k ? 1 : 0}">${n}</button>`).join("")}</div>
+      <p class="fuente-dato">Compacto: el reloj chico al lado del saludo y los universos con su nombre, para ver más cosas sin bajar.</p></section>
     <section class="bloque"><h2>Tema</h2><div class="chips">${[["auto", "Automático"], ["claro", "Claro"], ["oscuro", "Oscuro"]].map(([k, n]) => `<button class="chip ${tema === k ? "on" : ""}" data-accion="tema-fijo" data-tema="${k}">${n}</button>`).join("")}</div>
       <p class="vacio" style="margin-top:12px;font-size:13px">Automático: claro de día y oscuro desde la puesta del sol en Buenos Aires. El botón de Inicio lo cambia hasta la próxima salida o puesta.</p></section>
     <section class="bloque"><h2>Probar modos del día</h2><div class="chips"><button class="chip ${!demo ? "on" : ""}" data-accion="demo" data-modo="">Real</button>${MODOS.map((m) => `<button class="chip ${demo === m ? "on" : ""}" data-accion="demo" data-modo="${m}">${m === "normal" ? "Normal" : m === "libre" ? "Día libre" : m === "river" ? "River" : m === "marvel" ? "Guiño Marvel" : "Noche"}</button>`).join("")}</div>

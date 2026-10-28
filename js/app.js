@@ -4,7 +4,7 @@ import * as G from "./google.js";
 import { construirContexto } from "./contexto.js";
 import { renderInicio, despuesInicio, esc, colorUniverso, regresiva } from "./inicio.js";
 import { ICONOS } from "./iconos.js";
-import { renderRiver, renderUniverso, renderBloqueo, renderIdeas, renderAgenda, renderRespiro, renderDatos, renderAjustes, renderNovedades, renderNoEncontrado, renderSemanal, hojaMovimiento, hojaTp, hojaMateria, hojaAsignar, hojaAgus, hojaPartido, hojaPasos, hojaPesos, hojaGasto } from "./paginas.js";
+import { renderRiver, renderUniverso, renderBloqueo, renderIdeas, renderAgenda, renderRespiro, renderDatos, renderAjustes, renderNovedades, renderNoEncontrado, renderSemanal, renderUrgente, hojaMovimiento, hojaTp, hojaMateria, hojaAsignar, hojaAgus, hojaPartido, hojaPasos, hojaPesos, hojaGasto } from "./paginas.js";
 import { HOJAS_PRESU, leerConfigPresu, cruzar, responder as responderPresu, confirmarIngreso } from "./presupuesto.js";
 import { agregarManual } from "./finanzas.js";
 import { HOJAS_ESC, leerEscalafon, cargarConformado, datosEsc } from "./escalafon.js";
@@ -93,6 +93,7 @@ function pintar(refresco = false) {
     const bloqueado = (leer("pin") || huellaActiva()) && !sesion("abierto-semanal");
     html = bloqueado ? renderBloqueo("semanal", huellaActiva(), !!leer("pin")) : renderSemanal();
   }
+  else if (r === "/urgente") html = renderUrgente(estado.datos, estado.ctx);
   else if (r === "/ideas") html = renderIdeas();
   else if (r === "/agenda") html = renderAgenda(estado.datos, estado.ctx, tema);
   else if (r === "/respiro") html = renderRespiro();
@@ -145,6 +146,10 @@ setInterval(() => {
   document.querySelectorAll(".regre[data-hasta]").forEach((el) => {
     if (el.dataset.seg === "1" || new Date().getSeconds() === 0) el.outerHTML = regresiva(Number(el.dataset.hasta), el.dataset.seg === "1");
   });
+  // Arriba de Inicio: la hora con segundos.
+  const ah = new Date(), hs = document.getElementById("seg-top"), hm = document.getElementById("hora-top");
+  if (hs) hs.textContent = ":" + String(ah.getSeconds()).padStart(2, "0");
+  if (hm) hm.textContent = String(ah.getHours()).padStart(2, "0") + ":" + String(ah.getMinutes()).padStart(2, "0");
 }, 1000);
 
 // Franja de arriba cuando hay que volver a conectar: un toque y listo.
@@ -335,6 +340,17 @@ document.addEventListener("click", (e) => {
   } else if (a === "ocultar-plata") {
     guardar("plataOculta", !leer("plataOculta", false)); pintar();
   } else if (a === "idea") abrirHojaIdea();
+  else if (a === "inicio-compacto") { guardar("inicioCompacto", el.dataset.v === "1"); pintar(); }
+  else if (a === "buscar") {
+    // La lupa de arriba abre (y cierra) el buscador.
+    const b = document.querySelector(".buscador.flotante");
+    if (b) { b.hidden = !b.hidden; if (!b.hidden) document.getElementById("q")?.focus(); }
+  }
+  else if (a === "deshacer-hecho") {
+    guardar("hechos", leer("hechos", []).filter((c) => c !== el.dataset.clave));
+    const hc = leer("hechosCuando", {}); delete hc[el.dataset.clave]; guardar("hechosCuando", hc, true);
+    avisar("Volvió a la lista"); pintar(true);
+  }
   else if (a === "cerrar-hoja") cerrarHoja();
   else if (a === "demo") { sesion("demo", el.dataset.modo || null); avisar(el.dataset.modo ? "Probando: " + el.textContent : "Volviste al modo real"); pintar(); }
   else if (a === "super-borrar") { const l = leer("super", []); l.splice(Number(el.dataset.i), 1); guardar("super", l); pintar(); }
@@ -411,6 +427,7 @@ document.addEventListener("click", (e) => {
   }
   else if (a === "hecho") {
     const h = leer("hechos", []); h.push(el.dataset.clave); guardar("hechos", h.slice(-300));
+    const hc = leer("hechosCuando", {}); hc[el.dataset.clave] = Date.now(); guardar("hechosCuando", hc, true);
     avisar("Marcado como hecho"); pintar(true);
   }
   else if (a === "deshacer-hechos") { guardar("hechos", []); pintar(true); }
@@ -570,7 +587,19 @@ document.addEventListener("submit", async (e) => {
 });
 
 window.addEventListener("hashchange", () => { cerrarHoja(); clearInterval(timerMedita); pintar(); window.scrollTo(0, 0); });
-document.addEventListener("keydown", (e) => { if (e.key === "Escape") cerrarHoja(); });
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") { cerrarHoja(); const b = document.querySelector(".buscador.flotante"); if (b && !b.hidden) b.hidden = true; }
+});
+// Universos: manteniendo apretado un ícono aparece su nombre.
+let apretado = null;
+document.addEventListener("pointerdown", (e) => {
+  const u = e.target.closest(".uf[data-nombre]");
+  if (!u) return;
+  apretado = setTimeout(() => { avisar(u.dataset.nombre); apretado = "mostrado"; }, 450);
+});
+["pointerup", "pointercancel"].forEach((t) => document.addEventListener(t, () => { if (apretado && apretado !== "mostrado") { clearTimeout(apretado); apretado = null; } }));
+document.addEventListener("click", (e) => { if (apretado === "mostrado" && e.target.closest(".uf")) e.preventDefault(); apretado = null; }, true);
+document.addEventListener("contextmenu", (e) => { if (e.target.closest(".uf")) e.preventDefault(); });
 
 // Al volver a Orbe, refresca la agenda si la sesión de Google sigue abierta.
 document.addEventListener("visibilitychange", async () => {

@@ -1,6 +1,22 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.23.0",
+    fecha: "28/10/2026",
+    titulo: "Inicio nuevo y página de Urgente.",
+    cambios: [
+      "Inicio nuevo, con todo más a mano. Debajo del reloj van los universos como íconos redondos (manteniendo apretado aparece el nombre). Después vienen Urgente a lo ancho, el clima y River en cuadraditos, el diario a lo ancho, El Semanal y, al final, Transporte.",
+      "Arriba, la fecha y la hora con segundos («Viernes 30 oct · 14:00:23»), con los segundos en gris.",
+      "El buscador ahora es una lupa arriba: se abre con un toque y se cierra con Esc.",
+      "El clima tiene marco y un dibujo de línea que cambia con el día: sol, parcialmente nublado, nublado, lluvia, tormenta, noche y niebla.",
+      "Reloj: los puntos de las 0, 6, 12 y 18 son más grandes, para que se lean al lado de las rayitas.",
+      "Página de Urgente: junta lo urgente de todos los universos (vencido, hoy y mañana, esta semana) y se tilda ahí mismo, con «deshacer». Cada cosa dice de dónde sale y, solo si la fuente lo dice, qué pasa si no se hace.",
+      "Las preguntas de plata («¿Y esto?») pasan a Finanzas; en Inicio queda una línea que te lleva a contestarlas.",
+      "Modo compacto opcional en Ajustes › Inicio: el reloj chico al lado del saludo y los universos con su nombre.",
+      "El botón «+» para anotar ideas es más chico."
+    ]
+  },
+  {
     version: "0.22.0",
     fecha: "28/10/2026",
     titulo: "El Semanal, primer proyecto.",
