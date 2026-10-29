@@ -6,7 +6,7 @@ import { RoundedBoxGeometry } from '../vendor/three/RoundedBoxGeometry.js';
 
 const stage = document.getElementById('stage');
 const $ = (id) => document.getElementById(id);
-const V = '?v=24';
+const V = '?v=25';
 const D = await fetch('pedri2.json' + V).then((r) => r.json());
 const dec = (s, T) => { const b = atob(s), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return new T(u.buffer); };
 const carga = new THREE.TextureLoader();
@@ -100,17 +100,17 @@ D.eyes.forEach((e) => {
 });
 const bocaInt = new THREE.Mesh(new THREE.SphereGeometry(0.02, 20, 14), S('#3a1714', 0.9)); bocaInt.position.set(D.mid[0] - hR.x, D.mid[1] - 0.07 - hR.y, D.mid[2] - 0.035 - hR.z); bocaInt.scale.set(1.3, 0.7, 1); cabeza.add(bocaInt);
 
-const peloTex = carga.load('pedri2-pelo.png' + V); peloTex.colorSpace = THREE.SRGBColorSpace; peloTex.wrapS = peloTex.wrapT = THREE.RepeatWrapping; peloTex.repeat.set(3.2, 3.2); peloTex.anisotropy = 8;
+const peloTex = carga.load('pedri2-pelo.png' + V); peloTex.colorSpace = THREE.SRGBColorSpace; peloTex.wrapS = peloTex.wrapT = THREE.RepeatWrapping; peloTex.repeat.set(9, 9); peloTex.anisotropy = 8;
 const pelo = new THREE.Group(); cabeza.add(pelo);
 {
   const hp = dec(D.hair.pos, Float32Array), hn = dec(D.hair.nor, Float32Array), hl = dec(D.hair.len, Float32Array), hf = dec(D.hair.flow, Float32Array), huv = dec(D.hair.uv, Float32Array), hi = dec(D.hair.idx, Uint32Array), n = D.hair.n;
-  const CAPAS = 26, o0 = [hR.x, hR.y, hR.z];
+  const CAPAS = 32, o0 = [hR.x, hR.y, hR.z];
   for (let k = 0; k < CAPAS; k++) {
     const t = k / (CAPAS - 1), pos = new Float32Array(n * 3);
     for (let i = 0; i < n; i++) { const L = hl[i];
       for (let c = 0; c < 3; c++) pos[i * 3 + c] = hp[i * 3 + c] - o0[c] + hn[i * 3 + c] * L * t * 0.4 + hf[i * 3 + c] * L * 0.6 * Math.pow(t, 1.3) - (c === 1 ? L * 0.15 * t * t : 0); }
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.BufferAttribute(huv, 2)); g.setIndex(new THREE.BufferAttribute(hi, 1)); g.computeVertexNormals();
-    const m = new THREE.MeshStandardMaterial({ map: peloTex, alphaTest: 0.04 + 0.72 * t, roughness: 0.62, envMapIntensity: 0.5, color: new THREE.Color().setScalar(0.55 + 0.6 * t), side: THREE.DoubleSide });
+    const m = new THREE.MeshStandardMaterial({ map: peloTex, alphaTest: 0.12 + 0.75 * t, roughness: 0.5, envMapIntensity: 0.6, color: new THREE.Color().setScalar(0.7 + 0.9 * t), side: THREE.DoubleSide });
     const o = new THREE.Mesh(g, m); o.castShadow = k % 4 === 0; pelo.add(o);
   }
 }
@@ -118,15 +118,16 @@ const pelo = new THREE.Group(); cabeza.add(pelo);
 {
   const hp = dec(D.hair.pos, Float32Array), hn = dec(D.hair.nor, Float32Array), hf = dec(D.hair.flow, Float32Array), n = D.hair.n;
   let sem = 3; const rnd = () => (sem = (sem * 16807) % 2147483647) / 2147483647;
-  const pos = [], col = [], ind = []; const SEG = 6, POR = 4;
+  const pos = [], col = [], ind = []; const SEG = 6, POR = 2;
   const v3 = (a, i) => new THREE.Vector3(a[i * 3], a[i * 3 + 1], a[i * 3 + 2]);
-  const raizC = new THREE.Color('#1c130c'), puntaC = new THREE.Color('#4b3121'), tmpC = new THREE.Color();
+  const raizC = new THREE.Color('#1c130c'), puntaC = new THREE.Color('#33231a'), tmpC = new THREE.Color();
   const arribaAtras = new THREE.Vector3(0, 0.45, -0.55).normalize();
   for (let i = 0; i < n; i++) {
     const p0 = v3(hp, i), nr = v3(hn, i), fl = v3(hf, i); const ry = p0.y - D.mid[1], rz = p0.z - D.mid[2];
     const frente = rz > -0.02 && ry < 0.075, arriba = ry > 0.07;
+    if (!arriba) continue;
     for (let r = 0; r < POR; r++) {
-      const L = arriba ? 0.04 + rnd() * 0.025 : frente ? 0.018 + rnd() * 0.012 : 0.016 + rnd() * 0.014;
+      const L = arriba ? 0.022 + rnd() * 0.018 : frente ? 0.018 + rnd() * 0.012 : 0.016 + rnd() * 0.014;
       const d = frente ? nr.clone().multiplyScalar(0.7).addScaledVector(arribaAtras, 0.6).normalize() : fl.clone().multiplyScalar(arriba ? 0.75 : 0.85).addScaledVector(nr, arriba ? 0.6 : 0.35).normalize();
       const lado = new THREE.Vector3().crossVectors(d, nr).normalize(), w = 0.0024 + rnd() * 0.0016, fase = rnd() * 6.28;
       const base = p0.clone().sub(new THREE.Vector3(hR.x, hR.y, hR.z)).addScaledVector(lado, (rnd() - 0.5) * 0.008).addScaledVector(d, (rnd() - 0.5) * 0.006).addScaledVector(nr, 0.002);
