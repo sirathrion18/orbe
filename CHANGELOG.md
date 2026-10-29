@@ -1,5 +1,11 @@
 # Novedades de Orbe
 
+## v0.34.3 · 29/10/2026
+
+Satélite en órbita.
+
+- Ajustes › Satélite: el código de vinculación se esconde solo cuando el celu ya quedó vinculado.
+
 ## v0.34.2 · 29/10/2026
 
 Arreglo al vincular.

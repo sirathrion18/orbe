@@ -1,6 +1,14 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.34.3",
+    fecha: "29/10/2026",
+    titulo: "Satélite en órbita.",
+    cambios: [
+      "Ajustes › Satélite: el código de vinculación se esconde solo cuando el celu ya quedó vinculado.",
+    ],
+  },
+  {
     version: "0.34.2",
     fecha: "29/10/2026",
     titulo: "Arreglo al vincular.",
