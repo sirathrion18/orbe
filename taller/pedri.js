@@ -192,7 +192,7 @@ document.querySelectorAll('.seg').forEach((seg) => seg.addEventListener('click',
 ctl.addEventListener('start', () => { camDest = null; });
 elegir('posar');
 const toeZ = LEG[0].ankle.z + 0.17;
-caja.position.set(0, 0.21, HZ - 0.47);
+caja.position.set(0, 0.21, HZ - 0.33);
 
 function popXP() { const x = $('xp'); x.style.transition = 'none'; x.style.opacity = '1'; x.style.transform = 'translateY(0)'; void x.offsetWidth; x.style.transition = 'opacity 1s, transform 1s'; x.style.opacity = '0'; x.style.transform = 'translateY(-16px)'; }
 const w1 = new THREE.Vector3(), w2 = new THREE.Vector3(), clk = new THREE.Clock(); let prev = 0;
