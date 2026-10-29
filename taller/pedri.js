@@ -6,7 +6,7 @@ import { RoundedBoxGeometry } from '../vendor/three/RoundedBoxGeometry.js';
 
 const stage = document.getElementById('stage');
 const $ = (id) => document.getElementById(id);
-const V = '?v=20';
+const V = '?v=21';
 const D = await fetch('pedri2.json' + V).then((r) => r.json());
 const dec = (s, T) => { const b = atob(s), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return new T(u.buffer); };
 const carga = new THREE.TextureLoader();
@@ -98,7 +98,7 @@ D.eyes.forEach((e) => {
   g.add(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: irisTex, roughness: 0.25 })));
   g.add(new THREE.Mesh(new THREE.SphereGeometry(r * 1.03, 48, 32), new THREE.MeshPhysicalMaterial({ transparent: true, opacity: 0.08, roughness: 0.02, clearcoat: 1, clearcoatRoughness: 0.02 })));
 });
-const bocaInt = new THREE.Mesh(new THREE.SphereGeometry(0.026, 20, 14), S('#3a1714', 0.9)); bocaInt.position.set(D.mid[0] - hR.x, D.mid[1] - 0.066 - hR.y, D.mid[2] + 0.012 - hR.z); bocaInt.scale.set(1.3, 0.7, 1); cabeza.add(bocaInt);
+const bocaInt = new THREE.Mesh(new THREE.SphereGeometry(0.02, 20, 14), S('#3a1714', 0.9)); bocaInt.position.set(D.mid[0] - hR.x, D.mid[1] - 0.07 - hR.y, D.mid[2] - 0.035 - hR.z); bocaInt.scale.set(1.3, 0.7, 1); cabeza.add(bocaInt);
 
 const peloTex = carga.load('pedri2-pelo.png' + V); peloTex.colorSpace = THREE.SRGBColorSpace; peloTex.wrapS = peloTex.wrapT = THREE.RepeatWrapping; peloTex.repeat.set(3.2, 3.2); peloTex.anisotropy = 8;
 const pelo = new THREE.Group(); cabeza.add(pelo);
@@ -110,7 +110,7 @@ const pelo = new THREE.Group(); cabeza.add(pelo);
     for (let i = 0; i < n; i++) { const L = hl[i];
       for (let c = 0; c < 3; c++) pos[i * 3 + c] = hp[i * 3 + c] - o0[c] + hn[i * 3 + c] * L * t + hf[i * 3 + c] * L * 0.55 * Math.pow(t, 1.6); }
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.BufferAttribute(huv, 2)); g.setIndex(new THREE.BufferAttribute(hi, 1)); g.computeVertexNormals();
-    const m = new THREE.MeshStandardMaterial({ map: peloTex, alphaTest: 0.08 + 0.85 * t, roughness: 0.62, envMapIntensity: 0.5, color: new THREE.Color().setScalar(0.55 + 0.6 * t), side: THREE.DoubleSide });
+    const m = new THREE.MeshStandardMaterial({ map: peloTex, alphaTest: 0.04 + 0.72 * t, roughness: 0.62, envMapIntensity: 0.5, color: new THREE.Color().setScalar(0.55 + 0.6 * t), side: THREE.DoubleSide });
     const o = new THREE.Mesh(g, m); o.castShadow = k % 4 === 0; pelo.add(o);
   }
 }
@@ -122,7 +122,7 @@ const capucha = new THREE.Group(); bone('spine01').add(capucha);
 { const nk = local('spine01', D.heads[idx.neck01]); const tela = S('#1c1c20', 0.85);
   const fondo = new THREE.Mesh(new THREE.SphereGeometry(0.12, 32, 20, 0, Math.PI * 2, 0, Math.PI * 0.62), tela);
   fondo.position.set(nk.x, nk.y - 0.06, nk.z - 0.075); fondo.scale.set(1.25, 0.6, 0.55); fondo.rotation.x = -2.2; fondo.castShadow = true; capucha.add(fondo);
-  const aro = new THREE.Mesh(new THREE.TorusGeometry(0.085, 0.024, 14, 40), tela); aro.position.set(nk.x, nk.y - 0.015, nk.z - 0.012); aro.rotation.x = Math.PI / 2 - 0.35; aro.scale.set(1.12, 1, 1); aro.castShadow = true; capucha.add(aro);
+  const aro = new THREE.Mesh(new THREE.TorusGeometry(0.088, 0.016, 14, 40), tela); aro.position.set(nk.x, nk.y - 0.015, nk.z - 0.012); aro.rotation.x = Math.PI / 2 - 0.35; aro.scale.set(1.12, 1, 1); aro.castShadow = true; capucha.add(aro);
   [0.035, -0.035].forEach((x) => { const c = new THREE.Mesh(new THREE.CylinderGeometry(0.0035, 0.0035, 0.17, 8), S('#2a2a2e', 0.7)); c.position.set(x, nk.y - 0.1, nk.z + 0.075); c.rotation.x = 0.12; capucha.add(c); });
 }
 const emblema = new THREE.Group(); bone('spine02').add(emblema);
