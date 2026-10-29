@@ -28,6 +28,8 @@ import { escribirResumen } from "./resumen.js";
 import { leer, guardar, borrar, todo, borrarTodo, sesion } from "./almacen.js";
 import { sol } from "./sol.js";
 import { guinoActivo, guinoYa, guinosPrendidos } from "./guinos.js";
+import { marcarAgus, hojaAgus2 } from "./finanzasui.js";
+import { periodo } from "./presupuesto.js";
 import { sincronizarRiver } from "./rivercal.js";
 import { anotarCobros, escribirEnEconomia } from "./suscripciones.js";
 import { mesActual, claveMes, mesViejo } from "./agendames.js";
@@ -428,6 +430,8 @@ document.addEventListener("click", (e) => {
     sesion("riverTab", el.dataset.tab); pintar(true);
     if (el.dataset.tab === "otros") traerEquipos().then(() => pintar(true)).catch(() => avisar("No pude traer los otros equipos"));
   }
+  else if (a === "fin-dia") { sesion("finDia", el.dataset.d); pintar(true); }
+  else if (a === "agus-paso") { abrirHoja(hojaAgus2(periodo(new Date()).clave, Number(el.dataset.monto) || 0), "Agus te pasó"); setTimeout(() => document.querySelector('.hoja [name="monto"]')?.select(), 250); }
   else if (a === "river-tabla") { sesion("riverTabla", el.dataset.v); pintar(true); }
   else if (a === "eq-sacar") {
     const l = equiposSeguidos().slice(); l.splice(Number(el.dataset.i), 1); guardar("equiposSeguidos", l); pintar(true);
@@ -627,6 +631,10 @@ document.addEventListener("submit", async (e) => {
     const sus = guardarSuscripcion(d, f.dataset.id || "");
     if (!sus) { avisar("Faltan el nombre o la fecha de renovación"); return; }
     cerrarHoja(); avisar(`${sus.nombre} guardada`); pintar(true);
+  }
+  else if (tipo === "agus-paso") {
+    const monto = Number(String(d.monto).replace(/\./g, "").replace(",", "."));
+    marcarAgus(f.dataset.clave, monto); cerrarHoja(); avisar(monto > 0 ? "Anotado: Agus te pasó $ " + Math.round(monto).toLocaleString("es-AR") : "Listo, lo borré"); pintar(true);
   }
   else if (tipo === "hoy-sumar") { sumarHoy(f.dataset.f, d.t, d.modo); pintar(true); document.querySelector('[data-form="hoy-sumar"] input')?.focus(); }
   else if (tipo === "eq-sumar") {

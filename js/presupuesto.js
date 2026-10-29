@@ -68,7 +68,7 @@ export function cuentaEnDiario(m) {
   if (m.clase === "devolucion") return !FIJOS.includes(m.rubro);
   return (m.clase === "gasto" || m.clase === "gasto-tarjeta") && !FIJOS.includes(m.rubro);
 }
-const parte = (m) => (m.monto || 0) * (m.mitad ? 0.5 : 1) * (m.clase === "devolucion" ? -1 : 1);
+export const parte = (m) => (m.monto || 0) * (m.mitad ? 0.5 : 1) * (m.clase === "devolucion" ? -1 : 1);
 const enRango = (m, a, b) => m.ts >= a.getTime() && m.ts < b.getTime() + 86400000;
 
 // El día que Orbe empezó a llevar tu diario (queda guardado y se sincroniza).
@@ -133,14 +133,16 @@ export function presupuesto(hoy = new Date()) {
   // Mañana: lo que quede, repartido en los días que faltan.
   const diarioManana = base != null && p.restantes > 1 ? (base - gastoTotal) / (p.restantes - 1) : null;
   // Colchón: lo que te pasa Agus por la división (su mitad menos los descuentos acordados, como el lavarropas).
-  const agus = delPeriodo.filter((m) => m.diario === "agus").reduce((s, m) => s + (m.monto || 0), 0);
+  const agusMail = delPeriodo.filter((m) => m.diario === "agus").reduce((s, m) => s + (m.monto || 0), 0);
+  // Si Orbe no lo vio en un mail (por ejemplo, te lo pasó por Mercado Pago), vale lo que marcaste a mano.
+  const agus = agusMail || leer("presupuesto", {})[p.clave]?.agusManual?.monto || 0;
   const div = eco?.division?.actual;
   const ajustes = config().ajustes.map((a) => ({ ...a, cuota: cuotaDe(a, p.clave) })).filter((a) => a.cuota);
   const esperadoAgus = div?.mitad ? div.mitad - ajustes.reduce((s, a) => s + a.monto, 0) : null;
   const porDia = {};
   contados.forEach((m) => { const d = iso(new Date(m.ts)); porDia[d] = (porDia[d] || 0) + parte(m); });
   return { p, col, ingreso: ing, total, tarjetaAnterior, base, diario, gastoHoy, quedaHoy, queda, gastoTotal, diarioManana,
-    pasado: diario != null && diario > 0 && quedaHoy < 0, sinDiario: base != null && base <= 0, agus, esperadoAgus, ajustes, division: div, contados, porDia };
+    pasado: diario != null && diario > 0 && quedaHoy < 0, sinDiario: base != null && base <= 0, agus, esperadoAgus, agusMail, ajustes, division: div, contados, porDia };
 }
 
 // ---------- Cruce entre lo que cargás y lo que llega por mail ----------

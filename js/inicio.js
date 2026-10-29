@@ -15,6 +15,7 @@ import { ultimaEdicion, esNueva, proximaSemanal } from "./semanal.js";
 import { wChecklists, usarColores } from "./checklists.js";
 import { decoracion, hudSobre, decreto, lineaTva } from "./guinos.js";
 import { wBnaHoy } from "./bnahoy.js";
+import { racha } from "./finanzasui.js";
 
 export const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -242,6 +243,12 @@ function tira(ctx, datos) {
   if (pr && pr.pasado && pr.diarioManana != null && !leer("plataOculta", false) && !oc("diario")) {
     return `<a class="tira" data-desliza="diario" href="#/u/finanzas" style="text-decoration:none;border-color:var(--accent)"><div><div class="k">Te pasaste ${pesos(-pr.quedaHoy)} hoy</div>
       <div class="t">Los próximos días tenés ${pesos(Math.max(0, pr.diarioManana))} por día</div></div></a>`;
+  }
+  // Racha: 3 días seguidos arriba del diario.
+  const nr = ctx.demo || leer("plataOculta", false) ? 0 : racha(ctx.fecha);
+  if (nr >= 3 && !oc("racha")) {
+    return `<a class="tira" data-desliza="racha" href="#/u/finanzas" style="text-decoration:none;border-color:var(--accent)"><div><div class="k">Vas ${nr} días arriba del diario</div>
+      <div class="t">Mirá en qué se fue en Finanzas</div></div></a>`;
   }
   // Problemas en la línea E (la tuya, Emilio Mitre): alerta con alternativa, los días que vas al BNA.
   const tr = leer("transporte");

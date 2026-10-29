@@ -1,5 +1,17 @@
 # Novedades de Orbe
 
+## v0.30.0 · 29/10/2026
+
+Finanzas nueva.
+
+- Finanzas nueva, con cuatro pestañas: Hoy, Mes, Análisis y Cuentas. Un número protagonista por tarjeta y lo demás chico, con etiqueta.
+- Hoy: arriba lo mismo que en Inicio (cuánto podés gastar hoy), el gráfico de tu gasto día por día de los últimos 30 días con la línea del diario (tocás un día y ves en qué se fue) y la tarjeta de Agus.
+- «Agus ya me pasó»: un toque, con el monto esperado ya cargado y editable. Sirve aunque te lo pase por Mercado Pago; si después llega el mail y le decís «Agus», no se cuenta dos veces.
+- Mes: cuánto te queda para el día a día, si vas más rápido o más lento que los días, cómo se arma el período, vencimientos, tu ECONOMÍA y los movimientos.
+- Análisis: en qué rubros se va, qué días gastás más, contra el período pasado a la misma altura y los gastos hormiga (lo chiquito que se repite). Abajo, tu historia con los extractos.
+- Cuentas: deudas, suscripciones y alias; promos, dólar y topes, plegados.
+- Aviso en Inicio si vas 3 días seguidos arriba del diario (se desliza para sacarlo).
+
 ## v0.29.1 · 28/10/2026
 
 Recordatorio de alarmas, la hora siempre en el reloj y recibos más rápido.

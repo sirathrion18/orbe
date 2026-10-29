@@ -20,6 +20,7 @@ import { datosEconomia, linkEconomia, idEconomia } from "./economia.js";
 import { ultimaEdicion, htmlEdicion } from "./semanal.js";
 import { GUINOS, guinosPrendidos, resumenGuinos } from "./guinos.js";
 import { bloqueSuscripciones } from "./suscripciones.js";
+import { heroHoy, avisoRacha, graficoDias, tarjetaAgus, heroMes, analisisGastos } from "./finanzasui.js";
 import { renderMes } from "./agendames.js";
 import { bloqueHoy } from "./bnahoy.js";
 import { equiposSeguidos } from "./extras.js";
@@ -55,11 +56,9 @@ function bloquePeriodo(ctx, $0) {
       <div class="trio"><div><span class="k">Agus te pasó</span><b>${$(b.agus)}</b></div><div><span class="k">Esperado</span><b>${b.esperadoAgus != null ? $(b.esperadoAgus) : "—"}</b></div><div></div></div>
       ${b.ajustes.map((a) => `<p class="fuente-dato">${esc(a.concepto)}: −${$(a.monto)} · cuota ${a.cuota} de ${a.cuotas}${a.cuota === a.cuotas ? " · ¡última!" : ""}</p>`).join("")}
       <p class="fuente-dato">Lo que te pasa Agus por la división no infla el diario: queda acá para los imprevistos.</p></section>` : "";
-  return `<section class="bloque"><h2>Este período <span class="tag">${dm(p.inicio)} → ${dm(p.fin)}</span></h2>
-      ${b.base != null ? `<div class="trio"><div><span class="k">Hoy</span><b style="${b.quedaHoy < 0 ? "color:var(--accent)" : ""}">${$(b.quedaHoy)}</b></div><div><span class="k">Diario</span><b>${$(b.diario)}</b></div><div><span class="k">Te quedan</span><b>${$(b.queda)}</b></div></div>` : ""}
-      <ul class="lista" style="margin-top:12px">${filas.map(([a, v, n]) => `<li><span>${a}<br><small class="vacio">${esc(n)}</small></span><span class="der" style="font-size:18px">${v}</span></li>`).join("")}</ul>${confirmar}
-      ${dias.length ? `<h2 style="margin-top:18px">Últimos días</h2><ul class="lista">${dias.map(([d, v]) => `<li><span>${diaLargo(d)}</span><span class="der" style="font-size:18px">${$(v)}</span></li>`).join("")}</ul>` : ""}
-      <p class="fuente-dato">Próximo cobro: ${DIAS[p.proximo.getDay()]} ${dm(p.proximo)}${p.extrasProximo ? " · " + esc(p.extrasProximo) : ""}. Cuentan tus gastos del día a día (de lo compartido, tu mitad); no cuentan los fijos de tu planilla, los pasajes ni los pases entre tus cuentas.</p></section>${colchon}`;
+  return `<section class="bloque"><h2>Cómo se arma <span class="tag">${dm(p.inicio)} → ${dm(p.fin)}</span></h2>
+      <ul class="lista">${filas.map(([a, v, n]) => `<li><span>${a}<br><small class="vacio">${esc(n)}</small></span><span class="der" style="font-size:18px">${v}</span></li>`).join("")}</ul>${confirmar}
+      <p class="fuente-dato">Próximo cobro: ${DIAS[p.proximo.getDay()]} ${dm(p.proximo)}${p.extrasProximo ? " · " + esc(p.extrasProximo) : ""}. Cuentan tus gastos del día a día (de lo compartido, tu mitad); no cuentan los fijos de tu planilla, los pasajes ni los pases entre tus cuentas.</p></section>`;
 }
 
 // ---------- Tu planilla ECONOMÍA ----------
@@ -77,8 +76,8 @@ function bloqueEconomia(ctx, $) {
   const maxSaldo = Math.max(...cargados.map((x) => Math.abs(x.saldo || 0)), 1);
   const div = e.division && e.division.actual;
   return `<section class="bloque"><h2>${esc(m.nombre.toLowerCase())} · tu planilla <a class="link" href="${esc(linkEconomia())}" target="_blank" rel="noopener" style="font-size:12px;letter-spacing:0;text-transform:none">abrir</a></h2>
-      <div class="trio"><div><span class="k">Ingresos</span><b>${$(m.ingresos || 0)}</b></div><div><span class="k">Egresos</span><b>${$(m.total || 0)}</b></div>
-        <div><span class="k">Saldo</span><b style="${m.saldo < 0 ? "color:var(--accent)" : ""}">${$(m.saldo || 0)}</b></div></div>
+      <p class="fz-big chico ${m.saldo < 0 ? "rojo" : ""}">${$(m.saldo || 0)}</p><p class="fz-sub" style="margin-top:0">${m.saldo < 0 ? "te falta" : "te sobra"} en ${esc(m.nombre.toLowerCase())}, según tu planilla</p>
+      <div class="fz-mini" style="margin-bottom:6px"><span><small>Ingresos</small>${$(m.ingresos || 0)}</span><span><small>Egresos</small>${$(m.total || 0)}</span></div>
       ${m.diario != null ? `<p class="prom">${m.saldo < 0 ? "Te faltan" : "Te quedan"} unos <b>${$(Math.abs(m.diario))} por día</b> · ${$(Math.abs(m.semanal || 0))} por semana.</p>` : ""}
       ${(() => { const fila = (x) => { const a = antes(x.concepto); const d = a == null ? 0 : x.monto - a;
           return `<div class="eg"><div class="fila"><span>${esc(x.concepto)}</span><span>${$(x.monto)}${a != null && d !== 0 ? ` <small class="${d > 0 ? "sube" : "baja"}">${d > 0 ? "▲" : "▼"} ${$(Math.abs(d))}</small>` : ""}</span></div>
@@ -92,7 +91,7 @@ function bloqueEconomia(ctx, $) {
     </section>
     ${div ? `<section class="bloque"><h2>Con Agus <span class="tag">DIVISIÓN</span></h2>
       <ul class="lista">${div.items.filter((i) => i.monto > 0).map((i) => `<li><span>${esc(i.concepto.charAt(0) + i.concepto.slice(1).toLowerCase())}</span><span class="der">${$(i.monto)}</span></li>`).join("")}</ul>
-      <div class="trio" style="margin-top:14px"><div><span class="k">Total</span><b>${$(div.total || 0)}</b></div><div><span class="k">Tu mitad</span><b>${$(div.mitad || 0)}</b></div><div></div></div>
+      <div class="fz-mini" style="margin-top:14px"><span><small>Total</small>${$(div.total || 0)}</span><span><small>Tu mitad</small>${$(div.mitad || 0)}</span></div>
       <p class="fuente-dato">El último bloque cargado de la hoja DIVISIÓN.</p></section>` : ""}`;
 }
 
@@ -376,19 +375,23 @@ const PAGINAS = {
         <div><span class="k">Oficial</span><b>$ ${Math.round(dl.oficial.venta).toLocaleString("es-AR")}</b></div>
         <div><span class="k">MEP</span><b>$ ${Math.round(dl.mep?.venta || 0).toLocaleString("es-AR")}</b></div>
         <div><span class="k">Blue</span><b>${dl.blue ? "$\u00a0" + Math.round(dl.blue.venta).toLocaleString("es-AR") : "—"}</b></div></div></section>` : "";
-    const tabF = sesionLeer("finTab") || "periodo";
-    const pestF = `<div class="pestanas" role="tablist">${[["periodo", "Este período"], ["analisis", "Análisis"]].map(([id, t]) =>
+    let tabF = sesionLeer("finTab") || "hoy";
+    if (tabF === "periodo") tabF = "hoy";
+    const pestF = `<div class="pestanas" role="tablist">${[["hoy", "Hoy"], ["mes", "Mes"], ["analisis", "Análisis"], ["cuentas", "Cuentas"]].map(([id, t]) =>
       `<button class="pestana ${tabF === id ? "on" : ""}" role="tab" aria-selected="${tabF === id}" data-accion="fin-tab" data-tab="${id}">${t}</button>`).join("")}</div>`;
-    if (tabF === "analisis") return pestF + bloqueAnalisis($);
-    return `${pestF}${aviso}${wPregunta() ? `<section class="preg-fin">${wPregunta()}</section>` : ""}${bloquePeriodo(ctx, $)}${bloqueEconomia(ctx, $)}${cabeza}${bloqueSuscripciones(ctx.fecha)}${dolar}${revisar}${topes}${rubros}
-      <section class="bloque"><h2>Vencimientos ${datos.agenda ? "" : '<span class="ejemplo">Ejemplo</span>'}</h2><ul class="lista">${venc.map((d) => `<li style="align-items:flex-start"><span style="display:flex;flex-direction:column;gap:4px;min-width:0"><span>${esc(d.titulo)}${d.vernet ? ' <span class="tag">Vernet</span>' : ""}${d.nota ? ` <span class="tag">${esc(d.nota)}</span>` : ""}</span>${d.monto ? `<b>${esc(d.monto)}</b>` : ""}<span class="der ${d.dias <= 7 && !d.vernet ? "rojo" : ""}" style="font-size:17px">${cuandoTexto(d.dias)}</span></span>
+    const vencHtml = `<section class="bloque"><h2>Vencimientos ${datos.agenda ? "" : '<span class="ejemplo">Ejemplo</span>'}</h2><ul class="lista">${venc.map((d) => `<li style="align-items:flex-start"><span style="display:flex;flex-direction:column;gap:4px;min-width:0"><span>${esc(d.titulo)}${d.vernet ? ' <span class="tag">Vernet</span>' : ""}${d.nota ? ` <span class="tag">${esc(d.nota)}</span>` : ""}</span>${d.monto ? `<b>${esc(d.monto)}</b>` : ""}<span class="der ${d.dias <= 7 && !d.vernet ? "rojo" : ""}" style="font-size:17px">${cuandoTexto(d.dias)}</span></span>
         <button class="hecho" style="margin:0" data-accion="hecho" data-clave="${esc(d.clave)}" aria-label="Marcar ${esc(d.titulo)} como hecho">${ICONOS.check}</button></li>`).join("") || '<li class="vacio">Nada pendiente.</li>'}</ul>
-        ${leer("hechos", []).length ? '<button class="link" style="margin-top:12px;font-size:13px" data-accion="deshacer-hechos">Volver a mostrar los marcados como hechos</button>' : ""}</section>
-      ${movs}${deudas}
-      ${bloqueAlias()}
-      <section class="bloque"><h2>Promos de hoy, ${DIAS[dia]}</h2><ul class="lista">${((datosEconomia()?.alias?.promos?.[dia]?.length ? datosEconomia().alias.promos[dia] : null) || (PROMOS[dia] || []).concat(PROMOS_SIEMPRE)).map((x) => `<li><span>${esc(x)}</span></li>`).join("")}</ul>
-        <p class="vacio" style="margin-top:10px;font-size:12px">Los topes cambian seguido: verificalos antes de pagar.</p></section>
+        ${leer("hechos", []).length ? '<button class="link" style="margin-top:12px;font-size:13px" data-accion="deshacer-hechos">Volver a mostrar los marcados como hechos</button>' : ""}</section>`;
+    const plegable = (titulo, html) => html ? `<details class="bloque plegable"><summary>${titulo}</summary>${html.replace(/^<section class="bloque[^"]*">/, "").replace(/<\/section>\s*$/, "")}</details>` : "";
+    const promos = `<section class="bloque"><ul class="lista">${((datosEconomia()?.alias?.promos?.[dia]?.length ? datosEconomia().alias.promos[dia] : null) || (PROMOS[dia] || []).concat(PROMOS_SIEMPRE)).map((x) => `<li><span>${esc(x)}</span></li>`).join("")}</ul>
+        <p class="vacio" style="margin-top:10px;font-size:12px">Los topes cambian seguido: verificalos antes de pagar.</p></section>`;
+    if (tabF === "analisis") return pestF + analisisGastos(ctx, $, oculto) + `<h2 class="fz-titulo">Tu historia con la plata</h2>` + bloqueAnalisis($);
+    if (tabF === "mes") return `${pestF}${heroMes(ctx, $)}${bloquePeriodo(ctx, $)}${vencHtml}${revisar}${bloqueEconomia(ctx, $)}${movs}`;
+    if (tabF === "cuentas") return `${pestF}${deudas}${bloqueSuscripciones(ctx.fecha)}${bloqueAlias()}
+      ${plegable("Promos de hoy, " + DIAS[dia], promos)}${plegable("Dólar hoy", dolar)}${plegable("Topes del mes", topes)}
       ${linkHoja() ? `<section class="bloque"><h2>Planilla</h2><p>Todo vive en tu planilla <b>Orbe · datos</b>: podés corregir a mano lo que quieras.</p><div class="chips" style="margin-top:12px"><a class="chip" href="${esc(linkHoja())}" target="_blank" rel="noopener">Abrir la planilla</a></div></section>` : ""}`;
+    // Hoy: lo mismo que Inicio, el gasto día por día y Agus.
+    return `${pestF}${heroHoy(ctx, $, oculto)}${avisoRacha(ctx, $)}${aviso}${wPregunta() ? `<section class="preg-fin">${wPregunta()}</section>` : ""}${graficoDias(ctx, $, oculto)}${tarjetaAgus(ctx, $)}${cabeza.includes("Activar en Ajustes") ? cabeza : ""}`;
   },
 
   proyectos(datos) {
