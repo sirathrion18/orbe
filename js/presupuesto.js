@@ -155,18 +155,50 @@ export function presupuesto(hoy = new Date()) {
 // ---------- Cruce entre lo que cargás y lo que llega por mail ----------
 // Mismo monto (±1%) dentro de 24 h: se unen y cuenta una sola vez (el que cargaste, con tu categoría y tu mitad).
 export function buscarCruces(movs) {
-  const libres = movs.filter((m) => !m.cruce && (m.clase === "gasto" || m.clase === "gasto-tarjeta") && m.moneda !== "USD");
+  const esG = (m) => (m.clase === "gasto" || m.clase === "gasto-tarjeta") && m.moneda !== "USD";
+  const igual = (a, b, ms = 86400000) => Math.abs(b.ts - a.ts) <= ms && Math.abs((b.monto || 0) - (a.monto || 0)) <= Math.max(1, (a.monto || 0) * 0.01);
+  const fuente = (m) => esManual(m) ? "manual" : esCelu(m) ? "celu" : "mail";
+  const libres = movs.filter((m) => !m.cruce && esG(m));
   const manuales = libres.filter(esManual), celu = libres.filter(esCelu), mails = libres.filter((m) => !esManual(m) && !esCelu(m));
-  const usados = new Set(), cambios = [];
-  const unir = (primarios, otros) => primarios.forEach((a) => {
+  const usados = new Set(), cambios = [], pareja = new Map();
+  movs.forEach((m) => { if (m.cruce) pareja.set(m.id, m.cruce); });
+  const unir = (a, b) => { usados.add(a.id); usados.add(b.id); pareja.set(a.id, b.id); pareja.set(b.id, a.id); cambios.push({ id: a.id, cruce: b.id }, { id: b.id, cruce: a.id, diario: "dup" }); };
+  const pasada = (primarios, otros) => primarios.forEach((a) => {
     if (usados.has(a.id)) return;
-    const b = otros.find((x) => !usados.has(x.id) && Math.abs(x.ts - a.ts) <= 86400000 && Math.abs((x.monto || 0) - (a.monto || 0)) <= Math.max(1, a.monto * 0.01));
+    const b = otros.find((x) => !usados.has(x.id) && igual(a, x));
+    if (b) unir(a, b);
+  });
+  pasada(manuales, [...celu, ...mails]); // lo que anotaste vos manda
+  pasada(celu, mails);                   // el aviso del celu llega antes que el mail: cuenta el del celu
+  // El mismo pago avisado por dos apps del celu (Mercado Pago pagando con débito del BNA): distinta app, 10 minutos.
+  celu.forEach((a) => {
+    if (usados.has(a.id)) return;
+    const b = celu.find((x) => x !== a && !usados.has(x.id) && x.medio !== a.medio && igual(a, x, 600000));
+    if (b) unir(a, b);
+  });
+  // Lo anotás después de que ya llegaron el celu y el mail: lo tuyo pasa a mandar y el del celu queda como duplicado.
+  const yaUnidosCelu = movs.filter((m) => esG(m) && esCelu(m) && m.cruce && m.diario !== "dup");
+  manuales.forEach((a) => {
+    if (usados.has(a.id)) return;
+    const b = yaUnidosCelu.find((x) => !usados.has(x.id) && igual(a, x));
     if (!b) return;
-    usados.add(a.id); usados.add(b.id);
+    usados.add(a.id); usados.add(b.id); pareja.set(a.id, b.id);
     cambios.push({ id: a.id, cruce: b.id }, { id: b.id, cruce: a.id, diario: "dup" });
   });
-  unir(manuales, [...celu, ...mails]); // lo que anotaste vos manda
-  unir(celu, mails);                   // el aviso del celu llega antes que el mail: cuenta el del celu
+  // Un tercer aviso del mismo pago (anotado + celu + mail): lo libre que coincide con uno ya unido de otra fuente
+  // —y cuya pareja tampoco es de esa fuente— es el mismo pago, no otro.
+  const porId = new Map(movs.map((m) => [m.id, m]));
+  const cuenta = movs.filter((m) => esG(m) && pareja.has(m.id) && m.diario !== "dup" && !cambios.some((c) => c.id === m.id && c.diario === "dup"));
+  const absorbido = new Set();
+  libres.filter((m) => !usados.has(m.id) && !esManual(m)).forEach((x) => {
+    const a = cuenta.find((u) => {
+      const otra = porId.get(pareja.get(u.id));
+      return fuente(u) !== fuente(x) && (!otra || fuente(otra) !== fuente(x)) && !absorbido.has(u.id + "|" + fuente(x)) && igual(u, x);
+    });
+    if (!a) return;
+    absorbido.add(a.id + "|" + fuente(x)); usados.add(x.id);
+    cambios.push({ id: x.id, cruce: a.id, diario: "dup" });
+  });
   return cambios;
 }
 export async function cruzar() {

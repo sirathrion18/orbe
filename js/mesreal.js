@@ -5,6 +5,7 @@
 import { leer, guardar } from "./almacen.js";
 import { datosEconomia } from "./economia.js";
 import { datosFinanzas } from "./finanzas.js";
+import { datosBonos } from "./recibos.js";
 
 const normal = (t) => String(t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
 const dos = (n) => String(n).padStart(2, "0");
@@ -81,9 +82,11 @@ export function mesReal(p, pendientes = []) {
   }).filter((f) => f.real || f.plan);
   // El recibo manda, salvo que tu planilla diga bastante más (un bono con recibo aparte que todavía no está):
   // ahí queda tu planilla, marcada, hasta que el bono aparezca o la corrijas.
-  const faltaBono = rec?.neto && col.ingresos && col.ingresos > rec.neto * 1.05;
-  const ingreso = rec?.neto && !faltaBono ? { monto: rec.neto, estado: "real", fuente: rec.texto || "recibo" }
-    : col.ingresos ? { monto: col.ingresos, estado: "estimado", fuente: "tu planilla", recibo: faltaBono ? rec.neto : null } : null;
+  const bonos = (datosBonos()[p.clave] || []).reduce((s, b) => s + (b.neto || 0), 0);
+  const cobrado = rec?.neto ? rec.neto + bonos : 0;
+  const faltaBono = cobrado && col.ingresos && col.ingresos > cobrado * 1.05;
+  const ingreso = cobrado && !faltaBono ? { monto: cobrado, estado: "real", fuente: (rec.texto || "recibo") + (bonos ? " + bono" : ""), bonos }
+    : col.ingresos ? { monto: col.ingresos, estado: "estimado", fuente: "tu planilla", recibo: faltaBono ? cobrado : null } : null;
   const totalReal = filas.reduce((s, f) => s + (f.real || 0), 0);
   const totalPlan = filas.reduce((s, f) => s + (f.plan || 0), 0);
   const pct = colchonPct();

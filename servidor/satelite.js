@@ -49,6 +49,6 @@ export function limpiarItem(x) {
   return {
     id: corto(x.id, 40) || null, app: x.app, monto: Math.round(monto * 100) / 100,
     moneda: x.moneda === "USD" ? "USD" : "ARS", comercio: corto(x.comercio, 60),
-    sentido: ["pago", "cobro", "transferencia", "otro"].includes(x.sentido) ? x.sentido : "otro", ts
+    sentido: ["pago", "cobro", "transferencia", "tarjeta", "otro"].includes(x.sentido) ? x.sentido : "otro", ts
   };
 }

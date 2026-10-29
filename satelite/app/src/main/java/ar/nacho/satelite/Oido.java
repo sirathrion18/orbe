@@ -1,6 +1,7 @@
 package ar.nacho.satelite;
 
 import android.app.Notification;
+import android.content.ComponentName;
 import android.os.Bundle;
 import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
@@ -14,10 +15,19 @@ import java.util.concurrent.Executors;
  */
 public class Oido extends NotificationListenerService {
     private final ExecutorService cola = Executors.newSingleThreadExecutor();
+    static volatile boolean conectado = false;
 
     @Override
     public void onListenerConnected() {
+        conectado = true;
         Satelite.programar(this);
+    }
+
+    @Override
+    public void onListenerDisconnected() {
+        conectado = false;
+        // Que Android lo vuelva a enganchar (pasa en Xiaomi después de matar la app o actualizarla).
+        try { requestRebind(new ComponentName(this, Oido.class)); } catch (Exception e) { /* nada */ }
     }
 
     @Override

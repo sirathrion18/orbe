@@ -30,7 +30,8 @@ import { escribirResumen } from "./resumen.js";
 import { leer, guardar, borrar, todo, borrarTodo, sesion } from "./almacen.js";
 import { sol } from "./sol.js";
 import { guinoActivo, guinoYa, guinosPrendidos } from "./guinos.js";
-import { marcarAgus, hojaAgus2, hojaPagado, hojaColchon } from "./finanzasui.js";
+import { marcarAgus, hojaAgus2, hojaPagado, hojaColchon, hojaSaldo } from "./finanzasui.js";
+import { anotarSaldo, resolverDiferencia, discrepancia } from "./saldo.js";
 import { marcarPagado, usarColchon, fijarColchonPct, mesReal } from "./mesreal.js";
 import { periodo, cuentaEnDiario, iso as isoP } from "./presupuesto.js";
 import { sincronizarRiver } from "./rivercal.js";
@@ -498,6 +499,19 @@ document.addEventListener("click", (e) => {
     avisar("Guardando tope…");
     guardarTope(el.dataset.rubro, Number(el.dataset.tope)).then(() => { avisar("Tope de " + el.dataset.rubro + " guardado"); pintar(true); }).catch((e) => avisar("No se pudo: " + textoError(e.message)));
   }
+  else if (a === "saldo-anotar") { abrirHoja(hojaSaldo(), "Tu plata real"); setTimeout(() => document.querySelector('.hoja [name="bna"]')?.focus(), 250); }
+  else if (a === "saldo-dejar") { resolverDiferencia("dejar"); pintar(true); }
+  else if (a === "saldo-gasto") {
+    const d = discrepancia();
+    const monto = Number(el.dataset.m) || 0;
+    if (!d || !(monto > 0)) return;
+    // Va a la mitad entre los dos controles (sin salir del período): pesa en los días que pasaron, no en hoy.
+    const ts = Math.max(Math.round((d.ant.ts + d.ult.ts) / 2), periodo(new Date()).inicio.getTime() + 3600000, d.ant.ts + 60000);
+    avisar("Cargando…");
+    agregarManual({ monto, desc: "Sin registrar (diferencia de saldo)", medio: "efectivo", rubro: "Otros", ts: Math.min(ts, d.ult.ts - 1000), nota: "diferencia de saldo" })
+      .then(() => { resolverDiferencia("gasto"); avisar("Cargado como gasto del período"); pintar(true); })
+      .catch((e) => avisar("No se pudo: " + textoError(e.message)));
+  }
   else if (a === "sat-codigo") {
     avisar("Pidiendo un código…");
     codigoSatelite(el.dataset.nombre || "Celu").then((r) => { sesion("satCodigo", r); pintar(true); })
@@ -728,6 +742,11 @@ document.addEventListener("submit", async (e) => {
       await corregir(id, cambios, !!d.aprender && cambioTipo);
       avisar("Guardado en tu planilla"); pintar(true);
     } catch (err) { avisar("No se pudo guardar: " + err.message); }
+  } else if (tipo === "saldo") {
+    const num = (v) => Number(String(v || "").replace(/\./g, "").replace(",", "."));
+    const cuentas = Object.fromEntries(["bna", "mp", "pp", "efectivo", "otra"].map((k) => [k, num(d[k])]).filter(([, v]) => Number.isFinite(v) && v > 0));
+    if (!Object.keys(cuentas).length) { avisar("Poné al menos una cuenta"); return; }
+    cerrarHoja(); anotarSaldo(cuentas); avisar("Anotado"); pintar(true);
   } else if (tipo === "gasto-rapido") {
     const monto = Number(String(d.monto).replace(/\./g, "").replace(",", "."));
     if (!(monto > 0)) { avisar("Poné cuánto fue"); return; }
@@ -1016,6 +1035,7 @@ const HOJAS_EXTRA = { ...HOJAS_FACU, ...HOJAS_CAMPUS, ...HOJAS_LISTAS, ...HOJAS_
 const LEEME = [
   "MATERIAS: tus materias de UFASTA, con pistas para reconocer los mails del campus, profe, aula, links y notas.",
   "TPS: cada TP con su materia, fecha de entrega y si está hecho. Los avisos del campus lo tildan solo.",
+  "BONOS: el neto de cada bono que cobrás con recibo aparte (lo lee Orbe de las subcarpetas de tu carpeta de recibos) y a qué período va.",
   "TILDES_FACU: lo que marcaste «ya lo hice» en UFASTA (id del ítem del campus o del plan de Marketing, sí/vacío y cuándo).",
   "AGUS: lo compartido con Agus: fechas (anual), viaje, vuelos, planes, pelis y series, docs.",
   "FUTBOL: cada partido: fecha, resultado (G/E/P), goles y cómo jugaste.",

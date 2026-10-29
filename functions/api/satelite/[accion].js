@@ -64,7 +64,8 @@ export async function onRequest({ request, env, params }) {
     if (items.length) await KV.put("buz:" + d.u + ":" + ahora + "-" + idNuevo(), await cifrar(env, { dev: d.id, items }), { expirationTtl: DIAS30 });
     const alarma = Number(c.alarma) > ahora - 3600000 ? Number(c.alarma) : null;
     await KV.put("alarma:" + d.u, await cifrar(env, { ts: alarma, cuando: ahora, dev: d.id }), { expirationTtl: DIAS30 });
-    await KV.put("dev:" + d.id, JSON.stringify({ u: d.u, huella: d.huella, nombre: d.nombre, modelo: d.modelo, creado: d.creado, visto: ahora, version: String(c.version || "").slice(0, 12) }));
+    // El registro del celu nunca se reescribe desde acá (así un «Anular» no se deshace): el último aviso va aparte.
+    await KV.put("visto:" + d.id, JSON.stringify({ visto: ahora, version: String(c.version || "").slice(0, 12) }), { expirationTtl: DIAS30 * 3 });
     return json({ ok: true, recibidos: items.length });
   }
 
@@ -92,7 +93,9 @@ export async function onRequest({ request, env, params }) {
     const devs = [];
     for (const k of (await KV.list({ prefix: "dev:" })).keys) {
       const d = await KV.get(k.name, "json");
-      if (d && d.u === yo.u) devs.push({ id: k.name.slice(4), nombre: d.nombre, modelo: d.modelo, creado: d.creado, visto: d.visto, version: d.version || "" });
+      if (!d || d.u !== yo.u) continue;
+      const v = await KV.get("visto:" + k.name.slice(4), "json") || {};
+      devs.push({ id: k.name.slice(4), nombre: d.nombre, modelo: d.modelo, creado: d.creado, visto: v.visto || 0, version: v.version || "" });
     }
     return json({ tandas, alarma, dispositivos: devs, ahora: Date.now() });
   }
@@ -110,6 +113,7 @@ export async function onRequest({ request, env, params }) {
     const d = await KV.get("dev:" + id, "json");
     if (!d || d.u !== yo.u) return json({ error: "no-existe" }, 404);
     await KV.delete("dev:" + id);
+    await KV.delete("visto:" + id);
     return json({ ok: true });
   }
 

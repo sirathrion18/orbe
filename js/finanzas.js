@@ -142,11 +142,11 @@ export async function actualizarMovs(lista) {
   return leerPlanilla();
 }
 // Un gasto cargado a mano: va a MOVIMIENTOS como cualquier otro, con fuente «A mano».
-export async function agregarManual({ monto, desc, medio, mitad, rubro }) {
-  const ts = Date.now();
-  const m = { id: "m-" + ts.toString(36), ts, clase: medio === "tarjeta" ? "gasto-tarjeta" : "gasto", tipo: "manual", monto, moneda: "ARS",
+export async function agregarManual({ monto, desc, medio, mitad, rubro, ts: cuando, nota }) {
+  const ts = cuando || Date.now();
+  const m = { id: "m-" + ts.toString(36) + (cuando ? "d" : ""), ts, clase: medio === "tarjeta" ? "gasto-tarjeta" : "gasto", tipo: "manual", monto, moneda: "ARS",
     contra: desc, medio: ({ efectivo: "Efectivo", debito: "Débito", tarjeta: "Tarjeta de crédito", mp: "Mercado Pago", transferencia: "Transferencia" })[medio] || medio,
-    rubro: rubro || rubroDe(desc) || "Otros", mitad: !!mitad, fuente: "A mano", revisar: false, nota: "", grupo: "", eco: false, diario: "sí", cruce: "" };
+    rubro: rubro || rubroDe(desc) || "Otros", mitad: !!mitad, fuente: "A mano", revisar: false, nota: nota || "", grupo: "", eco: false, diario: "sí", cruce: "" };
   await agregar("MOVIMIENTOS!A:R", [aFila(m)]);
   return leerPlanilla();
 }

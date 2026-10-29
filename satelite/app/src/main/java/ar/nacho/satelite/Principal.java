@@ -81,7 +81,8 @@ public class Principal extends Activity {
         raiz.removeAllViews();
         Almacen a = new Almacen(this);
         boolean vinc = Satelite.vinculado(this);
-        boolean oye = permisoNotificaciones();
+        boolean oye = Satelite.permiso(this);
+        if (oye) Satelite.reenganchar(this);
 
         // Encabezado
         LinearLayout cab = fila();
@@ -153,12 +154,14 @@ public class Principal extends Activity {
             t4.addView(par(Satelite.NOMBRES[i], (inst.contains(k) ? "instalada" : "no la encuentro") + (n > 0 ? " · " + n + " avisos" : "")));
         }
         long alarma = Satelite.proximaAlarma(this);
+        long oido = a.num("ultimoOido");
+        t4.addView(par("Último aviso leído", oido > 0 ? hace(oido) : "todavía ninguno"));
         t4.addView(par("Próxima alarma", alarma > 0 ? new SimpleDateFormat("EEE d · HH:mm", new Locale("es", "AR")).format(new Date(alarma)) : "ninguna"));
         raiz.addView(t4);
 
         // Envíos
         LinearLayout t5 = tarjeta("Envíos a Orbe");
-        int pend = a.lista("pendientes").length();
+        int pend = a.listaSegura("pendientes").length();
         long ult = a.num("ultimoEnvio");
         t5.addView(par("Esperando para mandar", String.valueOf(pend)));
         t5.addView(par("Último envío", ult > 0 ? hace(ult) : "todavía nada"));
@@ -176,7 +179,7 @@ public class Principal extends Activity {
 
         // Ejemplos
         LinearLayout t6 = tarjeta("Ejemplos (solo en este celu)");
-        final JSONArray ej = a.lista("ejemplos");
+        final JSONArray ej = a.listaSegura("ejemplos");
         if (ej.length() == 0) {
             t6.addView(texto("Cuando llegue un aviso de esas apps, aparece acá cómo lo leyó Satélite. Sirve para mejorar el lector: nunca sale del celu, salvo que lo copies vos.", 14, cSuave, false));
         } else {
@@ -221,11 +224,6 @@ public class Principal extends Activity {
         pie.setGravity(Gravity.CENTER);
         pie.setPadding(0, dp(10), 0, 0);
         raiz.addView(pie);
-    }
-
-    private boolean permisoNotificaciones() {
-        String s = Settings.Secure.getString(getContentResolver(), "enabled_notification_listeners");
-        return s != null && s.contains(new ComponentName(this, Oido.class).flattenToString());
     }
 
     // ---------- Piezas ----------

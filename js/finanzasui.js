@@ -4,6 +4,8 @@ import { leer, guardar, sesion } from "./almacen.js";
 import { presupuesto, cuentaEnDiario, parte, iso, periodo, FIJOS } from "./presupuesto.js";
 import { datosFinanzas } from "./finanzas.js";
 import { ICONOS } from "./iconos.js";
+import { CUENTAS, discrepancia, ultimoControl, totalControl } from "./saldo.js";
+
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const DIAS = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
@@ -266,7 +268,7 @@ export function bloqueMesReal(ctx, $, oculto, linkEco) {
       <span class="mr-der"><b>${$(f.real || 0)}</b>${dif(f.real, f.plan)}</span></button></li>`).join("");
   const base = (r.ingreso?.monto || 0) - r.totalReal - (r.colchon - r.usado);
   return `<section class="fz mesreal"><div class="fz-cab"><span class="fz-k">Tu mes real · ${esc(b.p.nombre)}</span>${linkEco ? `<a class="fz-link" href="${esc(linkEco)}" target="_blank" rel="noopener">tu planilla</a>` : ""}</div>
-      <div class="mr-ing"><span><small>Ingreso</small><b>${r.ingreso ? $(r.ingreso.monto) : "—"}</b></span><small>${r.ingreso ? (r.ingreso.estado === "real" ? "del " + esc(r.ingreso.fuente.toLowerCase()) : r.ingreso.recibo ? "de tu planilla: el recibo dice " + $(r.ingreso.recibo) + " (¿falta un bono?)" : "estimado, de tu planilla") : "falta el recibo"}${r.planIngreso && r.ingreso && !r.ingreso.recibo ? " · planilla " + $(r.planIngreso) : ""}</small></div>
+      <div class="mr-ing"><span><small>Ingreso</small><b>${r.ingreso ? $(r.ingreso.monto) : "—"}</b></span><small>${r.ingreso ? (r.ingreso.estado === "real" ? "del " + esc(r.ingreso.fuente.toLowerCase()) : r.ingreso.recibo ? "de tu planilla: los recibos dicen " + $(r.ingreso.recibo) + " (¿falta subir un bono a BNA/" + new Date().getFullYear() + "/Bonos?)" : "estimado, de tu planilla") : "falta el recibo"}${r.planIngreso && r.ingreso && !r.ingreso.recibo ? " · planilla " + $(r.planIngreso) : ""}</small></div>
       <ul class="mr-lista">${filas}</ul>
       <div class="mr-colchon"><div><small>Colchón · ${r.pct}% del ingreso</small><b>${$(r.colchon - r.usado)}</b>${r.usado ? `<small>usaste ${$(r.usado)}</small>` : ""}</div>
         <div class="chips">${[3, 5, 10].map((x) => `<button class="chip ${r.pct === x ? "on" : ""}" data-accion="mr-pct" data-v="${x}">${x}%</button>`).join("")}<button class="chip" data-accion="mr-usar" data-m="${r.usado || 0}">${r.usado ? "Cambiar" : "Usar"}</button></div></div>
@@ -283,5 +285,40 @@ export function hojaColchon(disponible, usado) {
   return `<h2>Usar el colchón</h2><form data-form="mr-usar">
     <label class="campo-sus"><span>Cuánto pasás al día a día (de ${Math.round(disponible).toLocaleString("es-AR")})</span><input name="monto" inputmode="decimal" value="${usado ? Math.round(usado).toLocaleString("es-AR") : ""}" required></label>
     <p class="fuente-dato">Para una emergencia o un gasto que no estaba. Se suma a lo que te queda y sube el diario. Con 0 lo devolvés.</p>
+    <div class="grupo" style="display:flex;gap:10px"><button type="button" class="btn sec" data-accion="cerrar-hoja" style="flex:1">Cancelar</button><button class="btn" style="flex:2">Guardar</button></div></form>`;
+}
+
+// ---------- Tu plata real (contra lo que ve Orbe) ----------
+export function bloqueSaldo(ctx, $, oculto) {
+  if (!datosFinanzas()) return "";
+  const ult = ultimoControl();
+  const d = discrepancia();
+  const fecha = (ts) => { const x = new Date(ts); return DIAS[x.getDay()].slice(0, 3) + " " + dm(x); };
+  const boton = `<button class="btn" data-accion="saldo-anotar">${ult ? "Anotar cuánto tengo hoy" : "Decirle a Orbe cuánto tengo"}</button>`;
+  if (!ult) return `<section class="fz saldo"><span class="fz-k">Tu plata real</span>
+    <p class="fz-sub" style="margin:6px 0 12px">Decile a Orbe cuánto tenés hoy en cada cuenta. La próxima vez que lo anotes, compara con lo que vio entrar y salir y te dice cuánto se le escapó (pagos sin mail, efectivo sin anotar).</p>${boton}</section>`;
+  let cuerpo;
+  if (!d) cuerpo = `<p class="fz-big chico">${$(totalControl(ult))}</p><p class="fz-sub">Lo anotaste el ${fecha(ult.ts)}. La próxima vez que lo anotes, Orbe compara.</p>`;
+  else {
+    const chica = Math.abs(d.dif) < Math.max(2000, Math.abs(d.esperado) * 0.01);
+    const cargado = d.resuelto?.como === "gasto";
+    const titulo = chica && cargado ? "Ahora cuadra" : chica ? "Coincide con lo que vio Orbe" : d.dif < 0 ? `Se le escaparon ${$(-d.dif)}` : `Tenés ${$(d.dif)} más de lo que esperaba`;
+    const expl = chica && cargado ? "Lo que faltaba quedó cargado como gasto del período, repartido en los días que ya pasaron." : chica ? `Entre el ${fecha(d.ant.ts)} y el ${fecha(d.ult.ts)} Orbe vio todo lo que entró y salió. Bien ahí.`
+      : d.dif < 0 ? `Entre el ${fecha(d.ant.ts)} y el ${fecha(d.ult.ts)} salió plata que Orbe no vio: pagos sin mail (Mercado Pago), efectivo sin anotar o algo que se clasificó como pase entre tus cuentas.`
+      : `Entró plata que Orbe no vio (un ingreso sin mail) o algo que contó como gasto no salió de tus cuentas.`;
+    const acciones = chica || d.resuelto ? "" : d.dif < 0
+      ? `<div class="chips" style="margin-top:12px"><button class="chip" data-accion="saldo-gasto" data-m="${Math.round(-d.dif)}">Cargarlo como gasto del período</button><button class="chip" data-accion="saldo-dejar">Dejarlo así</button></div>`
+      : `<div class="chips" style="margin-top:12px"><button class="chip" data-accion="saldo-dejar">Dejarlo así</button></div>`;
+    cuerpo = `<p class="fz-big chico ${!chica && d.dif < 0 ? "rojo" : ""}">${esc(titulo)}</p><p class="fz-sub">${esc(expl)}</p>
+      <div class="fz-mini"><span><small>Tenías</small>${$(totalControl(d.ant))}</span><span><small>Orbe esperaba</small>${$(d.esperado)}</span><span><small>Tenés</small>${$(d.real)}</span></div>
+      <p class="fz-sub" style="font-size:12px">Orbe vio ${$(d.entra)} que entró y ${$(d.sale)} que salió (${d.n} movimientos; las compras con tarjeta de crédito cuentan cuando pagás el resumen).${d.resuelto && !cargado ? " Lo dejaste así." : ""}</p>${acciones}`;
+  }
+  return `<section class="fz saldo"><div class="fz-cab"><span class="fz-k">Tu plata real</span></div>${cuerpo}<div style="margin-top:12px">${boton}</div></section>`;
+}
+export function hojaSaldo() {
+  const ult = ultimoControl();
+  return `<h2>¿Cuánto tenés hoy?</h2><form data-form="saldo">
+    <p class="fuente-dato" style="margin-top:-4px">Lo que ves en cada app ahora. Lo que no uses, dejalo vacío.</p>
+    ${CUENTAS.map(([k, n]) => `<label class="campo-sus"><span>${n}</span><input name="${k}" inputmode="decimal" placeholder="${ult?.cuentas?.[k] ? "antes: " + Math.round(ult.cuentas[k]).toLocaleString("es-AR") : "0"}"></label>`).join("")}
     <div class="grupo" style="display:flex;gap:10px"><button type="button" class="btn sec" data-accion="cerrar-hoja" style="flex:1">Cancelar</button><button class="btn" style="flex:2">Guardar</button></div></form>`;
 }

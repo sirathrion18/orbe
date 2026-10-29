@@ -94,14 +94,14 @@ jobs:
         if: failure()
         working-directory: .
         run: |
+          # Solo las líneas de error del compilador (nunca el registro entero): la rama es pública.
           mkdir -p /tmp/log
-          cp armado.log /tmp/log/armado.log 2>/dev/null || echo "sin registro" > /tmp/log/armado.log
-          grep -nE "error:|FAILED|What went wrong|e: |AAPT" /tmp/log/armado.log | head -80 > /tmp/log/errores.txt || true
+          if [ -f armado.log ]; then grep -nE -A3 "error:|FAILED|What went wrong|AAPT|Exception" armado.log | grep -viE "clave|pass|secret|token" | head -120 > /tmp/log/errores.txt; else echo "sin registro" > /tmp/log/errores.txt; fi
           git config user.name "Satélite (GitHub)"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout --orphan satelite-log
           git rm -rf -q . || true
-          cp /tmp/log/armado.log /tmp/log/errores.txt .
-          git add armado.log errores.txt
-          git commit -q -m "Registro del armado ${{ github.run_number }}"
+          cp /tmp/log/errores.txt .
+          git add errores.txt
+          git commit -q -m "Errores del armado ${{ github.run_number }}"
           git push -f origin satelite-log

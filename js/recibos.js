@@ -3,7 +3,7 @@
 // se deposita el 28 y es la plata con la que vivís el mes que viene). Se anota en la hoja MES de tu planilla.
 import { api, permisos, pedirPase } from "./google.js";
 import { leer, guardar } from "./almacen.js";
-import { leerRangos, agregar, escribir } from "./hoja.js";
+import { leerRangos, agregar, escribir, asegurarHojas } from "./hoja.js";
 
 const DRIVE = "https://www.googleapis.com/drive/v3/files";
 const num = (t) => Number(String(t).replace(/\./g, "").replace(",", "."));
@@ -68,7 +68,7 @@ export async function leerRecibos() {
   const claveDe = (nombre) => { const m = /(\d{1,2})\s*[\/_.-]\s*(\d{2,4})/.exec(nombre || ""); if (!m) return null; const y = Number(m[2].length === 2 ? "20" + m[2] : m[2]); const d = new Date(y, Number(m[1]), 1); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"); };
   // Nuevos o cambiados, y también los recientes cuyo mes todavía falta en la planilla (por si una vez no se pudo leer).
   const pdfs = todos.filter((f, i) => !ya[f.id + f.modifiedTime] || (i < 3 && claveDe(f.name) && !existentes.has(claveDe(f.name))));
-  if (!pdfs.length) return 0;
+  if (!pdfs.length) { try { return await leerBonos(carpeta, ya); } catch (e) { return 0; } }
   let agregados = 0;
   for (const f of pdfs.slice(0, 6)) {
     const t = await (await fetch(DRIVE + "/" + f.id + "?alt=media", { headers: { Authorization: "Bearer " + await pedirPase() } })).arrayBuffer();
@@ -84,5 +84,39 @@ export async function leerRecibos() {
     agregados++;
   }
   guardar("recibosLeidos", ya, true);
+  try { agregados += await leerBonos(carpeta, ya); } catch (e) { /* los bonos nunca frenan el sueldo */ }
   return agregados;
+}
+
+// ---------- Bonos (recibo aparte) ----------
+// Los bonos (aniversario, premios) vienen con su propio recibo: guardalos en cualquier subcarpeta dentro de
+// la del año (por ejemplo BNA/2026/Bonos). Orbe los suma al ingreso del período en que se cobran, aparte del sueldo,
+// y los anota en la hoja BONOS de tu planilla.
+export const HOJAS_BONOS = { BONOS: { cab: ["mes", "neto", "fuente"], filas: [] } };
+export const datosBonos = () => leer("bonos", {});
+async function leerBonos(carpeta, ya) {
+  const q = (s) => DRIVE + "?fields=files(id,name,modifiedTime)&pageSize=50&q=" + encodeURIComponent(s);
+  const subs = (await api(q(`'${carpeta}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`))).files || [];
+  const bonos = datosBonos();
+  let nuevos = 0;
+  for (const sub of subs.slice(0, 5)) {
+    const pdfs = ((await api(q(`'${sub.id}' in parents and mimeType = 'application/pdf' and trashed = false`))).files || []).filter((f) => !ya["b" + f.id + f.modifiedTime]);
+    for (const f of pdfs.slice(0, 6)) {
+      const t = await (await fetch(DRIVE + "/" + f.id + "?alt=media", { headers: { Authorization: "Bearer " + await pedirPase() } })).arrayBuffer();
+      const r = leerRecibo(await textoPdf(t));
+      ya["b" + f.id + f.modifiedTime] = r ? "bono " + r.mes + "/" + r.anio : "ilegible";
+      if (!r || !(r.neto > 0)) continue;
+      const sig = new Date(r.anio, r.mes, 1);
+      const clave = sig.getFullYear() + "-" + String(sig.getMonth() + 1).padStart(2, "0");
+      const lista = (bonos[clave] || []).filter((b) => b.id !== f.id);
+      lista.push({ id: f.id, neto: Math.round((r.neto - (r.talon || 0)) * 100) / 100, archivo: f.name });
+      bonos[clave] = lista;
+      const fila = [[clave, lista[lista.length - 1].neto, `Bono ${String(r.mes).padStart(2, "0")}/${r.anio} · ${f.name} (leído por Orbe)`]];
+      try { await agregar("BONOS!A:C", fila); } catch (e) { await asegurarHojas(HOJAS_BONOS); await agregar("BONOS!A:C", fila); }
+      nuevos++;
+    }
+  }
+  guardar("bonos", bonos, true);
+  guardar("recibosLeidos", ya, true);
+  return nuevos;
 }

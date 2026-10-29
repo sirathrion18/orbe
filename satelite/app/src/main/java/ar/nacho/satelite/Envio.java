@@ -8,6 +8,7 @@ public class Envio extends JobService {
     @Override
     public boolean onStartJob(final JobParameters p) {
         new Thread(() -> {
+            Satelite.reenganchar(getApplicationContext());
             Satelite.enviar(getApplicationContext(), false);
             jobFinished(p, false);
         }, "satelite-envio").start();

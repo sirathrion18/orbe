@@ -43,6 +43,7 @@ final class Almacen {
         return g.generateKey();
     }
 
+    /** null si no hay nada guardado. Si hay algo pero no se puede descifrar, tira error (así nadie lo pisa con una lista vacía). */
     synchronized String leer(String k) {
         String v = p.getString(k, null);
         if (v == null) return null;
@@ -52,9 +53,11 @@ final class Almacen {
             c.init(Cipher.DECRYPT_MODE, llave(), new GCMParameterSpec(128, b, 0, 12));
             return new String(c.doFinal(b, 12, b.length - 12), StandardCharsets.UTF_8);
         } catch (Exception e) {
-            return null;
+            throw new IllegalStateException("No se pudo descifrar " + k, e);
         }
     }
+
+    boolean tiene(String k) { return p.contains(k); }
 
     synchronized void guardar(String k, String v) {
         if (v == null) {
@@ -75,13 +78,24 @@ final class Almacen {
         }
     }
 
+    /** Para leer y volver a escribir: si no se puede descifrar, tira error y no se escribe nada encima. */
     synchronized JSONArray lista(String k) {
+        String v = leer(k);
+        if (v == null) return new JSONArray();
         try {
-            String v = leer(k);
-            return v == null ? new JSONArray() : new JSONArray(v);
+            return new JSONArray(v);
         } catch (Exception e) {
-            return new JSONArray();
+            throw new IllegalStateException("Lista rota: " + k, e);
         }
+    }
+
+    /** Solo para mostrar en pantalla: ante cualquier problema, vacía. */
+    JSONArray listaSegura(String k) {
+        try { return lista(k); } catch (Exception e) { return new JSONArray(); }
+    }
+
+    String leerSeguro(String k) {
+        try { return leer(k); } catch (Exception e) { return null; }
     }
 
     synchronized void lista(String k, JSONArray a) {

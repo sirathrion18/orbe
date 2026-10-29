@@ -42,17 +42,30 @@ public final class Lector {
         "(US\\$|U\\$S|USD|\\$)\\s?(\\d{1,3}(?:\\.\\d{3})+|\\d+)(?:,(\\d{1,2}))?");
 
     private static final Pattern COBRO = Pattern.compile(
-        "recibiste|te (envi|transfiri|pag[oó]|deposit)|te lleg|ingres(o|ó|aron) (dinero|plata|\\$)|acreditamos|se acredit|cobraste|te devolvi|devoluci[oó]n de",
+        "recibiste|te envi(ó|o|aron)|te transfiri|te pag(ó|o|aron)|te deposit|ingres(o|ó|aron) (dinero|plata|\\$)|acreditamos|se acredit|cobraste|te devolvi|devoluci[oó]n de",
         Pattern.CASE_INSENSITIVE);
+    // Lo que todavía no pasó (o no pasó): rechazado, pendiente, programado, pedidos de plata.
+    private static final Pattern NO_PASO = Pattern.compile(
+        "rechaz|no pudimos|no pudo|no se pudo|cancel|anul|revert|pendiente|en proceso|procesando|programad|se debitar|vamos a debitar|debitaremos|te pidi|pedido de|solicitud|vencer|por vencer",
+        Pattern.CASE_INSENSITIVE);
+    // Pagar el resumen de la tarjeta: sale plata de la cuenta, pero no es un gasto nuevo.
+    private static final Pattern TARJETA = Pattern.compile(
+        "(pagaste|pago de|pago del|tu pago (de|del)|se acredit[oó] (tu|el) pago (de|del))\\s+(tu |la |el )?(tarjeta|resumen)|pago de tarjeta|pago del resumen",
+        Pattern.CASE_INSENSITIVE);
+    // Avisos informativos con monto que no son un movimiento.
+    private static final Pattern INFO = Pattern.compile(
+        "resumen|del mes|total a pagar|saldo (disponible|actual)|tu saldo|consumos? del", Pattern.CASE_INSENSITIVE);
+    // «Tu pago … se acreditó» es un pago, no un cobro.
+    private static final Pattern TU_PAGO = Pattern.compile("\\b(tu pago|el pago de|tu compra)\\b", Pattern.CASE_INSENSITIVE);
     private static final Pattern TRANSF = Pattern.compile(
         "transferiste|enviaste|transferencia (enviada|realizada|exitosa)|env[ií]o de dinero",
         Pattern.CASE_INSENSITIVE);
     private static final Pattern PAGO = Pattern.compile(
-        "pagaste|compraste|tu compra|compra (aprobada|realizada|con)|realizaste una compra|pago (aprobado|realizado|exitoso|con)|consumo|debitamos|se debit|d[eé]bito (de|por|en)|abonaste|cobro de|tu pago",
+        "pagaste|compraste|tu compra|compra (aprobada|realizada|con)|realizaste una compra|pago (aprobado|realizado|exitoso|con)|debitamos|se debit[oó]|d[eé]bito (de|por|en)|abonaste|tu pago",
         Pattern.CASE_INSENSITIVE);
     // Cargar saldo, pasar entre tus cuentas o ahorrar no es gasto.
     private static final Pattern PROPIO = Pattern.compile(
-        "cargaste|ingresaste dinero|a tu cuenta|entre tus cuentas|reserva|ahorr|retiraste", Pattern.CASE_INSENSITIVE);
+        "cargaste|ingresaste dinero|entre tus cuentas|reserva|ahorr|retiraste", Pattern.CASE_INSENSITIVE);
 
     private static final Pattern COMERCIO_DESPUES = Pattern.compile(
         "(?:US\\$|U\\$S|USD|\\$)\\s?[\\d.]+(?:,\\d{1,2})?\\s+(?:a|en|de|para|con)\\s+([^.!\\n$]{2,60})", Pattern.CASE_INSENSITIVE);
@@ -72,6 +85,9 @@ public final class Lector {
         String t = ((titulo == null ? "" : titulo) + ". " + (texto == null ? "" : texto)).replace(' ', ' ').replaceAll("\\s+", " ").trim();
         if (t.length() < 6) return null;
         if (PROMO.matcher(t).find()) return null;
+        if (NO_PASO.matcher(t).find()) return null;
+        boolean esTarjeta = TARJETA.matcher(t).find();
+        if (!esTarjeta && INFO.matcher(t).find()) return null;
         Matcher m = MONTO.matcher(t);
         if (!m.find()) return null;
         String moneda = m.group(1).equals("$") ? "ARS" : "USD";
@@ -82,8 +98,10 @@ public final class Lector {
         if (!(monto > 0) || monto >= 1e9) return null;
 
         String sentido;
-        if (PROPIO.matcher(t).find()) return null;
+        if (esTarjeta) sentido = "tarjeta";
+        else if (PROPIO.matcher(t).find()) return null;
         else if (PAGO_FUERTE.matcher(t).find()) sentido = "pago";
+        else if (TU_PAGO.matcher(t).find() && PAGO.matcher(t).find()) sentido = "pago";
         else if (TRANSF_FUERTE.matcher(t).find()) sentido = "transferencia";
         else if (COBRO.matcher(t).find()) sentido = "cobro";
         else if (TRANSF.matcher(t).find()) sentido = "transferencia";
@@ -97,8 +115,10 @@ public final class Lector {
         if (c.find()) comercio = c.group(1);
         else if (c2.find()) comercio = c2.group(1);
         else if (c3.find()) comercio = c3.group(1);
+        comercio = comercio.replaceFirst("(?i)^(tu|la|una) cuenta( de [^ ]+ ?(pago|pay|nación|nacion)?)?\\s+de\\s+", "");
         comercio = limpiar(COLA.matcher(comercio).replaceAll(""));
         if (comercio.matches("(?i)(tu|la|el|una|un|tus)( .*)?|cuenta|tarjeta|mercado pago|dinero")) comercio = "";
+        if (esTarjeta) comercio = "Pago de tarjeta";
 
         long minuto = ts / 60000;
         String id = huella(app + "|" + sentido + "|" + monto + "|" + comercio.toLowerCase(Locale.ROOT) + "|" + minuto);

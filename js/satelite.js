@@ -21,7 +21,8 @@ async function pedir(accion, cuerpo) {
 // Un aviso del celu como movimiento de Orbe (mismo formato que los de los mails).
 export function aMovimiento(it) {
   const app = NOMBRE_APP[it.app] || it.app;
-  const clase = it.sentido === "cobro" ? "ingreso" : "gasto";
+  // Pagar el resumen de la tarjeta no es un gasto nuevo (las compras ya contaron): va como «Pago de tarjeta».
+  const clase = it.sentido === "cobro" ? "ingreso" : it.sentido === "tarjeta" ? "tarjeta" : "gasto";
   return {
     id: "cel-" + String(it.id || it.ts).slice(0, 40), ts: it.ts, clase, tipo: it.sentido === "transferencia" ? "transferencia" : "notif",
     monto: it.monto, moneda: it.moneda || "ARS", contra: it.comercio || app, medio: app, rubro: "", mitad: false,

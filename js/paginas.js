@@ -23,7 +23,7 @@ import { datosEconomia, linkEconomia, idEconomia } from "./economia.js";
 import { ultimaEdicion, htmlEdicion } from "./semanal.js";
 import { GUINOS, guinosPrendidos, resumenGuinos } from "./guinos.js";
 import { bloqueSuscripciones } from "./suscripciones.js";
-import { heroHoy, avisoRacha, graficoDias, tarjetaAgus, heroMes, analisisGastos, bloqueMesReal, bloqueGastosHoy, bloqueGastosMes } from "./finanzasui.js";
+import { heroHoy, avisoRacha, graficoDias, tarjetaAgus, heroMes, analisisGastos, bloqueMesReal, bloqueGastosHoy, bloqueGastosMes, bloqueSaldo } from "./finanzasui.js";
 import { renderMes } from "./agendames.js";
 import { bloqueHoy } from "./bnahoy.js";
 import { equiposSeguidos } from "./extras.js";
@@ -399,7 +399,7 @@ const PAGINAS = {
         <p class="vacio" style="margin-top:10px;font-size:12px">Los topes cambian seguido: verificalos antes de pagar.</p></section>`;
     if (tabF === "analisis") return pestF + analisisGastos(ctx, $, oculto) + `<h2 class="fz-titulo">Tu historia con la plata</h2>` + bloqueAnalisis($);
     if (tabF === "mes") { const mr = bloqueMesReal(ctx, $, oculto, linkEconomia()); return `${pestF}${heroMes(ctx, $)}${bloqueGastosMes(ctx, $)}${mr || bloquePeriodo(ctx, $)}${vencHtml}${revisar}${mr ? "" : bloqueEconomia(ctx, $)}${plegable("Todos los movimientos del mes", movs.replace(/<h2>[\s\S]*?<\/h2>/, ""))}`; }
-    if (tabF === "cuentas") return `${pestF}${deudas}${bloqueSuscripciones(ctx.fecha)}${bloqueAlias()}
+    if (tabF === "cuentas") return `${pestF}${bloqueSaldo(ctx, $, oculto)}${deudas}${bloqueSuscripciones(ctx.fecha)}${bloqueAlias()}
       ${plegable("Promos de hoy, " + DIAS[dia], promos)}${plegable("Dólar hoy", dolar)}${plegable("Topes del mes", topes)}
       ${linkHoja() ? `<section class="bloque"><h2>Planilla</h2><p>Todo vive en tu planilla <b>Orbe · datos</b>: podés corregir a mano lo que quieras.</p><div class="chips" style="margin-top:12px"><a class="chip" href="${esc(linkHoja())}" target="_blank" rel="noopener">Abrir la planilla</a></div></section>` : ""}`;
     // Hoy: lo mismo que Inicio, el gasto día por día y Agus.

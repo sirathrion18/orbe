@@ -1,5 +1,13 @@
 # Novedades de Orbe
 
+## v0.34.0 · 29/10/2026
+
+Tu plata real y los bonos.
+
+- Finanzas › Cuentas: «Tu plata real». Le decís a Orbe cuánto tenés en BNA, Mercado Pago, Personal Pay, efectivo u otra. La vez siguiente compara con lo que vio entrar y salir y te dice cuánto se le escapó (pagos sin mail, efectivo sin anotar).
+- Si se le escapó plata, la podés cargar como gasto del período con un toque: pesa en los días que ya pasaron, no en el de hoy. O dejarla así.
+- Bonos: guardá el recibo de cada bono en una subcarpeta dentro de la del año (por ejemplo BNA/2026/Bonos). Orbe lo lee, lo anota en la hoja BONOS de tu planilla y lo suma al ingreso del período, aparte del sueldo.
+
 ## v0.33.1 · 29/10/2026
 
 Recibos más firmes.
