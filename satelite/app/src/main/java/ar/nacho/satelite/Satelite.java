@@ -54,6 +54,8 @@ final class Satelite {
         Pattern.compile("^personal ?pay$", Pattern.CASE_INSENSITIVE)
     };
     private static final Map<String, String> CACHE = new HashMap<>();
+    // Un candado solo para guardar y mandar (no el de la clase): así leer qué app es nunca espera a la red.
+    private static final Object CANDADO = new Object();
 
     private Satelite() {}
 
@@ -63,9 +65,9 @@ final class Satelite {
     }
 
     /** Qué app de las permitidas es este paquete, o null si no es ninguna (y entonces no se lee nada). */
-    static synchronized String appDe(Context c, String paquete) {
+    static String appDe(Context c, String paquete) {
         if (paquete == null) return null;
-        if (CACHE.containsKey(paquete)) return CACHE.get(paquete);
+        synchronized (CACHE) { if (CACHE.containsKey(paquete)) return CACHE.get(paquete); }
         String clave = PAQUETES.get(paquete);
         if (clave == null) {
             try {
@@ -79,7 +81,7 @@ final class Satelite {
                 clave = null;
             }
         }
-        CACHE.put(paquete, clave);
+        synchronized (CACHE) { CACHE.put(paquete, clave); }
         return clave;
     }
 
@@ -104,7 +106,11 @@ final class Satelite {
     // Mismo pago re-publicado (la app actualiza la notificación): 3 minutos de gracia.
     private static final Map<String, Long> RECIENTES = new HashMap<>();
 
-    static synchronized void registrar(Context c, String app, String titulo, String texto, long ts) {
+    static void registrar(Context c, String app, String titulo, String texto, long ts) {
+        synchronized (CANDADO) { registrar0(c, app, titulo, texto, ts); }
+    }
+
+    private static void registrar0(Context c, String app, String titulo, String texto, long ts) {
         Almacen a = new Almacen(c);
         a.num("ultimoOido", System.currentTimeMillis());
         Lector.Aviso av = Lector.leer(app, titulo, texto, ts);
@@ -113,12 +119,12 @@ final class Satelite {
             for (Iterator<Map.Entry<String, Long>> it = RECIENTES.entrySet().iterator(); it.hasNext(); ) {
                 if (ahora - it.next().getValue() > 3 * 60 * 1000L) it.remove();
             }
-            String k = av.app + "|" + av.sentido + "|" + av.monto;
+            String k = av.app + "|" + av.sentido + "|" + av.monto + "|" + av.comercio.toLowerCase(Locale.ROOT);
             if (RECIENTES.containsKey(k)) av = null; else RECIENTES.put(k, ahora);
         }
         // Ejemplos: para mejorar el lector. Nunca salen del celu salvo que los copies vos.
         try {
-            JSONArray ej = a.lista("ejemplos");
+            JSONArray ej = listaOVacia(a, "ejemplos");
             JSONArray nuevo = new JSONArray();
             long ahora = System.currentTimeMillis();
             String crudo = ((titulo == null ? "" : titulo) + " · " + (texto == null ? "" : texto)).trim();
@@ -140,7 +146,7 @@ final class Satelite {
         } catch (Exception e) { /* nada */ }
         if (av == null) return;
         try {
-            JSONArray pend = a.lista("pendientes");
+            JSONArray pend = listaOVacia(a, "pendientes");
             for (int i = 0; i < pend.length(); i++) if (av.id.equals(pend.getJSONObject(i).optString("id"))) return;
             // Ya mandado antes (la app a veces actualiza la misma notificación): tampoco se repite.
             String vistos = a.leerSeguro("vistos");
@@ -154,6 +160,22 @@ final class Satelite {
             a.num("capturados", a.num("capturados") + 1);
             a.num("cap_" + app, a.num("cap_" + app) + 1);
         } catch (Exception e) { /* nada */ }
+    }
+
+    /** Si una lista guardada ya no se puede descifrar (el celu perdió la llave), se descarta y se empieza de cero. */
+    static JSONArray listaOVacia(Almacen a, String k) {
+        try {
+            return a.lista(k);
+        } catch (Exception e) {
+            a.guardar(k, null);
+            return new JSONArray();
+        }
+    }
+
+    static void limpiarIlegibles(Almacen a) {
+        for (String k : new String[]{"pendientes", "ejemplos", "vistos"}) {
+            if (a.tiene(k) && a.leerSeguro(k) == null) a.guardar(k, null);
+        }
     }
 
     static String resumen(Lector.Aviso av) {
@@ -184,7 +206,13 @@ final class Satelite {
     /** Xiaomi a veces suelta el oído sin avisar: si hay permiso y no está conectado, se le pide a Android que lo vuelva a enganchar. */
     static void reenganchar(Context c) {
         try {
-            if (permiso(c) && !Oido.conectado) NotificationListenerService.requestRebind(new ComponentName(c, Oido.class));
+            if (!permiso(c) || Oido.conectado) return;
+            ComponentName oido = new ComponentName(c, Oido.class);
+            // En Xiaomi lo más confiable es apagar y prender el componente; después, pedir que lo vuelva a enganchar.
+            PackageManager pm = c.getPackageManager();
+            pm.setComponentEnabledSetting(oido, PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP);
+            pm.setComponentEnabledSetting(oido, PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP);
+            NotificationListenerService.requestRebind(oido);
         } catch (Exception e) { /* nada */ }
     }
 
@@ -200,7 +228,11 @@ final class Satelite {
      * Manda lo pendiente y la próxima alarma. Sin nada nuevo y con la alarma igual, no usa internet
      * (salvo un aviso de «sigo vivo» cada 6 horas). Devuelve un texto corto para la pantalla.
      */
-    static synchronized String enviar(Context c, boolean forzar) {
+    static String enviar(Context c, boolean forzar) {
+        synchronized (CANDADO) { return enviar0(c, forzar); }
+    }
+
+    private static String enviar0(Context c, boolean forzar) {
         Almacen a = new Almacen(c);
         String llave;
         JSONArray pend;
@@ -209,7 +241,10 @@ final class Satelite {
             if (llave == null) return "Sin vincular";
             pend = a.lista("pendientes");
         } catch (Exception e) {
-            a.texto("error", "No pude leer lo guardado (llave del celu). Si sigue, desvinculá y volvé a vincular.");
+            // Lo guardado ya no se puede descifrar (el celu cambió la llave): se limpia para no quedar trabado.
+            if (a.leerSeguro("llave") == null) a.guardar("llave", null);
+            limpiarIlegibles(a);
+            a.texto("error", "El celu perdió la llave guardada. Volvé a vincular con un código nuevo.");
             return "Error de llave";
         }
         long alarma = proximaAlarma(c);
@@ -250,7 +285,7 @@ final class Satelite {
             // Se sacan solo los que se mandaron (pudo llegar algo nuevo mientras tanto).
             JSONArray resto = new JSONArray();
             JSONArray actual;
-            try { actual = a.lista("pendientes"); } catch (Exception e) { return "Mandado (sin limpiar)"; }
+            actual = listaOVacia(a, "pendientes");
             for (int i = 0; i < actual.length(); i++) {
                 JSONObject o = actual.getJSONObject(i);
                 if (!ids.contains(o.optString("id"))) resto.put(o);
@@ -282,6 +317,7 @@ final class Satelite {
             if (r.codigo == 200) {
                 JSONObject j = new JSONObject(r.cuerpo);
                 Almacen a = new Almacen(c);
+                limpiarIlegibles(a);
                 a.guardar("llave", j.getString("llave"));
                 if (a.leerSeguro("llave") == null) return "Este celu no dejó guardar la llave cifrada. Probá de nuevo con otro código.";
                 a.texto("nombre", j.optString("nombre", "Celu"));

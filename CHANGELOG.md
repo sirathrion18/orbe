@@ -1,5 +1,14 @@
 # Novedades de Orbe
 
+## v0.34.1 · 29/10/2026
+
+Satélite, segunda revisión.
+
+- Satélite: segunda revisión. El lector ya no descarta pagos reales que mencionan el saldo, «del mes» o «pedido»; «Pagaste $… de tu tarjeta» va como pago de tarjeta; dos pagos iguales a comercios distintos en 3 minutos cuentan los dos.
+- Satélite: leer qué app es nunca espera al envío (no se traba la pantalla), si el celu pierde la llave guardada se limpia solo y te pide volver a vincular, y en Xiaomi se reengancha mejor si el sistema suelta el oído. La pantalla muestra el último aviso leído.
+- Cruces: un café repetido que llega solo por mail ya no se toma como duplicado del de ayer; el mismo cobro avisado por el celu y por mail cuenta una vez (también en «Tu plata real»), y al del celu se le sigue preguntando si es de Agus.
+- «Tu plata real»: en Hoy, un recordatorio chiquito si hace una semana que no anotás cuánto tenés; y «Cargarlo como gasto» no carga dos veces si tocás dos veces.
+
 ## v0.34.0 · 29/10/2026
 
 Tu plata real y los bonos.

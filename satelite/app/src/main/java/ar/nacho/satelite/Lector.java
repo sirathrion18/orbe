@@ -46,11 +46,12 @@ public final class Lector {
         Pattern.CASE_INSENSITIVE);
     // Lo que todavía no pasó (o no pasó): rechazado, pendiente, programado, pedidos de plata.
     private static final Pattern NO_PASO = Pattern.compile(
-        "rechaz|no pudimos|no pudo|no se pudo|cancel|anul|revert|pendiente|en proceso|procesando|programad|se debitar|vamos a debitar|debitaremos|te pidi|pedido de|solicitud|vencer|por vencer",
+        "rechaz|no pudimos|no pudo|no se pudo|cancel|anul|revert|pendiente|en proceso|procesando|programad|se debitar|vamos a debitar|debitaremos|te pidi|pedido de (dinero|plata)|solicitud|vencer|por vencer",
         Pattern.CASE_INSENSITIVE);
     // Pagar el resumen de la tarjeta: sale plata de la cuenta, pero no es un gasto nuevo.
     private static final Pattern TARJETA = Pattern.compile(
-        "(pagaste|pago de|pago del|tu pago (de|del)|se acredit[oó] (tu|el) pago (de|del))\\s+(tu |la |el )?(tarjeta|resumen)|pago de tarjeta|pago del resumen",
+        "(pagaste|pago de|pago del|tu pago (de|del)|se acredit[oó] (tu|el) pago (de|del))\\s+(tu |la |el )?(tarjeta|resumen)|pago de tarjeta|pago del resumen"
+            + "|(pagaste|abonaste)\\s+(US\\$|U\\$S|USD|\\$)\\s?[\\d.,]+\\s+(de|a|en|para)\\s+(tu |la |el )?(tarjeta|resumen)",
         Pattern.CASE_INSENSITIVE);
     // Avisos informativos con monto que no son un movimiento.
     private static final Pattern INFO = Pattern.compile(
@@ -87,7 +88,9 @@ public final class Lector {
         if (PROMO.matcher(t).find()) return null;
         if (NO_PASO.matcher(t).find()) return null;
         boolean esTarjeta = TARJETA.matcher(t).find();
-        if (!esTarjeta && INFO.matcher(t).find()) return null;
+        // «Saldo disponible», «del mes»… solo descartan si no hay un verbo claro de pago o cobro.
+        boolean verbo = PAGO_FUERTE.matcher(t).find() || TRANSF_FUERTE.matcher(t).find() || COBRO.matcher(t).find() || PAGO.matcher(t).find();
+        if (!esTarjeta && !verbo && INFO.matcher(t).find()) return null;
         Matcher m = MONTO.matcher(t);
         if (!m.find()) return null;
         String moneda = m.group(1).equals("$") ? "ARS" : "USD";

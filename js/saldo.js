@@ -50,7 +50,7 @@ export function resolverDiferencia(como) {
   const d = datosSaldo();
   const ult = d.controles?.[d.controles.length - 1];
   if (!ult) return;
-  ult.resuelto = { como, cuando: Date.now() };
+  ult.resuelto = como ? { como, cuando: Date.now() } : null;
   guardar("saldos", d);
 }
 

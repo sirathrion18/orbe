@@ -322,3 +322,12 @@ export function hojaSaldo() {
     ${CUENTAS.map(([k, n]) => `<label class="campo-sus"><span>${n}</span><input name="${k}" inputmode="decimal" placeholder="${ult?.cuentas?.[k] ? "antes: " + Math.round(ult.cuentas[k]).toLocaleString("es-AR") : "0"}"></label>`).join("")}
     <div class="grupo" style="display:flex;gap:10px"><button type="button" class="btn sec" data-accion="cerrar-hoja" style="flex:1">Cancelar</button><button class="btn" style="flex:2">Guardar</button></div></form>`;
 }
+
+// En Hoy, un recordatorio chiquito si hace una semana (o nunca) que no le decís a Orbe cuánto tenés.
+export function recordarSaldo(ctx) {
+  if (!datosFinanzas()) return "";
+  const ult = ultimoControl();
+  if (ult && ctx.fecha.getTime() - ult.ts < 7 * 86400000) return "";
+  return `<section class="fz saldo-mini"><p class="fz-sub" style="margin:0">${ult ? "Hace más de una semana que no le decís a Orbe cuánto tenés." : "¿Querés saber cuánta plata se le escapa a Orbe?"} Anotá lo que tenés en cada cuenta y la próxima vez te lo compara.</p>
+    <div class="chips" style="margin-top:10px"><button class="chip" data-accion="saldo-anotar">Anotar cuánto tengo</button></div></section>`;
+}

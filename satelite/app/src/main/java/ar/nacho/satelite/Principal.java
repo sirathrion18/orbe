@@ -214,6 +214,7 @@ public class Principal extends Activity {
             des.setGravity(Gravity.CENTER);
             des.setOnClickListener(v -> {
                 a.guardar("llave", null);
+                Satelite.limpiarIlegibles(a);
                 a.texto("nombre", null);
                 aviso("Desvinculado. Para anularlo del todo, tocá «Anular» en Orbe › Ajustes › Satélite.");
                 pintar();

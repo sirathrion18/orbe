@@ -504,13 +504,15 @@ document.addEventListener("click", (e) => {
   else if (a === "saldo-gasto") {
     const d = discrepancia();
     const monto = Number(el.dataset.m) || 0;
-    if (!d || !(monto > 0)) return;
+    if (!d || d.resuelto || !(monto > 0) || el.disabled) return;
+    el.disabled = true;
+    resolverDiferencia("gasto"); // antes de esperar: un segundo toque ya no carga otro
     // Va a la mitad entre los dos controles (sin salir del período): pesa en los días que pasaron, no en hoy.
     const ts = Math.max(Math.round((d.ant.ts + d.ult.ts) / 2), periodo(new Date()).inicio.getTime() + 3600000, d.ant.ts + 60000);
     avisar("Cargando…");
     agregarManual({ monto, desc: "Sin registrar (diferencia de saldo)", medio: "efectivo", rubro: "Otros", ts: Math.min(ts, d.ult.ts - 1000), nota: "diferencia de saldo" })
-      .then(() => { resolverDiferencia("gasto"); avisar("Cargado como gasto del período"); pintar(true); })
-      .catch((e) => avisar("No se pudo: " + textoError(e.message)));
+      .then(() => { avisar("Cargado como gasto del período"); pintar(true); })
+      .catch((e) => { resolverDiferencia(null); avisar("No se pudo: " + textoError(e.message)); pintar(true); });
   }
   else if (a === "sat-codigo") {
     avisar("Pidiendo un código…");

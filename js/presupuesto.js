@@ -155,8 +155,11 @@ export function presupuesto(hoy = new Date()) {
 // ---------- Cruce entre lo que cargás y lo que llega por mail ----------
 // Mismo monto (±1%) dentro de 24 h: se unen y cuenta una sola vez (el que cargaste, con tu categoría y tu mitad).
 export function buscarCruces(movs) {
-  const esG = (m) => (m.clase === "gasto" || m.clase === "gasto-tarjeta") && m.moneda !== "USD";
-  const igual = (a, b, ms = 86400000) => Math.abs(b.ts - a.ts) <= ms && Math.abs((b.monto || 0) - (a.monto || 0)) <= Math.max(1, (a.monto || 0) * 0.01);
+  // Se cruzan gastos, ingresos y pagos de tarjeta (cada uno con los de su tipo): el mismo cobro avisado por el celu
+  // y por mail tampoco se cuenta dos veces en «Tu plata real».
+  const grupo = (m) => m.clase === "gasto" || m.clase === "gasto-tarjeta" ? "g" : m.clase === "ingreso" ? "i" : m.clase === "tarjeta" ? "t" : null;
+  const esG = (m) => !!grupo(m) && m.moneda !== "USD";
+  const igual = (a, b, ms = 86400000) => grupo(a) === grupo(b) && Math.abs(b.ts - a.ts) <= ms && Math.abs((b.monto || 0) - (a.monto || 0)) <= Math.max(1, (a.monto || 0) * 0.01);
   const fuente = (m) => esManual(m) ? "manual" : esCelu(m) ? "celu" : "mail";
   const libres = movs.filter((m) => !m.cruce && esG(m));
   const manuales = libres.filter(esManual), celu = libres.filter(esCelu), mails = libres.filter((m) => !esManual(m) && !esCelu(m));
@@ -193,7 +196,9 @@ export function buscarCruces(movs) {
   libres.filter((m) => !usados.has(m.id) && !esManual(m)).forEach((x) => {
     const a = cuenta.find((u) => {
       const otra = porId.get(pareja.get(u.id));
-      return fuente(u) !== fuente(x) && (!otra || fuente(otra) !== fuente(x)) && !absorbido.has(u.id + "|" + fuente(x)) && igual(u, x);
+      // Si ya absorbió antes uno de esa fuente (en otra vuelta), este es otro pago: no se toca.
+      const yaTiene = movs.some((m) => m.cruce === u.id && m.id !== x.id && fuente(m) === fuente(x));
+      return fuente(u) !== fuente(x) && (!otra || fuente(otra) !== fuente(x)) && !yaTiene && !absorbido.has(u.id + "|" + fuente(x)) && igual(u, x);
     });
     if (!a) return;
     absorbido.add(a.id + "|" + fuente(x)); usados.add(x.id);
@@ -218,7 +223,8 @@ export function preguntas(hoy = new Date()) {
   const desde = Math.max(periodo(hoy).inicio.getTime(), arranque());
   const ahora = hoy.getTime();
   const out = [];
-  fin.movs.filter((m) => m.ts >= desde && !m.cruce && m.moneda !== "USD" && !/^resumen/i.test(m.fuente || "")).forEach((m) => {
+  // El aviso del celu que se unió con su mail sigue siendo el que cuenta: a ese sí se le pregunta.
+  fin.movs.filter((m) => m.ts >= desde && (!m.cruce || esCelu(m)) && m.moneda !== "USD" && !/^resumen/i.test(m.fuente || "")).forEach((m) => {
     if (esManual(m)) {
       if (!/efectivo/i.test(m.medio) && m.diario === "sí" && ahora - m.ts > 2 * 86400000 && !m.nota.includes("sin mail"))
         out.push({ id: m.id, tipo: "manual", m, texto: "Lo cargaste pero no apareció en ningún mail", botones: [["efectivo", "Fue en efectivo"], ["dejar", "Dejarlo así"], ["borrar", "No va"]] });

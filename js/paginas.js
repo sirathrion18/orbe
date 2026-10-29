@@ -23,7 +23,7 @@ import { datosEconomia, linkEconomia, idEconomia } from "./economia.js";
 import { ultimaEdicion, htmlEdicion } from "./semanal.js";
 import { GUINOS, guinosPrendidos, resumenGuinos } from "./guinos.js";
 import { bloqueSuscripciones } from "./suscripciones.js";
-import { heroHoy, avisoRacha, graficoDias, tarjetaAgus, heroMes, analisisGastos, bloqueMesReal, bloqueGastosHoy, bloqueGastosMes, bloqueSaldo } from "./finanzasui.js";
+import { heroHoy, avisoRacha, graficoDias, tarjetaAgus, heroMes, analisisGastos, bloqueMesReal, bloqueGastosHoy, bloqueGastosMes, bloqueSaldo, recordarSaldo } from "./finanzasui.js";
 import { renderMes } from "./agendames.js";
 import { bloqueHoy } from "./bnahoy.js";
 import { equiposSeguidos } from "./extras.js";
@@ -403,7 +403,7 @@ const PAGINAS = {
       ${plegable("Promos de hoy, " + DIAS[dia], promos)}${plegable("Dólar hoy", dolar)}${plegable("Topes del mes", topes)}
       ${linkHoja() ? `<section class="bloque"><h2>Planilla</h2><p>Todo vive en tu planilla <b>Orbe · datos</b>: podés corregir a mano lo que quieras.</p><div class="chips" style="margin-top:12px"><a class="chip" href="${esc(linkHoja())}" target="_blank" rel="noopener">Abrir la planilla</a></div></section>` : ""}`;
     // Hoy: lo mismo que Inicio, el gasto día por día y Agus.
-    return `${pestF}${heroHoy(ctx, $, oculto)}${avisoRacha(ctx, $)}${aviso}${wPregunta() ? `<section class="preg-fin">${wPregunta()}</section>` : ""}${bloqueGastosHoy(ctx, $)}${graficoDias(ctx, $, oculto)}${tarjetaAgus(ctx, $)}${cabeza.includes("Activar en Ajustes") ? cabeza : ""}`;
+    return `${pestF}${heroHoy(ctx, $, oculto)}${avisoRacha(ctx, $)}${aviso}${wPregunta() ? `<section class="preg-fin">${wPregunta()}</section>` : ""}${bloqueGastosHoy(ctx, $)}${graficoDias(ctx, $, oculto)}${tarjetaAgus(ctx, $)}${recordarSaldo(ctx)}${cabeza.includes("Activar en Ajustes") ? cabeza : ""}`;
   },
 
   proyectos(datos) {
