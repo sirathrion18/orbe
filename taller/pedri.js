@@ -6,7 +6,7 @@ import { RoundedBoxGeometry } from '../vendor/three/RoundedBoxGeometry.js';
 
 const stage = document.getElementById('stage');
 const $ = (id) => document.getElementById(id);
-const V = '?v=21';
+const V = '?v=22';
 const D = await fetch('pedri2.json' + V).then((r) => r.json());
 const dec = (s, T) => { const b = atob(s), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return new T(u.buffer); };
 const carga = new THREE.TextureLoader();
@@ -108,7 +108,7 @@ const pelo = new THREE.Group(); cabeza.add(pelo);
   for (let k = 0; k < CAPAS; k++) {
     const t = k / (CAPAS - 1), pos = new Float32Array(n * 3);
     for (let i = 0; i < n; i++) { const L = hl[i];
-      for (let c = 0; c < 3; c++) pos[i * 3 + c] = hp[i * 3 + c] - o0[c] + hn[i * 3 + c] * L * t + hf[i * 3 + c] * L * 0.55 * Math.pow(t, 1.6); }
+      for (let c = 0; c < 3; c++) pos[i * 3 + c] = hp[i * 3 + c] - o0[c] + hn[i * 3 + c] * L * t * 0.55 + hf[i * 3 + c] * L * 0.95 * Math.pow(t, 1.3) - (c === 1 ? L * 0.25 * t * t : 0); }
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.BufferAttribute(huv, 2)); g.setIndex(new THREE.BufferAttribute(hi, 1)); g.computeVertexNormals();
     const m = new THREE.MeshStandardMaterial({ map: peloTex, alphaTest: 0.04 + 0.72 * t, roughness: 0.62, envMapIntensity: 0.5, color: new THREE.Color().setScalar(0.55 + 0.6 * t), side: THREE.DoubleSide });
     const o = new THREE.Mesh(g, m); o.castShadow = k % 4 === 0; pelo.add(o);
@@ -241,6 +241,9 @@ document.querySelectorAll('.seg').forEach((seg) => seg.addEventListener('click',
   else if (g === 'cara') { caraElegida = v; if (modo === 'posar') cara = v; } }));
 ctl.addEventListener('start', () => { camDest = null; });
 elegir('posar');
+// estado inicial por la dirección (?vista=cara&ropa=gym&cara=sonriente&modo=sen), útil para revisar
+{ const q = new URLSearchParams(location.search); const set = (g, v) => { const b = document.querySelector(`[data-grupo="${g}"] [data-v="${v}"]`); if (b) b.click(); };
+  ['ropa', 'cara', 'modo', 'vista'].forEach((g) => { const v = q.get(g); if (v) set(g, v); }); if (camDest) { cam.position.copy(camDest); camDest = null; ctl.update(); } }
 const toeZ = LEG[0].ankle.z + 0.17;
 caja.position.set(0, 0.21, HZ - 0.33);
 
