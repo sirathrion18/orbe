@@ -162,6 +162,8 @@ setInterval(() => {
   const ah = new Date(), hs = document.getElementById("seg-top"), hm = document.getElementById("hora-top");
   if (hs) hs.textContent = ":" + String(ah.getSeconds()).padStart(2, "0");
   if (hm) hm.textContent = String(ah.getHours()).padStart(2, "0") + ":" + String(ah.getMinutes()).padStart(2, "0");
+  const ha = document.getElementById("hora-anillo");
+  if (ha && hm) ha.textContent = hm.textContent;
 }, 1000);
 
 // Franja de arriba cuando hay que volver a conectar: un toque y listo.
@@ -915,8 +917,9 @@ async function refrescarTodo(forzar = false) {
       estadoParte("mails", null, r && (r.frenado || r.quedan) ? "trayendo el historial de a poco" : "");
     }
     catch (e) { estadoParte("mails", e.message); fallas.push(["mails", e.message]); }
-    if (G.permisos().drive && (forzar || Date.now() - (leer("recibosCuando") || 0) > 6 * 3600000)) {
-      try { const n = await leerRecibos(); guardar("recibosCuando", Date.now(), true); estadoParte("recibos"); if (n) await leerPlanilla(); }
+    // Recibos: se fija cada media hora si subiste uno nuevo a Drive (solo lee los nuevos).
+    if (G.permisos().drive && (forzar || Date.now() - (leer("recibosCuando") || 0) > 30 * 60000)) {
+      try { const n = await leerRecibos(); guardar("recibosCuando", Date.now(), true); estadoParte("recibos"); if (n) { await leerPlanilla(); avisar("Leí tu recibo nuevo: Finanzas y BNA ya lo usan"); } }
       catch (e) { estadoParte("recibos", e.message); fallas.push(["recibos", e.message]); }
     }
     // El Semanal: la última edición de tu Drive, guardada para leer sin señal (se fija cada media hora).

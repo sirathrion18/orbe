@@ -1,6 +1,16 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.29.1",
+    fecha: "28/10/2026",
+    titulo: "Recordatorio de alarmas, la hora siempre en el reloj y recibos más rápido.",
+    cambios: [
+      "Alarmas: ya no muestra horarios ni botón. Es solo un recordatorio la noche antes de un día de BNA (desde las 23:30), con 50 mensajes que van cambiando («¿Pusiste las alarmas?», «Ni Doom se levanta sin alarma…»). Si ya las pusiste, lo deslizás y no vuelve esa noche.",
+      "El reloj del anillo siempre muestra la hora de ahora (y se mueve solo). Lo de mañana, la alarma o River van arriba y abajo, en chico («Mañana · BNA 09:45», «faltan 9 h 50»).",
+      "Recibos de sueldo: Orbe se fija cada media hora si subiste uno nuevo a tu carpeta BNA de Drive (antes, cada 6 horas). Cuando lo lee, te avisa y Finanzas y BNA › Sueldo lo usan al toque.",
+    ],
+  },
+  {
     version: "0.29.0",
     fecha: "28/10/2026",
     titulo: "Deslizar avisos y alarmas a la hora de dormir.",

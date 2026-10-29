@@ -140,26 +140,30 @@ function anillo(datos, ctx, tema) {
   // Centro
   let lbl, big, sub;
   const alarmaCentro = (noche && ctx.alarmaManana) || (ctx.modo === "madrugada" && ctx.alarmaHoy);
+  // En el centro siempre va la hora de ahora; lo demás (alarma, mañana, River) va arriba y abajo, chico.
   if (alarmaCentro) {
     const d = new Date(alarmaCentro);
     const dormis = Math.max(0, Math.round((alarmaCentro - ctx.fecha.getTime()) / 60000));
-    lbl = "Alarma" + (ctx.alarmaManual ? " · a mano" : "");
-    big = hhmm(d.getHours() * 60 + d.getMinutes());
+    lbl = "Alarma " + hhmm(d.getHours() * 60 + d.getMinutes()) + (ctx.alarmaManual ? " · a mano" : "");
+    big = hhmm(ctx.min);
     sub = "dormís " + duracion(dormis) + " si te acostás ya";
   } else if (noche) {
     const p = ctx.manana[0];
-    lbl = "Mañana"; big = p ? p.inicio : "Libre"; sub = p ? p.titulo : "sin nada fijo";
+    big = hhmm(ctx.min);
+    lbl = p ? "Mañana · " + esc(p.titulo) + " " + p.inicio : "Mañana libre";
+    sub = p ? "faltan " + duracion(24 * 60 - ctx.min + p.ini) : "sin nada fijo";
   } else if (ctx.modo === "river" && ctx.partido) {
     const p = ctx.partido;
-    if (ctx.min < p.ini) { lbl = "Faltan"; big = duracion(p.ini - ctx.min); sub = esc(p.titulo) + " · " + p.inicio; }
-    else if (ctx.min < p.fin) { lbl = "En juego"; big = hhmm(ctx.min); sub = esc(p.titulo); }
-    else { lbl = "Terminó"; big = esc(p.detalle?.resultado || "—"); sub = esc(p.titulo); }
+    big = hhmm(ctx.min);
+    if (ctx.min < p.ini) { lbl = "Faltan " + duracion(p.ini - ctx.min); sub = esc(p.titulo) + " · " + p.inicio; }
+    else if (ctx.min < p.fin) { lbl = "En juego"; sub = esc(p.titulo); }
+    else { lbl = "Terminó · " + esc(p.detalle?.resultado || "—"); sub = esc(p.titulo); }
   } else {
     const actual = ctx.hoy.find((b) => b.ini <= ctx.min && ctx.min < b.fin);
     const prox = ctx.hoy.find((b) => b.ini > ctx.min);
     big = hhmm(ctx.min);
     if (actual) { lbl = "Ahora · " + esc(actual.titulo); sub = "te quedan " + duracion(actual.fin - ctx.min); }
-    else if (prox && ctx.modo === "libre") { lbl = "Libre hasta las"; big = prox.inicio; sub = esc(prox.titulo); }
+    else if (prox && ctx.modo === "libre") { lbl = "Libre hasta las " + prox.inicio; sub = esc(prox.titulo); }
     else if (prox) { lbl = "Próximo · " + esc(prox.titulo); sub = "en " + duracion(prox.ini - ctx.min); }
     else { lbl = "Libre"; sub = "no queda nada por hoy"; }
   }
@@ -172,7 +176,7 @@ function anillo(datos, ctx, tema) {
       ${marcaAlarma}
       ${punto}
     </svg>
-    <span class="centro"><span class="lbl">${lbl}</span><span class="big">${big}</span><span class="sub">${sub}</span></span>
+    <span class="centro"><span class="lbl">${lbl}</span><span class="big"${!ctx.demo && big === hhmm(ctx.min) ? ' id="hora-anillo"' : ""}>${big}</span><span class="sub">${sub}</span></span>
   </a>`;
 }
 
@@ -187,23 +191,34 @@ function leyenda(datos, ctx, tema) {
 // Tiras que deslizaste hoy (se olvidan solas al otro día).
 function tiraOculta(k, dia) { const v = leer("tirasOcultas", {})[k]; return /-\d{4}-\d{2}-\d{2}$/.test(k) ? !!v : v === dia; }
 
-// Alarmas: solo cerca de la hora de dormir antes de un día de BNA (desde las 23:30, y hasta la 1:30 si ya pasó la medianoche).
-// Muestra las que llegan al calendario «Alarmas» desde el celu y te lleva a las alarmas del teléfono.
-const ABRIR_ALARMAS = "intent:#Intent;action=android.intent.action.SHOW_ALARMS;end";
+// Recordatorio de alarmas: solo la noche antes de un día de BNA (desde las 23:30, y hasta la 1:30 pasada la medianoche).
+// Es solo un recordatorio, con un mensaje que va cambiando; si ya las pusiste, lo deslizás y no vuelve esa noche.
+const MSJ_ALARMAS = [
+  "¿Pusiste las alarmas?", "¿Te acordaste de las alarmas?", "Alarmas: ¿listas?", "Antes de dormir: las alarmas.",
+  "¿Las alarmas están prendidas?", "Revisá las alarmas, por las dudas.", "Mañana hay BNA. ¿Alarmas?", "Un toque al reloj del celu y a dormir.",
+  "¿Alarma puesta o confiamos en la suerte?", "Las alarmas no se ponen solas.", "¿Ya programaste el despertador?", "Check de alarmas antes de apagar la luz.",
+  "¿Todas las alarmas en su lugar?", "Mañana se ficha temprano: alarmas.", "Que no te agarre la mañana: alarmas.", "¿Y las alarmas, crack?",
+  "Último trámite del día: las alarmas.", "¿El celu sabe a qué hora despertarte?", "Alarmas puestas = mañana tranqui.", "Fijate las alarmas y a la cucha.",
+  "¿Pusiste la de siempre y la de por las dudas?", "Alarmas: la primera, la segunda y la de emergencia.", "Antes de la almohada, las alarmas.", "Mañana BNA. Alarmas, ¿sí?",
+  "Un segundo: ¿alarmas?", "Recordatorio amistoso: alarmas.", "¿Quedaron prendidas las alarmas?", "No te olvides: alarmas.",
+  "Gran poder, gran responsabilidad: poné las alarmas.", "Ni Doom se levanta sin alarma. ¿Las pusiste?", "Jarvis no te va a despertar: alarmas.", "Variante dormida detectada. ¿Alarmas?",
+  "El Millo madruga para entrenar. ¿Y vos? Alarmas.", "Para ganar mañana, alarmas hoy.", "Hasta Gallardo pone despertador. ¿Las tuyas?", "Alarmas puestas, conciencia tranquila.",
+  "¿Ya está? ¿Alarmas? Ahora sí, a dormir.", "Chequeo nocturno: alarmas.", "¿Cuántas alarmas esta vez? Pero que estén.", "Que mañana el celu cante a tiempo.",
+  "Alarmas: no dejes nada librado al azar.", "Antes de apagar todo, mirá las alarmas.", "¿Alarmas? Después no digas que no te avisé.", "Mañana es día de banco: alarmas.",
+  "La línea E no espera: alarmas.", "Café mañana, alarmas hoy.", "Un mimo para tu yo de mañana: alarmas.", "Las alarmas, y después sí, a soñar.",
+  "Si ya las pusiste, deslizame y listo.", "Cerramos el día: alarmas puestas."
+];
 function tiraAlarmas(ctx) {
   if (ctx.demo) return "";
   const antes = ctx.min >= 23 * 60 + 30 && (ctx.manana || []).some((b) => b.tipo === "bna");
   const despues = ctx.min < 90 && (ctx.hoy || []).some((b) => b.tipo === "bna");
   if (!antes && !despues) return "";
-  const dia = antes ? ctx.manana : ctx.hoy;
-  const entra = dia.find((b) => b.tipo === "bna");
   const base = new Date(ctx.fecha); base.setHours(0, 0, 0, 0); if (antes) base.setDate(base.getDate() + 1);
-  const hasta = base.getTime() + (entra ? entra.ini * 60000 : 12 * 3600000);
-  const lista = (ctx.alarmasFuturas || []).filter((t) => t >= base.getTime() && t <= hasta);
-  const hh = (t) => { const d = new Date(t); return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); };
-  return `<div class="tira tira-alarmas" data-desliza="alarma-${base.getFullYear()}-${String(base.getMonth() + 1).padStart(2, "0")}-${String(base.getDate()).padStart(2, "0")}"><div style="flex:1;min-width:0"><div class="k">${antes ? "Mañana" : "Hoy"} entrás a las ${entra.inicio}</div>
-      <div class="t">${lista.length ? (lista.length === 1 ? "Alarma " : "Alarmas ") + lista.map(hh).join(" · ") : "No veo alarmas puestas"}</div></div>
-    <a class="btn" href="${ABRIR_ALARMAS}" style="height:40px;padding:0 14px;display:inline-flex;align-items:center;text-decoration:none" aria-label="Abrir las alarmas del celu">Abrir</a></div>`;
+  const semilla = base.getFullYear() * 400 + base.getMonth() * 32 + base.getDate();
+  // Cambia cada noche y cada 5 minutos.
+  const m = MSJ_ALARMAS[(semilla * 7 + Math.floor((ctx.min + (antes ? 0 : 1440)) / 5)) % MSJ_ALARMAS.length];
+  const clave = "alarma-" + base.getFullYear() + "-" + String(base.getMonth() + 1).padStart(2, "0") + "-" + String(base.getDate()).padStart(2, "0");
+  return `<div class="tira tira-alarmas" data-desliza="${clave}"><div style="flex:1;min-width:0"><div class="k">Recordatorio</div><div class="t">${esc(m)}</div></div><span class="desliza-pista" aria-hidden="true">›</span></div>`;
 }
 
 function tira(ctx, datos) {

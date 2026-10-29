@@ -964,3 +964,5 @@ details.bloque.plegable[open] > summary { margin-bottom: 10px; }
 /* ---------- v0.29 · Deslizar lo circunstancial ---------- */
 [data-desliza] { touch-action: pan-y; user-select: none; -webkit-user-select: none; }
 .tira-alarmas .t { font-family: var(--serif); font-size: 20px; }
+.tira-alarmas .t { font-size: 18px; }
+.desliza-pista { flex: none; font-size: 22px; color: var(--muted); opacity: .6; }
