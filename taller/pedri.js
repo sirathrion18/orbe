@@ -6,7 +6,7 @@ import { RoundedBoxGeometry } from '../vendor/three/RoundedBoxGeometry.js';
 
 const stage = document.getElementById('stage');
 const $ = (id) => document.getElementById(id);
-const D = await fetch('pedri.json?v=4').then((r) => r.json());
+const D = await fetch('pedri.json?v=5').then((r) => r.json());
 const dec = (s, T) => { const b = atob(s), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return new T(u.buffer); };
 
 // ---------- Escena ----------
@@ -56,7 +56,7 @@ function malla(m, mat) {
   const o = new THREE.SkinnedMesh(g, mat); o.castShadow = o.receiveShadow = true; o.frustumCulled = false;
   avatar.add(o); o.bind(skel); return o;
 }
-const cuerpo = malla(D.body, skinM), campera = malla(D.top, topM), jogging = malla(D.pants, panM), remera = malla(D.tee, teeM), short = malla(D.shorts, shoM), zapas = malla(D.shoes, shoeM);
+const cuerpo = malla(D.body, skinM); const IDX = { calle: new THREE.BufferAttribute(dec(D.body_calle, Uint32Array), 1), gym: new THREE.BufferAttribute(dec(D.body_gym, Uint32Array), 1) }; const campera = malla(D.top, topM), jogging = malla(D.pants, panM), remera = malla(D.tee, teeM), short = malla(D.shorts, shoM), zapas = malla(D.shoes, shoeM);
 
 // ---------- Ojos y rulos (van pegados al hueso de la cabeza) ----------
 const cabeza = bone('head'), hR = H[idx.head];
@@ -123,7 +123,7 @@ function ik2(P, T, L1, L2, pole) {
   return P.clone().addScaledVector(dir, a).addScaledVector(pp, h);
 }
 const BRAZO = { // direcciones en el marco del torso: x = hacia afuera, y = arriba, z = adelante
-  abajo: { u: [0.14, -1, 0.02], f: [0.06, -1, 0.12] }, copa: { u: [0.22, -0.72, 0.55], f: [-0.6, 0.6, 0.45] },
+  abajo: { u: [0.14, -1, 0.02], f: [0.06, -1, 0.12] }, copa: { u: [0.2, -0.88, 0.32], f: [-0.62, 0.62, 0.3] },
   cintura: { u: [0.55, -0.8, -0.18], f: [-0.5, -0.35, 0.6] }, arriba: { u: [0.4, 1, 0.08], f: [0.18, 1, 0] } };
 const POLE = new THREE.Vector3(0, 0, 1);
 function posar(P) {
@@ -139,7 +139,7 @@ function posar(P) {
     apuntar(L.up, L.dU, knee.clone().sub(hip)); apuntar(L.lo, L.dL, T.clone().sub(knee));
     mundoQ(L.ft, new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), a[2] || 0));
   });
-  const tq = spine.getWorldQuaternion(new THREE.Quaternion()), A = BRAZO[P.arm];
+  const tq = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), P.lean * 0.35), A = BRAZO[P.arm];
   ARMS.forEach((R) => {
     const u = new THREE.Vector3(A.u[0] * R.sg, A.u[1], A.u[2]).applyQuaternion(tq), f = new THREE.Vector3(A.f[0] * R.sg, A.f[1], A.f[2]).applyQuaternion(tq);
     apuntar(R.up, R.dU, u); apuntar(R.lo, R.dL, f);
@@ -175,13 +175,13 @@ const lanzar = () => conf.forEach((o) => { o.c.visible = true; o.c.position.set(
 const ROPAS = { calle: { top: '#2f6b1f', pan: '#1c1c1e' }, gym: { top: '#2f6b1f', pan: '#1c1c1e' }, traje: { top: '#36363b', pan: '#2c2c31' } };
 let ropa = 'calle';
 function vestir() { const R = ROPAS[ropa]; topM.color.set(R.top); panM.color.set(R.pan); topM.sheenColor.set(ropa === 'traje' ? '#7ab55a' : '#9fd07a');
-  campera.visible = jogging.visible = ropa !== 'gym'; remera.visible = short.visible = ropa === 'gym'; }
+  campera.visible = jogging.visible = ropa !== 'gym'; remera.visible = short.visible = ropa === 'gym'; cuerpo.geometry.setIndex(ropa === 'gym' ? IDX.gym : IDX.calle); }
 vestir();
 
 // ---------- Cámara y controles ----------
-const VISTAS = { tres: [2.1, 0.3, 2.1], frente: [0.001, 0.25, 3.2], perfil: [3.2, 0.25, 0.001], espalda: [0.001, 0.25, -3.2], cara: [0.18, 0.02, 0.62] };
+const VISTAS = { tres: [2.1, 0.3, 2.1], frente: [0.001, 0.2, 3.9], perfil: [3.9, 0.2, 0.001], espalda: [0.001, 0.2, -3.9], cara: [0.18, 0.02, 0.62] };
 let camDest = null, modo = 'posar', vel = 1, tc = 0, reps = 0, lanz = false, ci = 0;
-function irVista(v) { const [x, y, z] = VISTAS[v]; const ty = v === 'cara' ? 1.6 : modo === 'posar' ? 0.95 : 0.72; ctl.target.set(0, ty, 0); camDest = new THREE.Vector3(x, ty + y, z); }
+function irVista(v) { const [x, y, z] = VISTAS[v]; const ty = v === 'cara' ? 1.6 : 0.9; ctl.target.set(0, ty, 0); camDest = new THREE.Vector3(x, ty + y, z); }
 cam.position.set(2.1, 1.25, 2.1); ctl.target.set(0, 0.95, 0); ctl.update();
 function marcar(g, v) { document.querySelectorAll(`[data-grupo="${g}"] button`).forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === v))); }
 function elegir(m) { modo = m; tc = 0; reps = 0; tn = 0; ci = 0; const E = EJ[m]; $('h-n').textContent = E.nombre; $('h-c').textContent = E.cues ? E.cues[0] : '';
@@ -207,7 +207,7 @@ function loop() {
   if (db.visible) { posW('wrist.L').add(posW('wrist.R')).multiplyScalar(0.5); bone('wrist.L').getWorldPosition(w1); bone('wrist.R').getWorldPosition(w2); w1.add(w2).multiplyScalar(0.5); db.position.set(w1.x, w1.y + 0.02, w1.z + 0.05); db.rotation.set(P.lean, 0, 0); }
   kg.visible = !!E.toe; kg.position.set(0.12, 0, toeZ);
   trail.visible = !!E.cues; const hz = P.hip[0], hy = P.hip[1];
-  if (tn < N) { tp.set([0.25, hy, hz], tn * 3); tn++; } else { tp.copyWithin(0, 3); tp.set([0.25, hy, hz], (N - 1) * 3); }
+  if (tn < N) { tp.set([0.32, hy, hz], tn * 3); tn++; } else { tp.copyWithin(0, 3); tp.set([0.32, hy, hz], (N - 1) * 3); }
   tg.setDrawRange(0, tn); tg.attributes.position.needsUpdate = true;
   conf.forEach((o) => { if (!o.c.visible) return; o.v.y -= 6 * dt; o.c.position.addScaledVector(o.v, dt); o.c.rotation.x += dt * 8; o.c.rotation.y += dt * 6; if (o.c.position.y < 0) o.c.visible = false; });
   if (camDest) { cam.position.lerp(camDest, 0.08); if (cam.position.distanceTo(camDest) < 0.01) camDest = null; }
