@@ -60,11 +60,15 @@ export async function leerRecibos() {
   const carpeta = leer("carpetaRecibos") || await carpetaRecibos();
   if (!carpeta) return 0;
   guardar("carpetaRecibos", carpeta, true);
-  const pdfs = ((await api(DRIVE + "?fields=files(id,name,modifiedTime)&pageSize=50&orderBy=name desc&q=" +
-    encodeURIComponent(`'${carpeta}' in parents and mimeType = 'application/pdf' and trashed = false`))).files || []).filter((f) => !ya[f.id + f.modifiedTime]);
-  if (!pdfs.length) return 0;
+  const todos = (await api(DRIVE + "?fields=files(id,name,modifiedTime)&pageSize=50&orderBy=name desc&q=" +
+    encodeURIComponent(`'${carpeta}' in parents and mimeType = 'application/pdf' and trashed = false`))).files || [];
   const [filas] = await leerRangos(["MES!A2:C"]);
   const existentes = new Map(filas.map((f, i) => [String(f[0]).slice(0, 7), i + 2]));
+  // El mes que paga cada archivo, por su nombre («10/26» → el recibo de octubre va a noviembre).
+  const claveDe = (nombre) => { const m = /(\d{1,2})\s*[\/_.-]\s*(\d{2,4})/.exec(nombre || ""); if (!m) return null; const y = Number(m[2].length === 2 ? "20" + m[2] : m[2]); const d = new Date(y, Number(m[1]), 1); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"); };
+  // Nuevos o cambiados, y también los recientes cuyo mes todavía falta en la planilla (por si una vez no se pudo leer).
+  const pdfs = todos.filter((f, i) => !ya[f.id + f.modifiedTime] || (i < 3 && claveDe(f.name) && !existentes.has(claveDe(f.name))));
+  if (!pdfs.length) return 0;
   let agregados = 0;
   for (const f of pdfs.slice(0, 6)) {
     const t = await (await fetch(DRIVE + "/" + f.id + "?alt=media", { headers: { Authorization: "Bearer " + await pedirPase() } })).arrayBuffer();

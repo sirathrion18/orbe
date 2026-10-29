@@ -266,7 +266,7 @@ export function bloqueMesReal(ctx, $, oculto, linkEco) {
       <span class="mr-der"><b>${$(f.real || 0)}</b>${dif(f.real, f.plan)}</span></button></li>`).join("");
   const base = (r.ingreso?.monto || 0) - r.totalReal - (r.colchon - r.usado);
   return `<section class="fz mesreal"><div class="fz-cab"><span class="fz-k">Tu mes real · ${esc(b.p.nombre)}</span>${linkEco ? `<a class="fz-link" href="${esc(linkEco)}" target="_blank" rel="noopener">tu planilla</a>` : ""}</div>
-      <div class="mr-ing"><span><small>Ingreso</small><b>${r.ingreso ? $(r.ingreso.monto) : "—"}</b></span><small>${r.ingreso ? (r.ingreso.estado === "real" ? "del " + esc(r.ingreso.fuente.toLowerCase()) : "estimado, de tu planilla") : "falta el recibo"}${r.planIngreso && r.ingreso ? " · planilla " + $(r.planIngreso) : ""}</small></div>
+      <div class="mr-ing"><span><small>Ingreso</small><b>${r.ingreso ? $(r.ingreso.monto) : "—"}</b></span><small>${r.ingreso ? (r.ingreso.estado === "real" ? "del " + esc(r.ingreso.fuente.toLowerCase()) : r.ingreso.recibo ? "de tu planilla: el recibo dice " + $(r.ingreso.recibo) + " (¿falta un bono?)" : "estimado, de tu planilla") : "falta el recibo"}${r.planIngreso && r.ingreso && !r.ingreso.recibo ? " · planilla " + $(r.planIngreso) : ""}</small></div>
       <ul class="mr-lista">${filas}</ul>
       <div class="mr-colchon"><div><small>Colchón · ${r.pct}% del ingreso</small><b>${$(r.colchon - r.usado)}</b>${r.usado ? `<small>usaste ${$(r.usado)}</small>` : ""}</div>
         <div class="chips">${[3, 5, 10].map((x) => `<button class="chip ${r.pct === x ? "on" : ""}" data-accion="mr-pct" data-v="${x}">${x}%</button>`).join("")}<button class="chip" data-accion="mr-usar" data-m="${r.usado || 0}">${r.usado ? "Cambiar" : "Usar"}</button></div></div>

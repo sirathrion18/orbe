@@ -1,6 +1,16 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.33.1",
+    fecha: "29/10/2026",
+    titulo: "Recibos más firmes.",
+    cambios: [
+      "Recibos: Orbe lee tu recibo de sueldo aunque otra parte (por ejemplo, Gmail pidiendo pausa) haya fallado. Y si el mes de un recibo reciente todavía falta en tu planilla, lo vuelve a intentar solo.",
+      "Mes real: si tu planilla dice bastante más que el recibo (un bono con recibo aparte que todavía no subiste), usa tu planilla y te muestra lo que dice el recibo, en vez de desplomar el diario.",
+      "Satélite: Orbe retira el buzón del celu aunque otra parte haya fallado.",
+    ],
+  },
+  {
     version: "0.33.0",
     fecha: "29/10/2026",
     titulo: "Satélite y 200 saludos nuevos.",

@@ -962,27 +962,27 @@ async function refrescarTodo(forzar = false) {
     try { const c = await leerCampus(); estadoParte("campus", null, c.datos?.actualizado ? "revisión del " + c.datos.actualizado.slice(8, 10) + "/" + c.datos.actualizado.slice(5, 7) : "todavía no hay revisión"); pintar(true); }
     catch (e) { estadoParte("campus", e.message); }
   }
+  // Recibos (Drive): no dependen de lo demás, así un tropiezo de Gmail no los frena. Cada media hora.
+  if (G.permisos().drive && (forzar || Date.now() - (leer("recibosCuando") || 0) > 30 * 60000)) {
+    try { const n = await leerRecibos(); guardar("recibosCuando", Date.now(), true); estadoParte("recibos"); if (n) { await leerPlanilla(); avisar("Leí tu recibo nuevo: Finanzas y BNA ya lo usan"); } }
+    catch (e) { estadoParte("recibos", e.message); }
+  }
+  // Satélite (independiente de lo demás) y antes que los mails: el aviso del celu llega primero, así cuenta ese.
+  const sat = datosSatelite();
+  const conCelu = sat?.dispositivos?.length;
+  if (forzar || !sat || Date.now() - sat.cuando > (conCelu ? 5 * 60000 : 6 * 3600000)) {
+    try { const x = await retirarSatelite(); estadoParte("satelite", null, x.dispositivos.length ? (x.nuevos ? x.nuevos + " nuevos del celu" : "al día") : "sin celu vinculado"); if (x.nuevos) avisar(x.nuevos === 1 ? "Llegó 1 pago del celu" : `Llegaron ${x.nuevos} pagos del celu`); }
+    catch (e) { if (e.message === "falta-buzon") { guardar("satelite", { ...(sat || {}), cuando: Date.now(), error: "falta-buzon" }, true); estadoParte("satelite", null, "falta crear el buzón"); } else estadoParte("satelite", e.message); }
+  }
   if (!fallas.length) {
     try {
       if (forzar || !leer("presuConfig") || Date.now() - leer("presuConfig").cuando > 6 * 3600000) await leerConfigPresu().catch(() => {});
       if (forzar || !datosEsc() || Date.now() - datosEsc().cuando > 6 * 3600000) await leerEscalafon().catch(() => {});
-      // Satélite primero: el aviso del celu llega antes que el mail, así cuenta ese y el mail queda como duplicado.
-      const sat = datosSatelite();
-      const conCelu = sat?.dispositivos?.length;
-      if (forzar || !sat || Date.now() - sat.cuando > (conCelu ? 5 * 60000 : 6 * 3600000)) {
-        try { const x = await retirarSatelite(); estadoParte("satelite", null, x.dispositivos.length ? (x.nuevos ? x.nuevos + " nuevos del celu" : "al día") : "sin celu vinculado"); if (x.nuevos) avisar(x.nuevos === 1 ? "Llegó 1 pago del celu" : `Llegaron ${x.nuevos} pagos del celu`); }
-        catch (e) { if (e.message === "falta-buzon") { guardar("satelite", { ...(sat || {}), cuando: Date.now(), error: "falta-buzon" }, true); estadoParte("satelite", null, "falta crear el buzón"); } else estadoParte("satelite", e.message); }
-      }
       const r = await actualizarFinanzas(forzar);
       await cruzar().catch(() => {});
       estadoParte("mails", null, r && (r.frenado || r.quedan) ? "trayendo el historial de a poco" : "");
     }
     catch (e) { estadoParte("mails", e.message); fallas.push(["mails", e.message]); }
-    // Recibos: se fija cada media hora si subiste uno nuevo a Drive (solo lee los nuevos).
-    if (G.permisos().drive && (forzar || Date.now() - (leer("recibosCuando") || 0) > 30 * 60000)) {
-      try { const n = await leerRecibos(); guardar("recibosCuando", Date.now(), true); estadoParte("recibos"); if (n) { await leerPlanilla(); avisar("Leí tu recibo nuevo: Finanzas y BNA ya lo usan"); } }
-      catch (e) { estadoParte("recibos", e.message); fallas.push(["recibos", e.message]); }
-    }
     // El Semanal: la última edición de tu Drive, guardada para leer sin señal (se fija cada media hora).
     if (G.permisos().drive) {
       try { if (await actualizarSemanal(forzar)) pintar(true); estadoParte("semanal"); }

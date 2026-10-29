@@ -79,7 +79,11 @@ export function mesReal(p, pendientes = []) {
     if (prev[concepto]) return { ...f, real: prev[concepto].monto, fuente: "el del mes pasado" };
     return { ...f, real: plan, fuente: "tu planilla" };
   }).filter((f) => f.real || f.plan);
-  const ingreso = rec?.neto ? { monto: rec.neto, estado: "real", fuente: rec.texto || "recibo" } : col.ingresos ? { monto: col.ingresos, estado: "estimado", fuente: "tu planilla" } : null;
+  // El recibo manda, salvo que tu planilla diga bastante más (un bono con recibo aparte que todavía no está):
+  // ahí queda tu planilla, marcada, hasta que el bono aparezca o la corrijas.
+  const faltaBono = rec?.neto && col.ingresos && col.ingresos > rec.neto * 1.05;
+  const ingreso = rec?.neto && !faltaBono ? { monto: rec.neto, estado: "real", fuente: rec.texto || "recibo" }
+    : col.ingresos ? { monto: col.ingresos, estado: "estimado", fuente: "tu planilla", recibo: faltaBono ? rec.neto : null } : null;
   const totalReal = filas.reduce((s, f) => s + (f.real || 0), 0);
   const totalPlan = filas.reduce((s, f) => s + (f.plan || 0), 0);
   const pct = colchonPct();

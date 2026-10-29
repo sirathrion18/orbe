@@ -1,5 +1,13 @@
 # Novedades de Orbe
 
+## v0.33.1 · 29/10/2026
+
+Recibos más firmes.
+
+- Recibos: Orbe lee tu recibo de sueldo aunque otra parte (por ejemplo, Gmail pidiendo pausa) haya fallado. Y si el mes de un recibo reciente todavía falta en tu planilla, lo vuelve a intentar solo.
+- Mes real: si tu planilla dice bastante más que el recibo (un bono con recibo aparte que todavía no subiste), usa tu planilla y te muestra lo que dice el recibo, en vez de desplomar el diario.
+- Satélite: Orbe retira el buzón del celu aunque otra parte haya fallado.
+
 ## v0.33.0 · 29/10/2026
 
 Satélite y 200 saludos nuevos.
