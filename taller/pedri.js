@@ -109,10 +109,10 @@ const colR = en('gym', mk(new THREE.TorusGeometry(0.062, 0.012, 10, 28), trim, [
 const emb = new THREE.Group(); torso.add(emb); en('traje', emb);
 const eb = mk(new THREE.TorusGeometry(0.052, 0.012, 14, 36), white, [0.172, 0.34, 0], emb); eb.rotation.y = Math.PI / 2; sph(0.017, redM, [0.18, 0.38, 0.038], emb);
 en('traje', mk(new THREE.TorusGeometry(0.168, 0.02, 10, 40), redM, [0, 0.02, 0], torso, [0.85, 1.12, 1])).rotation.x = Math.PI / 2;
-mk(new THREE.CylinderGeometry(0.056, 0.064, 0.14, 24), skin, [0.012, 0.57, 0], torso);
+mk(new THREE.CylinderGeometry(0.062, 0.07, 0.12, 24), skin, [0.012, 0.57, 0], torso);
 
 // ---------- Cabeza ----------
-const head = new THREE.Group(); head.position.set(0.03, 0.72, 0); head.scale.setScalar(0.128); torso.add(head);
+const head = new THREE.Group(); head.position.set(0.03, 0.705, 0); head.scale.setScalar(0.128); torso.add(head);
 mk(headGeo(), S('#ffffff', 0.5, { vertexColors: true }), [0, 0, 0], head);
 mk(hairGeo(), hairM, [0, 0, 0], head);
 // rulos
@@ -158,13 +158,14 @@ const arms = [];
 [1, -1].forEach((side) => {
   const sh = new THREE.Group(); sh.position.set(0, 0.455, 0.215 * side); torso.add(sh);
   sph(0.072, top, [0, -0.01, 0], sh);
-  mk(new THREE.CapsuleGeometry(0.052, 0.17, 8, 16), skin, [0, -0.15, 0], sh);
-  sph(0.05, skin, [0.014, -0.14, 0], sh, [1, 1.4, 1]);
+  en('corto', mk(new THREE.CapsuleGeometry(0.052, 0.17, 8, 16), skin, [0, -0.15, 0], sh));
+  en('corto', sph(0.05, skin, [0.014, -0.14, 0], sh, [1, 1.4, 1]));
   en('corto', mk(new THREE.CylinderGeometry(0.07, 0.066, 0.11, 24), top, [0, -0.065, 0], sh));
   en('largo', mk(new THREE.CapsuleGeometry(0.064, 0.19, 8, 16), sleeve, [0, -0.14, 0], sh));
   const elb = new THREE.Group(); elb.position.set(0, -0.28, 0); sh.add(elb);
-  sph(0.047, skin, [0, 0, 0], elb);
-  mk(new THREE.CylinderGeometry(0.046, 0.034, 0.2, 20), skin, [0, -0.1, 0], elb);
+  en('corto', sph(0.047, skin, [0, 0, 0], elb));
+  en('corto', mk(new THREE.CylinderGeometry(0.046, 0.034, 0.2, 20), skin, [0, -0.1, 0], elb));
+  en('largo', sph(0.056, sleeve, [0, 0, 0], elb));
   en('largo', mk(new THREE.CapsuleGeometry(0.054, 0.15, 8, 16), sleeve, [0, -0.09, 0], elb));
   en('largo', mk(new THREE.CylinderGeometry(0.046, 0.046, 0.035, 20), trim, [0, -0.19, 0], elb));
   if (side === -1) { const p = mk(new THREE.TorusGeometry(0.039, 0.008, 10, 28), band, [0, -0.214, 0], elb); p.rotation.x = Math.PI / 2; sph(0.011, redM, [0, -0.214, -0.041], elb); }
@@ -195,7 +196,7 @@ const SG = shoeGeo(), SOG = soleGeo();
   const pantS = en('largo', lathe(L2, [0.084, 0.088, 0.082, 0.07, 0.06, 0.056], pants));
   const puno = en('largo', mk(new THREE.CylinderGeometry(0.058, 0.058, 0.05, 20), pants));
   const so = en('gym', mk(new THREE.CylinderGeometry(0.046, 0.046, 0.075, 20), sock));
-  const sg = new THREE.Group(); root.add(sg);
+  const sg = new THREE.Group(); sg.scale.setScalar(0.88); root.add(sg);
   mk(SG, shoeM, [0, 0, 0], sg); mk(SOG, soleM, [0, 0, 0], sg);
   const lz = mk(new THREE.BoxGeometry(0.085, 0.008, 0.055), S('#d8d5ce', 0.8), [0.085, 0.014, 0], sg); lz.rotation.z = -0.28;
   mk(new THREE.BoxGeometry(0.025, 0.04, 0.02), soleM, [-0.085, 0.01, 0], sg);
@@ -237,9 +238,9 @@ function vestir() { const R = ROPAS[ropa]; top.color.set(R.top); sleeve.color.se
 const CARAS = { neutral: { s: 0.15, cy: 0, ct: 0 }, sonrisa: { s: 1, cy: 0.02, ct: 0 }, foco: { s: -0.1, cy: -0.03, ct: 0.25 }, sorpresa: { s: 0, cy: 0.08, ct: -0.15, abierta: true } };
 function gesto(n) { const G = CARAS[n]; setBoca(G.s); bocaAbierta.visible = !!G.abierta; if (G.abierta) boca.visible = false; cejas.forEach((c) => { c.position.y = 0.3 + G.cy; c.rotation.y = G.ct * c.userData.s; }); }
 vestir(); gesto('neutral');
-const VISTAS = { tres: [2.7, 0.3, 2.7], frente: [3.8, 0.25, 0.001], perfil: [0.001, 0.25, 3.8], espalda: [-3.8, 0.25, 0.001] };
+const VISTAS = { cara: [0.95, 0.05, 0.45], tres: [2.7, 0.3, 2.7], frente: [3.8, 0.25, 0.001], perfil: [0.001, 0.25, 3.8], espalda: [-3.8, 0.25, 0.001] };
 let camDest = null;
-function irVista(v) { const [x, y, z] = VISTAS[v]; const ty = modo === 'posar' ? 0.95 : 0.7; ctl.target.set(0, ty, 0); camDest = new THREE.Vector3(x, ty + y, z); }
+function irVista(v) { const [x, y, z] = VISTAS[v]; const ty = v === 'cara' ? 1.68 : modo === 'posar' ? 0.95 : 0.7; ctl.target.set(0, ty, 0); camDest = new THREE.Vector3(x, ty + y, z); }
 cam.position.set(2.7, 1.25, 2.7); ctl.target.set(0, 0.95, 0); ctl.update();
 function elegir(m) { modo = m; tc = 0; reps = 0; tn = 0; ci = 0; const E = EJ[m]; $('h-n').textContent = E.nombre; $('h-c').textContent = E.cues ? E.cues[0] : '';
   $('reps').hidden = !E.cues; $('leyenda').hidden = !E.toe; $('h-r').textContent = '0 / 12'; caja.visible = m === 'sen';
