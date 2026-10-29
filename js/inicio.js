@@ -15,7 +15,7 @@ import { ultimaEdicion, esNueva, proximaSemanal } from "./semanal.js";
 import { wChecklists, usarColores } from "./checklists.js";
 import { decoracion, hudSobre, decreto, lineaTva } from "./guinos.js";
 import { wBnaHoy } from "./bnahoy.js";
-import { racha } from "./finanzasui.js";
+import { racha, motivoSinDiario, resumenGastosHoy } from "./finanzasui.js";
 
 export const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -404,17 +404,25 @@ function wDiario(datos, ctx) {
         <div class="chips"><button class="chip" data-accion="presu-confirmar" data-clave="${b.p.clave}" data-monto="${Math.round(b.ingreso.monto)}">Usar ${$(b.ingreso.monto)}</button><a class="chip" href="#/u/finanzas">Lo cargo en la planilla</a></div>`
         : '<span class="sub">Cargalo en tu planilla ECONOMÍA y el diario sale solo.</span>'}</div>`;
   }
+  const enQue = oculto ? "" : resumenGastosHoy(ctx.fecha, $);
+  const enQueHtml = enQue ? `<span class="sub en-que">${esc(enQue)}</span>` : "";
+  if (b.sinMargen) {
+    return `<div class="w ancho"><div class="fila"><span class="k">Diario · ${b.p.nombre}</span><span class="fila" style="gap:8px">${ojo}${mas}</span></div>
+      <a href="#/u/finanzas" style="text-decoration:none"><span class="medio" style="font-size:20px;color:var(--accent)">No queda diario</span></a>
+      <span class="sub">${esc(motivoSinDiario(b, $).replace("Abajo ves en qué.", "En Finanzas ves en qué."))}</span>${enQueHtml}</div>`;
+  }
   if (b.sinDiario) {
     return `<div class="w ancho"><div class="fila"><span class="k">Diario · ${b.p.nombre}</span><span class="fila" style="gap:8px">${ojo}${mas}</span></div>
       <span class="medio" style="font-size:20px;color:var(--accent)">No queda diario</span>
-      <span class="sub">${b.real ? `Tus egresos reales más el colchón (${$(b.total)}) superan el ingreso (${$(b.ingreso.monto)}) por ${$(-b.base)}. Mirá el mes real en Finanzas.` : `Los egresos de tu planilla (${$(b.total)}) superan el ingreso (${$(b.ingreso.monto)}${b.ingreso.propuesta ? ", estimado" : ""}) por ${$(-b.base)}. Revisá los Ingresos de ${b.p.nombre} en ECONOMÍA.`}</span></div>`;
+      <span class="sub">${b.real ? `Tus egresos reales más el colchón (${$(b.total)}) superan el ingreso (${$(b.ingreso.monto)}) por ${$(-b.base)}. Mirá el mes real en Finanzas.` : `Los egresos de tu planilla (${$(b.total)}) superan el ingreso (${$(b.ingreso.monto)}${b.ingreso.propuesta ? ", estimado" : ""}) por ${$(-b.base)}. Revisá los Ingresos de ${b.p.nombre} en ECONOMÍA.`}</span>${enQueHtml}</div>`;
   }
-  const rojo = b.quedaHoy < 0;
+  const rojo = b.quedaHoy < 0 && b.gastoHoy > 0;
   const uso = b.diario > 0 ? Math.min(1, Math.max(0, b.gastoHoy / b.diario)) : 1;
   return `<div class="w ancho diario"><div class="fila"><span class="k">${rojo ? "Hoy te pasaste" : "Hoy podés gastar"}</span><span class="fila" style="gap:8px">${ojo}${mas}</span></div>
     <a href="#/u/finanzas" style="text-decoration:none"><span class="medio ${oculto ? "oculto" : ""}" style="${rojo ? "color:var(--accent)" : ""}">${oculto ? "••••••" : pesos(Math.abs(b.quedaHoy))}</span></a>
     <div class="barra"><i style="width:${oculto ? 0 : Math.round(uso * 100)}%;${rojo ? "background:var(--accent)" : ""}"></i></div>
     <span class="sub">Diario ${$(b.diario)} · gastaste ${$(b.gastoHoy)} hoy · te quedan ${$(b.queda)} hasta el ${finTxt} (${b.p.restantes} ${b.p.restantes === 1 ? "día" : "días"})</span>
+    ${enQueHtml}
     ${b.ingreso.propuesta ? `<span class="sub" style="color:var(--accent)">Ingreso estimado: confirmalo en Finanzas.</span>` : ""}</div>`;
 }
 

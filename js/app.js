@@ -30,7 +30,7 @@ import { sol } from "./sol.js";
 import { guinoActivo, guinoYa, guinosPrendidos } from "./guinos.js";
 import { marcarAgus, hojaAgus2, hojaPagado, hojaColchon } from "./finanzasui.js";
 import { marcarPagado, usarColchon, fijarColchonPct, mesReal } from "./mesreal.js";
-import { periodo } from "./presupuesto.js";
+import { periodo, cuentaEnDiario, iso as isoP } from "./presupuesto.js";
 import { sincronizarRiver } from "./rivercal.js";
 import { anotarCobros, escribirEnEconomia } from "./suscripciones.js";
 import { mesActual, claveMes, mesViejo } from "./agendames.js";
@@ -434,7 +434,7 @@ document.addEventListener("click", (e) => {
   else if (a === "mr-pagado") { abrirHoja(hojaPagado(el.dataset.c, Number(el.dataset.m) || 0), "Marcar pagado"); setTimeout(() => document.querySelector('.hoja [name="monto"]')?.select(), 250); }
   else if (a === "mr-pct") { fijarColchonPct(Number(el.dataset.v)); vibrar(); pintar(true); }
   else if (a === "mr-usar") { const r = mesReal(periodo(new Date())); abrirHoja(hojaColchon(r ? r.colchon : 0, Number(el.dataset.m) || 0), "Usar el colchón"); }
-  else if (a === "fin-dia") { sesion("finDia", el.dataset.d); pintar(true); }
+  else if (a === "fin-dia") { const delGrafico = !!el.closest(".grafico"); sesion("finDia", el.dataset.d); pintar(true); if (delGrafico) setTimeout(() => document.querySelector(".fz.gastos")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60); }
   else if (a === "agus-paso") { abrirHoja(hojaAgus2(periodo(new Date()).clave, Number(el.dataset.monto) || 0), "Agus te pasó"); setTimeout(() => document.querySelector('.hoja [name="monto"]')?.select(), 250); }
   else if (a === "river-tabla") { sesion("riverTabla", el.dataset.v); pintar(true); }
   else if (a === "eq-sacar") {
@@ -694,7 +694,16 @@ document.addEventListener("submit", async (e) => {
     const id = f.dataset.id;
     cerrarHoja(); avisar("Guardando…");
     try {
-      await corregir(id, { clase: d.clase, rubro: d.rubro || "", mitad: !!d.mitad }, !!d.aprender);
+      const m = (datosFinanzas()?.movs || []).find((x) => x.id === id);
+      const cambios = { clase: d.clase, rubro: d.rubro || "", mitad: !!d.mitad };
+      const cambioTipo = m && (m.clase !== cambios.clase || (m.rubro || "") !== cambios.rubro || !!m.mitad !== cambios.mitad);
+      // Otro día: misma hora, la fecha que elegiste.
+      if (m && d.dia && /^\d{4}-\d{2}-\d{2}$/.test(d.dia) && d.dia !== isoP(new Date(m.ts))) {
+        const [y, mo, dd] = d.dia.split("-").map(Number), t = new Date(m.ts);
+        cambios.ts = new Date(y, mo - 1, dd, t.getHours(), t.getMinutes()).getTime();
+      }
+      if (m && d.cuenta && (d.cuenta === "si") !== cuentaEnDiario({ ...m, ...cambios })) cambios.diario = d.cuenta === "si" ? "sí" : "no";
+      await corregir(id, cambios, !!d.aprender && cambioTipo);
       avisar("Guardado en tu planilla"); pintar(true);
     } catch (err) { avisar("No se pudo guardar: " + err.message); }
   } else if (tipo === "gasto-rapido") {

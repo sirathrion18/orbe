@@ -1068,3 +1068,30 @@ details.bloque.plegable[open] > summary { margin-bottom: 10px; }
 .mr-tot { grid-template-columns: 1fr 1fr; }
 .mr-tot .mr-base { grid-column: 1 / -1; padding-top: 8px; border-top: 1px solid var(--line); }
 .mr-tot .mr-base b { font-size: 30px; }
+
+/* v0.31.1 · En qué gastaste (hoy y en el período), cada gasto se toca para corregirlo */
+.fz-tot { font-family: var(--serif); font-size: 20px; font-weight: 400; }
+.fz-gl { list-style: none; margin: 6px 0 0; padding: 0; }
+.fz-gl li + li { border-top: 1px solid var(--line); }
+.fz-g { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; border: 0; background: none;
+  color: var(--text); font: inherit; font-size: 15px; text-align: left; cursor: pointer; }
+.fz-g .q { display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+.fz-g small { font-size: 12px; color: var(--muted); }
+.fz-g small em { font-style: normal; color: var(--accent); }
+.fz-g b { font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.fz-g.no b { color: var(--muted); font-weight: 400; text-decoration: line-through; }
+.fz-ayer, .fz-rub { margin-top: 8px; border-top: 1px solid var(--line); }
+.fz-ayer summary, .fz-rub summary { list-style: none; cursor: pointer; padding: 12px 0 6px; display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 15px; }
+.fz-ayer summary::-webkit-details-marker, .fz-rub summary::-webkit-details-marker { display: none; }
+.fz-ayer summary span::after, .fz-rub summary .n::after { content: " ›"; color: var(--muted); }
+.fz-ayer[open] summary span::after, .fz-rub[open] summary .n::after { content: " ⌄"; }
+.fz-rub summary { flex-wrap: wrap; position: relative; padding-bottom: 12px; }
+.fz-rub summary .v { font-variant-numeric: tabular-nums; }
+.fz-rub summary .v small { margin-left: 6px; font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 1px 7px; }
+.fz-rub summary i { position: absolute; left: 0; bottom: 4px; height: 3px; border-radius: 2px; background: var(--text); opacity: .75; }
+.fz-rub.no summary { color: var(--muted); }
+.fz-pie { margin: 10px 0 0; font-size: 12px; color: var(--muted); }
+.w .sub.en-que { color: var(--text); }
+.fz-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); text-align: center; }
+.fz-nav .icon-btn { font-size: 20px; flex: none; }
+.fz-nav .icon-btn[disabled] { opacity: .3; }

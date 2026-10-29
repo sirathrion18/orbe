@@ -1,6 +1,19 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.31.1",
+    fecha: "29/10/2026",
+    titulo: "En qué gastaste, hoy y en el mes.",
+    cambios: [
+      "Finanzas › Hoy: «En qué gastaste hoy», con cada gasto, la hora, el rubro y de dónde salió (de un mail, del resumen o anotado por vos). Con las flechas o tocando una barra del gráfico ves cualquier otro día.",
+      "Finanzas › Mes: «En qué vas gastando» desde el cobro, por rubro, con lo de tus mails y lo que anotaste. Abajo, aparte, lo que no cuenta en el diario y por qué.",
+      "Cada gasto se toca y se corrige: qué día fue, si cuenta en el diario, qué es, el rubro y si es compartido.",
+      "Inicio: debajo del diario, en qué gastaste hoy («Hoy: Rappi $ 3.100…»).",
+      "Ya no dice «Hoy te pasaste» si hoy no gastaste nada. Si lo gastado los días anteriores ya usó el margen, dice «No queda diario» y te explica por qué.",
+      "Mes real: «TC MP» ahora se reconoce como la tarjeta de Mercado Pago.",
+    ],
+  },
+  {
     version: "0.31.0",
     fecha: "29/10/2026",
     titulo: "Mes real y colchón.",

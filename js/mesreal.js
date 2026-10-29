@@ -58,7 +58,9 @@ export function mesReal(p, pendientes = []) {
     if (/\bpp\b|prestamo|talon/.test(n) && rec?.talon) return { ...f, real: rec.talon, estado: "pagado", fuente: "talón del recibo" };
     if (/suscrip/.test(n) && sus) return { ...f, real: sus, estado: "pagado", fuente: "tus suscripciones" };
     // Tarjetas: lo que pagaste del resumen; si todavía no, queda tu plan y se muestra el resumen.
-    if (/master|visa|tarjeta/.test(n)) {
+    if (/master|visa|tarjeta|\btc\b/.test(n)) {
+      // «TC MP» es la tarjeta de Mercado Pago: se busca por «mercado».
+      if (/\bmp\b/.test(n)) ws.push("mercado");
       const pago = movs.filter((m) => m.clase === "tarjeta" && ws.some((w) => normal(m.contra).includes(w))).reduce((s, m) => s + (m.monto || 0), 0);
       const d = deudas.find((x) => ws.some((w) => normal(x.nombre).includes(w)));
       if (pago) return { ...f, real: pago, estado: "pagado", fuente: "pago del resumen (mails)" };

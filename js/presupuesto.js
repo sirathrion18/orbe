@@ -145,8 +145,10 @@ export function presupuesto(hoy = new Date()) {
   const esperadoAgus = div?.mitad ? div.mitad - ajustes.reduce((s, a) => s + a.monto, 0) : null;
   const porDia = {};
   contados.forEach((m) => { const d = iso(new Date(m.ts)); porDia[d] = (porDia[d] || 0) + parte(m); });
-  return { p, col, ingreso: ing, total, tarjetaAnterior, base, diario, gastoHoy, quedaHoy, queda, gastoTotal, diarioManana,
-    pasado: diario != null && diario > 0 && quedaHoy < 0, sinDiario: base != null && base <= 0, agus, esperadoAgus, agusMail, ajustes, division: div, contados, porDia, real };
+  // Sin margen: lo gastado antes de hoy ya se comió lo de los días que faltan (hoy todavía no gastaste nada y igual no queda).
+  const sinMargen = base != null && base > 0 && diario != null && diario <= 0;
+  return { p, col, ingreso: ing, total, tarjetaAnterior, base, diario, gastoHoy, gastoAntes, quedaHoy, queda, gastoTotal, diarioManana,
+    pasado: diario != null && diario > 0 && quedaHoy < 0, sinDiario: base != null && base <= 0, sinMargen, agus, esperadoAgus, agusMail, ajustes, division: div, contados, porDia, real };
 }
 
 // ---------- Cruce entre lo que cargás y lo que llega por mail ----------

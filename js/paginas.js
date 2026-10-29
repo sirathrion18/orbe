@@ -5,7 +5,7 @@ import { ICONOS, MARCA } from "./iconos.js";
 import { wPregunta, logoSemanal, esc, colorTipo, colorUniverso, datosPartido, resultadoTxt, torneoCorto, estadioCorto, regresiva } from "./inicio.js";
 import { urgentesTodos, DIAS, DIAS_CORTOS, bloquesDe, bloquesFecha, pendientesCon, cuandoTexto, duracion, hhmm, MODOS, lunesDe, minutosDia, sumaTipo } from "./contexto.js";
 import { datosListas, proximaAnual } from "./listas.js";
-import { presupuesto } from "./presupuesto.js";
+import { presupuesto, cuentaEnDiario, iso as isoDia } from "./presupuesto.js";
 import { analisis, datosHist } from "./analisis.js";
 import { datosEsc, cargoEn, conformadoDe, tuCargo, proximoCargo, grillaVsRecibo, estimadoNeto } from "./escalafon.js";
 import { datosProd, resumenDia, banda, PRESETS, presetPuntos, historial, mesesConDatos, isoHoy, metaDe, HISTORICO, OFICIAL, hayPendientes } from "./productividad.js";
@@ -20,7 +20,7 @@ import { datosEconomia, linkEconomia, idEconomia } from "./economia.js";
 import { ultimaEdicion, htmlEdicion } from "./semanal.js";
 import { GUINOS, guinosPrendidos, resumenGuinos } from "./guinos.js";
 import { bloqueSuscripciones } from "./suscripciones.js";
-import { heroHoy, avisoRacha, graficoDias, tarjetaAgus, heroMes, analisisGastos, bloqueMesReal } from "./finanzasui.js";
+import { heroHoy, avisoRacha, graficoDias, tarjetaAgus, heroMes, analisisGastos, bloqueMesReal, bloqueGastosHoy, bloqueGastosMes } from "./finanzasui.js";
 import { renderMes } from "./agendames.js";
 import { bloqueHoy } from "./bnahoy.js";
 import { equiposSeguidos } from "./extras.js";
@@ -388,12 +388,12 @@ const PAGINAS = {
     const promos = `<section class="bloque"><ul class="lista">${((datosEconomia()?.alias?.promos?.[dia]?.length ? datosEconomia().alias.promos[dia] : null) || (PROMOS[dia] || []).concat(PROMOS_SIEMPRE)).map((x) => `<li><span>${esc(x)}</span></li>`).join("")}</ul>
         <p class="vacio" style="margin-top:10px;font-size:12px">Los topes cambian seguido: verificalos antes de pagar.</p></section>`;
     if (tabF === "analisis") return pestF + analisisGastos(ctx, $, oculto) + `<h2 class="fz-titulo">Tu historia con la plata</h2>` + bloqueAnalisis($);
-    if (tabF === "mes") { const mr = bloqueMesReal(ctx, $, oculto, linkEconomia()); return `${pestF}${heroMes(ctx, $)}${mr || bloquePeriodo(ctx, $)}${vencHtml}${revisar}${mr ? "" : bloqueEconomia(ctx, $)}${movs}`; }
+    if (tabF === "mes") { const mr = bloqueMesReal(ctx, $, oculto, linkEconomia()); return `${pestF}${heroMes(ctx, $)}${bloqueGastosMes(ctx, $)}${mr || bloquePeriodo(ctx, $)}${vencHtml}${revisar}${mr ? "" : bloqueEconomia(ctx, $)}${plegable("Todos los movimientos del mes", movs.replace(/<h2>[\s\S]*?<\/h2>/, ""))}`; }
     if (tabF === "cuentas") return `${pestF}${deudas}${bloqueSuscripciones(ctx.fecha)}${bloqueAlias()}
       ${plegable("Promos de hoy, " + DIAS[dia], promos)}${plegable("Dólar hoy", dolar)}${plegable("Topes del mes", topes)}
       ${linkHoja() ? `<section class="bloque"><h2>Planilla</h2><p>Todo vive en tu planilla <b>Orbe · datos</b>: podés corregir a mano lo que quieras.</p><div class="chips" style="margin-top:12px"><a class="chip" href="${esc(linkHoja())}" target="_blank" rel="noopener">Abrir la planilla</a></div></section>` : ""}`;
     // Hoy: lo mismo que Inicio, el gasto día por día y Agus.
-    return `${pestF}${heroHoy(ctx, $, oculto)}${avisoRacha(ctx, $)}${aviso}${wPregunta() ? `<section class="preg-fin">${wPregunta()}</section>` : ""}${graficoDias(ctx, $, oculto)}${tarjetaAgus(ctx, $)}${cabeza.includes("Activar en Ajustes") ? cabeza : ""}`;
+    return `${pestF}${heroHoy(ctx, $, oculto)}${avisoRacha(ctx, $)}${aviso}${wPregunta() ? `<section class="preg-fin">${wPregunta()}</section>` : ""}${bloqueGastosHoy(ctx, $)}${graficoDias(ctx, $, oculto)}${tarjetaAgus(ctx, $)}${cabeza.includes("Activar en Ajustes") ? cabeza : ""}`;
   },
 
   proyectos(datos) {
@@ -664,14 +664,18 @@ export function renderAjustes(estadoTema, demo, hayPin, google) {
 
 // Hoja para corregir un movimiento: rubro, tipo y si se divide con Agus.
 export function hojaMovimiento(m) {
+  const esGasto = ["gasto", "gasto-tarjeta", "devolucion"].includes(m.clase) && m.ts;
+  const cuenta = cuentaEnDiario(m);
   const CLASES_TXT = [["gasto", "Gasto"], ["gasto-tarjeta", "Con tarjeta"], ["tarjeta", "Pago de tarjeta"], ["deuda", "Cuota"], ["ahorro", "Ahorro"], ["propia", "Entre mis cuentas"], ["ingreso", "Ingreso"]];
   return `<h2>${esc(m.contra || m.tipo)}</h2>
-    <p class="vacio" style="margin:-4px 0 4px">$ ${Math.round(m.monto || 0).toLocaleString("es-AR")} · ${esc(m.fuente || "")}</p>
+    <p class="vacio" style="margin:-4px 0 4px">$ ${Math.round(m.monto || 0).toLocaleString("es-AR")} · ${m.fuente === "A mano" ? "lo anotaste vos" : esc(m.fuente || "")}${m.medio ? " · " + esc(m.medio) : ""}</p>
     <form data-form="fin-mov" data-id="${esc(m.id)}">
+      ${esGasto ? `<div class="grupo"><span>¿Cuenta en el diario?</span><div class="chips">${[["si", "Sí, es del día a día"], ["no", "No (fijo, no es mío o no va)"]].map(([k, n]) => `<label class="chip ${(cuenta ? "si" : "no") === k ? "on" : ""}"><input type="radio" class="sr" name="cuenta" value="${k}" ${(cuenta ? "si" : "no") === k ? "checked" : ""}>${n}</label>`).join("")}</div></div>
+      <div class="grupo"><span>Qué día fue</span><input class="campo-hora" type="date" name="dia" value="${isoDia(new Date(m.ts))}" max="${isoDia(new Date())}" style="text-align:left"></div>` : ""}
       <div class="grupo"><span>Qué es</span><div class="chips">${CLASES_TXT.map(([k, n]) => `<label class="chip ${m.clase === k ? "on" : ""}"><input type="radio" class="sr" name="clase" value="${k}" ${m.clase === k ? "checked" : ""}>${n}</label>`).join("")}</div></div>
       <div class="grupo"><span>Rubro</span><div class="chips">${RUBROS.map((r) => `<label class="chip ${m.rubro === r ? "on" : ""}"><input type="radio" class="sr" name="rubro" value="${esc(r)}" ${m.rubro === r ? "checked" : ""}>${esc(r)}</label>`).join("")}</div></div>
       <div class="grupo"><label style="display:flex;gap:10px;align-items:center"><input type="checkbox" name="mitad" ${m.mitad ? "checked" : ""} style="width:20px;height:20px"> Se divide con Agus (cuenta tu mitad)</label></div>
-      <div class="grupo"><label style="display:flex;gap:10px;align-items:center"><input type="checkbox" name="aprender" checked style="width:20px;height:20px"> Recordarlo para la próxima vez que aparezca</label></div>
+      <div class="grupo"><label style="display:flex;gap:10px;align-items:center"><input type="checkbox" name="aprender" checked style="width:20px;height:20px"> Si cambiás qué es o el rubro, recordarlo para la próxima vez que aparezca</label></div>
       <div class="grupo" style="display:flex;gap:10px"><button type="button" class="btn sec" data-accion="cerrar-hoja" style="flex:1">Cancelar</button><button class="btn" style="flex:2">Guardar</button></div>
     </form>`;
 }
