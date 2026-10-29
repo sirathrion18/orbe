@@ -18,7 +18,7 @@ function aMov(f, i) {
   const o = Object.fromEntries(COLS.map((c, j) => [c, f[j] ?? ""]));
   return { ...o, fila: i + 2, ts: Number(o.ts) || 0, monto: num(o.monto), mitad: si(o.mitad), revisar: si(o.revisar), eco: si(o.eco) };
 }
-const aFila = (m) => COLS.map((c) => c === "mitad" || c === "revisar" || c === "eco" ? (m[c] ? "sí" : "") : c === "fecha" ? isoDia(m.ts) : m[c] ?? "");
+export const aFila = (m) => COLS.map((c) => c === "mitad" || c === "revisar" || c === "eco" ? (m[c] ? "sí" : "") : c === "fecha" ? isoDia(m.ts) : m[c] ?? "");
 
 // ---------- Leer la planilla ----------
 export async function leerPlanilla() {

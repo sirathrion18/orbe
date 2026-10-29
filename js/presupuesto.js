@@ -62,8 +62,9 @@ export function periodo(hoy) {
 
 // ---------- Qué cuenta ----------
 const esManual = (m) => m.fuente === "A mano";
+export const esCelu = (m) => /^Celu/.test(m.fuente || "");
 export function cuentaEnDiario(m) {
-  if (!m || m.moneda === "USD" || m.cruce && !esManual(m)) return false; // el mail que se unió con lo que cargaste: cuenta una sola vez
+  if (!m || m.moneda === "USD" || m.cruce && !esManual(m) && !esCelu(m)) return false; // el mail que se unió con lo que cargaste (o con el celu): cuenta una sola vez
   if (m.diario === "no" || m.diario === "dup" || m.diario === "agus") return false;
   if (m.diario === "sí") return m.clase === "gasto" || m.clase === "gasto-tarjeta" || m.clase === "devolucion";
   if (m.clase === "devolucion") return !FIJOS.includes(m.rubro);
@@ -155,14 +156,17 @@ export function presupuesto(hoy = new Date()) {
 // Mismo monto (±1%) dentro de 24 h: se unen y cuenta una sola vez (el que cargaste, con tu categoría y tu mitad).
 export function buscarCruces(movs) {
   const libres = movs.filter((m) => !m.cruce && (m.clase === "gasto" || m.clase === "gasto-tarjeta") && m.moneda !== "USD");
-  const manuales = libres.filter(esManual), mails = libres.filter((m) => !esManual(m));
+  const manuales = libres.filter(esManual), celu = libres.filter(esCelu), mails = libres.filter((m) => !esManual(m) && !esCelu(m));
   const usados = new Set(), cambios = [];
-  manuales.forEach((a) => {
-    const b = mails.find((x) => !usados.has(x.id) && Math.abs(x.ts - a.ts) <= 86400000 && Math.abs((x.monto || 0) - (a.monto || 0)) <= Math.max(1, a.monto * 0.01));
+  const unir = (primarios, otros) => primarios.forEach((a) => {
+    if (usados.has(a.id)) return;
+    const b = otros.find((x) => !usados.has(x.id) && Math.abs(x.ts - a.ts) <= 86400000 && Math.abs((x.monto || 0) - (a.monto || 0)) <= Math.max(1, a.monto * 0.01));
     if (!b) return;
-    usados.add(b.id);
+    usados.add(a.id); usados.add(b.id);
     cambios.push({ id: a.id, cruce: b.id }, { id: b.id, cruce: a.id, diario: "dup" });
   });
+  unir(manuales, [...celu, ...mails]); // lo que anotaste vos manda
+  unir(celu, mails);                   // el aviso del celu llega antes que el mail: cuenta el del celu
   return cambios;
 }
 export async function cruzar() {
@@ -190,7 +194,7 @@ export function preguntas(hoy = new Date()) {
     }
     if (m.diario) return; // ya respondido
     if ((m.clase === "gasto" || m.clase === "gasto-tarjeta") && !FIJOS.includes(m.rubro) && (m.monto || 0) >= UMBRAL)
-      out.push({ id: m.id, tipo: "gasto", m, texto: "Llegó por mail y no lo cargaste", botones: [["mio", "Mío"], ["dos", "De los dos"], ["fijo", "Fijo de la planilla"], ["no", "No es gasto"]] });
+      out.push({ id: m.id, tipo: "gasto", m, texto: esCelu(m) ? "Llegó del celu y no lo cargaste" : "Llegó por mail y no lo cargaste", botones: [["mio", "Mío"], ["dos", "De los dos"], ["fijo", "Fijo de la planilla"], ["no", "No es gasto"]] });
     else if (m.clase === "ingreso" && (m.monto || 0) >= UMBRAL)
       out.push({ id: m.id, tipo: "ingreso", m, texto: "Te entró plata", botones: [["agus", "Agus (división)"], ["otro", "Otro ingreso"], ["propia", "Pase entre mis cuentas"]] });
   });

@@ -62,8 +62,9 @@ export function motivoSinDiario(b, $) {
 
 // ---------- En qué gastaste: lo que Orbe leyó de tus mails y lo que anotaste vos ----------
 // Un mail que se unió con lo que anotaste se muestra una sola vez (el tuyo, con «anotado y en mail»).
-const esGasto = (m) => m.ts && m.moneda !== "USD" && ["gasto", "gasto-tarjeta", "devolucion"].includes(m.clase) && m.diario !== "dup" && !(m.cruce && m.fuente !== "A mano");
-const origen = (m) => m.fuente === "A mano" ? (m.cruce ? "anotado y en mail" : "anotado") : /^resumen/i.test(m.fuente || "") ? "del resumen" : "de un mail";
+const esGasto = (m) => m.ts && m.moneda !== "USD" && ["gasto", "gasto-tarjeta", "devolucion"].includes(m.clase) && m.diario !== "dup" && !(m.cruce && m.fuente !== "A mano" && !/^Celu/.test(m.fuente || ""));
+const origen = (m) => m.fuente === "A mano" ? (m.cruce ? "anotado y en " + (/^cel-/.test(m.cruce) ? "el celu" : "mail") : "anotado")
+  : /^Celu/.test(m.fuente || "") ? "del celu" + (m.cruce ? " y en mail" : "") : /^resumen/i.test(m.fuente || "") ? "del resumen" : "de un mail";
 const hora = (ts) => { const d = new Date(ts); return d.getHours() || d.getMinutes() ? d.getHours() + ":" + String(d.getMinutes()).padStart(2, "0") : ""; };
 const porQueNo = (m) => m.diario === "no" ? "lo sacaste del diario" : m.diario === "agus" ? "es de Agus" : FIJOS.includes(m.rubro) ? "ya está en tus fijos" : "no cuenta en el diario";
 function filaGasto(m, $, conDia) {

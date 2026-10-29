@@ -18,6 +18,7 @@ import { RUBROS } from "./rubros.js";
 import { datosFacu, promedio } from "./facu.js";
 import { datosCampus } from "./campus.js";
 import { paginaCampus } from "./campusui.js";
+import { bloqueSatelite } from "./sateliteui.js";
 import { datosEconomia, linkEconomia, idEconomia } from "./economia.js";
 import { ultimaEdicion, htmlEdicion } from "./semanal.js";
 import { GUINOS, guinosPrendidos, resumenGuinos } from "./guinos.js";
@@ -572,7 +573,7 @@ const FAMILIA = { logo: "var(--sans);font-weight:600;letter-spacing:-.045em", re
   cursiva: "var(--serif);font-style:italic" };
 
 // Qué anda y qué no, parte por parte, con el motivo y el arreglo cuando lo hay.
-const PARTES = [["agenda", "Agenda"], ["sincro", "Celu y compu"], ["economia", "Planilla ECONOMÍA"], ["mails", "Mails del BNA y Mercado Pago"], ["recibos", "Recibos de sueldo (Drive)"], ["campus", "Revisión del campus (Drive)"], ["facu", "Campus de UFASTA"], ["listas", "Agus, fútbol y proyectos"], ["prod", "Productividad del BNA"], ["semanal", "El Semanal (Drive)"], ["resumen", "Resumen para El Semanal"], ["rivercal", "Calendario «River»"]];
+const PARTES = [["agenda", "Agenda"], ["sincro", "Celu y compu"], ["economia", "Planilla ECONOMÍA"], ["mails", "Mails del BNA y Mercado Pago"], ["recibos", "Recibos de sueldo (Drive)"], ["campus", "Revisión del campus (Drive)"], ["satelite", "Satélite (tu celu)"], ["facu", "Campus de UFASTA"], ["listas", "Agus, fútbol y proyectos"], ["prod", "Productividad del BNA"], ["semanal", "El Semanal (Drive)"], ["resumen", "Resumen para El Semanal"], ["rivercal", "Calendario «River»"]];
 function estadoPartes(est) {
   const hace = (t) => { const m = Math.round((Date.now() - t) / 60000); return m < 1 ? "recién" : m < 60 ? "hace " + m + " min" : "hace " + Math.round(m / 60) + " h"; };
   const filas = PARTES.filter(([k]) => est[k]).map(([k, n]) => {
@@ -653,6 +654,8 @@ export function renderAjustes(estadoTema, demo, hayPin, google) {
           <p style="margin-top:16px">${idEconomia() ? "Tu planilla <b>ECONOMÍA</b> está conectada: Orbe la lee y solo escribe la fila «Suscripciones», si se lo aprobaste en Finanzas." : "Para ver tu planilla <b>ECONOMÍA</b> en Finanzas, pegá su link:"}</p>
           ${idEconomia() ? "" : '<form class="form" data-form="economia"><input name="link" placeholder="Link de ECONOMÍA" aria-label="Link de la planilla ECONOMÍA" required><button class="btn">Listo</button></form>'}`}
     </section>
+
+    ${bloqueSatelite(conectado)}
 
     <section class="bloque"><h2>Horario fijo del BNA</h2>
       <p class="vacio" style="font-size:13px;margin-bottom:14px">Completa los días hábiles que tu calendario no tenga cargados.</p>

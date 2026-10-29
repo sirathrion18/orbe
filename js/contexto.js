@@ -116,6 +116,10 @@ export function construirContexto(datos, demo) {
   const manual = leer("alarmaManual");
   const todas = [...(ag?.alarmas || [])];
   if (manual && manual.ts > ahora - 3600000) todas.push(manual.ts);
+  // La que ve Satélite en el celu (si avisó en las últimas 36 h).
+  const sat = leer("satelite")?.alarma;
+  const satFresca = !!(sat && sat.cuando && ahora - sat.cuando < 36 * 3600000);
+  if (satFresca && sat.ts && sat.ts > ahora - 3600000 && !todas.includes(sat.ts)) todas.push(sat.ts);
   const alarmasFuturas = todas.filter((t) => t > ahora).sort((a, b) => a - b);
   const proximaAlarma = alarmasFuturas[0] || null;
   const alarmaManual = !!(manual && proximaAlarma === manual.ts && !(ag?.alarmas || []).includes(manual.ts));
@@ -127,7 +131,8 @@ export function construirContexto(datos, demo) {
 
   const s = sol(fecha, datos.ciudad.lat, datos.ciudad.lon);
   return { fecha, dia, min, hoy, manana, partido, juegaHoy, estreno, viaje, cumple, modo, sol: s, demo: !!demo,
-    feriado, diaLibre, cumpleHoy, cumpleManana, avisos, corte, proximaAlarma, alarmaManual, alarmaManana, alarmaHoy, alarmasFuturas };
+    feriado, diaLibre, cumpleHoy, cumpleManana, avisos, corte, proximaAlarma, alarmaManual, alarmaManana, alarmaHoy, alarmasFuturas,
+    alarmaSatelite: satFresca ? { ts: sat.ts || null, cuando: sat.cuando } : null };
 }
 
 export function urgentes(datos, ctx) {

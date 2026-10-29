@@ -1,6 +1,20 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.33.0",
+    fecha: "29/10/2026",
+    titulo: "Satélite y 200 saludos nuevos.",
+    cambios: [
+      "Satélite: la mini app Android de Orbe. Escucha solo los avisos de Mercado Pago, BNA+ y Personal Pay, y la próxima alarma del celu. De cada aviso manda app, monto, comercio y hora: nunca el texto completo ni otras notificaciones.",
+      "Buzón cifrado: el celu deja los avisos cifrados en el servidor de Orbe; Orbe los pasa a tu planilla y los borra. Cada celu tiene su llave y se anula desde Ajustes.",
+      "Ajustes › Satélite: vincular el celu con un código de 8 letras (sirve una vez, vence en 10 minutos), ver qué celus están vinculados, cuándo avisaron por última vez y anularlos.",
+      "Finanzas: los pagos del celu aparecen como «del celu». Si después llega el mail del mismo pago, no se cuenta dos veces; si lo anotaste a mano, manda lo tuyo.",
+      "Inicio: si Satélite ve una alarma antes de entrar al BNA, no te pregunta por las alarmas. Si no ve ninguna, te avisa.",
+      "Batería: Satélite no corre todo el tiempo. Se despierta cada 30 minutos (cuando Android lo junta con otras tareas), manda en tanda y se vuelve a dormir. Sin nada nuevo, no usa internet.",
+      "200 saludos nuevos (de 229 a 429): mañana, tarde, noche, madrugada, cada día de la semana, finde, lluvia, calor, frío, River y los guiños.",
+    ],
+  },
+  {
     version: "0.32.0",
     fecha: "29/10/2026",
     titulo: "UFASTA desde el campus.",

@@ -16,6 +16,7 @@ import { leerPlanilla, traerMails, corregir, datosFinanzas, pendientesDeTarjetas
 import { leerRecibos } from "./recibos.js";
 import { datosFacu, traerCampus, leerFacu, tildarTp, nuevoTp, guardarMateria, asignarTp, pendientesDeTps, HOJAS_FACU } from "./facu.js";
 import { datosCampus, leerCampus, tildarCampus, pendientesDeCampus, HOJAS_CAMPUS } from "./campus.js";
+import { datosSatelite, retirarSatelite, codigoSatelite, anularSatelite } from "./satelite.js";
 import { asegurarHojas, asegurarLeeme, fijarSemillas, escribir as escribirHoja } from "./hoja.js";
 import { fijarHoja, idHoja } from "./hoja.js";
 import { traerDolar, traerRiver, traerTransporte, traerEquipos, equiposSeguidos } from "./extras.js";
@@ -497,6 +498,20 @@ document.addEventListener("click", (e) => {
     avisar("Guardando tope…");
     guardarTope(el.dataset.rubro, Number(el.dataset.tope)).then(() => { avisar("Tope de " + el.dataset.rubro + " guardado"); pintar(true); }).catch((e) => avisar("No se pudo: " + textoError(e.message)));
   }
+  else if (a === "sat-codigo") {
+    avisar("Pidiendo un código…");
+    codigoSatelite(el.dataset.nombre || "Celu").then((r) => { sesion("satCodigo", r); pintar(true); })
+      .catch((e) => avisar(e.message === "falta-buzon" ? "Falta crear el buzón en Cloudflare (mirá los pasos en Ajustes)" : "No se pudo: " + textoError(e.message)));
+  }
+  else if (a === "sat-anular") {
+    if (el.dataset.confirmar !== "si") { el.dataset.confirmar = "si"; el.textContent = "¿Seguro? Tocá de nuevo"; return; }
+    anularSatelite(el.dataset.id).then(() => { avisar("Celu anulado: ya no puede mandar nada"); pintar(true); }).catch((e) => avisar("No se pudo: " + textoError(e.message)));
+  }
+  else if (a === "sat-retirar") {
+    avisar("Mirando el buzón…");
+    retirarSatelite().then((x) => { avisar(x.nuevos ? `Llegaron ${x.nuevos} del celu` : "Nada nuevo del celu"); pintar(true); })
+      .catch((e) => avisar(e.message === "falta-buzon" ? "Falta crear el buzón en Cloudflare" : "No se pudo: " + textoError(e.message)));
+  }
   else if (a === "campus-tilde" || a === "campus-hecho") {
     const hecho = a === "campus-hecho" ? true : el.checked;
     tildarCampus(el.dataset.id, hecho).then(() => { vibrar(); if (hecho && a === "campus-hecho") avisar("Anotado. Mañana el campus lo confirma."); pintar(true); })
@@ -951,6 +966,13 @@ async function refrescarTodo(forzar = false) {
     try {
       if (forzar || !leer("presuConfig") || Date.now() - leer("presuConfig").cuando > 6 * 3600000) await leerConfigPresu().catch(() => {});
       if (forzar || !datosEsc() || Date.now() - datosEsc().cuando > 6 * 3600000) await leerEscalafon().catch(() => {});
+      // Satélite primero: el aviso del celu llega antes que el mail, así cuenta ese y el mail queda como duplicado.
+      const sat = datosSatelite();
+      const conCelu = sat?.dispositivos?.length;
+      if (forzar || !sat || Date.now() - sat.cuando > (conCelu ? 5 * 60000 : 6 * 3600000)) {
+        try { const x = await retirarSatelite(); estadoParte("satelite", null, x.dispositivos.length ? (x.nuevos ? x.nuevos + " nuevos del celu" : "al día") : "sin celu vinculado"); if (x.nuevos) avisar(x.nuevos === 1 ? "Llegó 1 pago del celu" : `Llegaron ${x.nuevos} pagos del celu`); }
+        catch (e) { if (e.message === "falta-buzon") { guardar("satelite", { ...(sat || {}), cuando: Date.now(), error: "falta-buzon" }, true); estadoParte("satelite", null, "falta crear el buzón"); } else estadoParte("satelite", e.message); }
+      }
       const r = await actualizarFinanzas(forzar);
       await cruzar().catch(() => {});
       estadoParte("mails", null, r && (r.frenado || r.quedan) ? "trayendo el historial de a poco" : "");
@@ -1008,7 +1030,7 @@ const LEEME = [
   "HISTORICO: cada movimiento de tus extractos de la caja de ahorro y de tus resúmenes de tarjeta (fecha, cuenta, concepto, monto, saldo, categoría y de qué archivo salió). Lo arma Orbe leyendo tus PDF de Drive; podés corregir la categoría a mano.",
   "PESOS_PRODUCTIVIDAD: cuánto vale cada tarea (puntos por unidad) y cuántos minutos lleva; grupo carga, control, ms (MS y cambio de cartera), otras o meta. Las filas «meta» dicen desde qué fecha vale cada meta diaria y los minutos efectivos."
 ];
-const NOMBRE_PARTE = { campus: "la revisión del campus", facu: "el campus de UFASTA", sincro: "la sincronización", mails: "los mails", economia: "ECONOMÍA", agenda: "la agenda", recibos: "los recibos", listas: "Agus, fútbol y proyectos", prod: "la productividad" };
+const NOMBRE_PARTE = { satelite: "Satélite", campus: "la revisión del campus", facu: "el campus de UFASTA", sincro: "la sincronización", mails: "los mails", economia: "ECONOMÍA", agenda: "la agenda", recibos: "los recibos", listas: "Agus, fútbol y proyectos", prod: "la productividad" };
 export function textoError(m) {
   m = String(m || "");
   if (m === "reconectar" || m.startsWith("reconectar")) return "hay que volver a conectar con Google";

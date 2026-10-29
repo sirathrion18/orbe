@@ -215,9 +215,14 @@ function tiraAlarmas(ctx) {
   const despues = ctx.min < 90 && (ctx.hoy || []).some((b) => b.tipo === "bna");
   if (!antes && !despues) return "";
   const base = new Date(ctx.fecha); base.setHours(0, 0, 0, 0); if (antes) base.setDate(base.getDate() + 1);
+  // Satélite ve la alarma del celu: si ya hay una antes de entrar al BNA, no hace falta recordar nada.
+  const bnaM = (antes ? ctx.manana : ctx.hoy || []).find((b) => b.tipo === "bna");
+  const sat = ctx.alarmaSatelite;
+  if (sat && sat.ts && bnaM) { const d = new Date(sat.ts); const mins = d.getHours() * 60 + d.getMinutes(); if (d.getDate() === base.getDate() && mins < bnaM.ini) return ""; }
+  const satSinAlarma = sat && !sat.ts && Date.now() - sat.cuando < 3 * 3600000;
   const semilla = base.getFullYear() * 400 + base.getMonth() * 32 + base.getDate();
   // Cambia cada noche y cada 5 minutos.
-  const m = MSJ_ALARMAS[(semilla * 7 + Math.floor((ctx.min + (antes ? 0 : 1440)) / 5)) % MSJ_ALARMAS.length];
+  const m = satSinAlarma ? "Satélite no ve ninguna alarma en tu celu para " + (antes ? "mañana." : "hoy a la mañana.") : MSJ_ALARMAS[(semilla * 7 + Math.floor((ctx.min + (antes ? 0 : 1440)) / 5)) % MSJ_ALARMAS.length];
   const clave = "alarma-" + base.getFullYear() + "-" + String(base.getMonth() + 1).padStart(2, "0") + "-" + String(base.getDate()).padStart(2, "0");
   return `<div class="tira tira-alarmas" data-desliza="${clave}"><div style="flex:1;min-width:0"><div class="k">Recordatorio</div><div class="t">${esc(m)}</div></div><span class="desliza-pista" aria-hidden="true">›</span></div>`;
 }

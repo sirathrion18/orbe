@@ -237,6 +237,7 @@ final class Satelite {
                 JSONObject j = new JSONObject(r.cuerpo);
                 Almacen a = new Almacen(c);
                 a.guardar("llave", j.getString("llave"));
+                if (a.leer("llave") == null) return "Este celu no dejó guardar la llave cifrada. Probá de nuevo con otro código.";
                 a.texto("nombre", j.optString("nombre", "Celu"));
                 a.texto("error", null);
                 a.num("alarmaMandada", -1);
