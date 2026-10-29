@@ -1,6 +1,15 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.29.0",
+    fecha: "28/10/2026",
+    titulo: "Deslizar avisos y alarmas a la hora de dormir.",
+    cambios: [
+      "Lo circunstancial de Inicio se desliza a la derecha y se va por hoy: el aviso de fichar, la alarma, cumpleaños, el diario pasado, la línea E, fechas de Agus, River, el rato de estudio, el dólar y la tarjeta de Transporte. Si había otro aviso esperando, aparece ese.",
+      "Alarmas: aparecen solo cerca de la hora de dormir antes de un día de BNA (desde las 23:30, y hasta la 1:30 si ya pasó la medianoche). Muestra todas las que llegan al calendario «Alarmas» desde el celu, y el botón «Abrir» te lleva a las alarmas del teléfono.",
+    ],
+  },
+  {
     version: "0.28.1",
     fecha: "28/10/2026",
     titulo: "Escuchas y pruebas de llamados con puntos.",

@@ -127,7 +127,7 @@ export function construirContexto(datos, demo) {
 
   const s = sol(fecha, datos.ciudad.lat, datos.ciudad.lon);
   return { fecha, dia, min, hoy, manana, partido, juegaHoy, estreno, viaje, cumple, modo, sol: s, demo: !!demo,
-    feriado, diaLibre, cumpleHoy, cumpleManana, avisos, corte, proximaAlarma, alarmaManual, alarmaManana, alarmaHoy };
+    feriado, diaLibre, cumpleHoy, cumpleManana, avisos, corte, proximaAlarma, alarmaManual, alarmaManana, alarmaHoy, alarmasFuturas };
 }
 
 export function urgentes(datos, ctx) {

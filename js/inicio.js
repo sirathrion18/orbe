@@ -184,70 +184,88 @@ function leyenda(datos, ctx, tema) {
 }
 
 // ---------- Tira de modo ----------
+// Tiras que deslizaste hoy (se olvidan solas al otro día).
+function tiraOculta(k, dia) { const v = leer("tirasOcultas", {})[k]; return /-\d{4}-\d{2}-\d{2}$/.test(k) ? !!v : v === dia; }
+
+// Alarmas: solo cerca de la hora de dormir antes de un día de BNA (desde las 23:30, y hasta la 1:30 si ya pasó la medianoche).
+// Muestra las que llegan al calendario «Alarmas» desde el celu y te lleva a las alarmas del teléfono.
+const ABRIR_ALARMAS = "intent:#Intent;action=android.intent.action.SHOW_ALARMS;end";
+function tiraAlarmas(ctx) {
+  if (ctx.demo) return "";
+  const antes = ctx.min >= 23 * 60 + 30 && (ctx.manana || []).some((b) => b.tipo === "bna");
+  const despues = ctx.min < 90 && (ctx.hoy || []).some((b) => b.tipo === "bna");
+  if (!antes && !despues) return "";
+  const dia = antes ? ctx.manana : ctx.hoy;
+  const entra = dia.find((b) => b.tipo === "bna");
+  const base = new Date(ctx.fecha); base.setHours(0, 0, 0, 0); if (antes) base.setDate(base.getDate() + 1);
+  const hasta = base.getTime() + (entra ? entra.ini * 60000 : 12 * 3600000);
+  const lista = (ctx.alarmasFuturas || []).filter((t) => t >= base.getTime() && t <= hasta);
+  const hh = (t) => { const d = new Date(t); return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); };
+  return `<div class="tira tira-alarmas" data-desliza="alarma-${base.getFullYear()}-${String(base.getMonth() + 1).padStart(2, "0")}-${String(base.getDate()).padStart(2, "0")}"><div style="flex:1;min-width:0"><div class="k">${antes ? "Mañana" : "Hoy"} entrás a las ${entra.inicio}</div>
+      <div class="t">${lista.length ? (lista.length === 1 ? "Alarma " : "Alarmas ") + lista.map(hh).join(" · ") : "No veo alarmas puestas"}</div></div>
+    <a class="btn" href="${ABRIR_ALARMAS}" style="height:40px;padding:0 14px;display:inline-flex;align-items:center;text-decoration:none" aria-label="Abrir las alarmas del celu">Abrir</a></div>`;
+}
+
 function tira(ctx, datos) {
   // BNA: media hora antes de entrar, acordarte de fichar en Teams (hasta que lo marques o pasen 15 min de la entrada).
   const bna = ctx.demo ? null : ctx.hoy.find((b) => b.tipo === "bna");
   const hoyIso = ctx.fecha.getFullYear() + "-" + String(ctx.fecha.getMonth() + 1).padStart(2, "0") + "-" + String(ctx.fecha.getDate()).padStart(2, "0");
-  if (bna && ctx.min >= bna.ini - 30 && ctx.min < bna.ini + 15 && leer("fichado") !== hoyIso) {
-    return `<div class="tira tira-bna"><div><div class="k">BNA · entrás a las ${bna.inicio}</div><div class="t">Acordate de fichar en Teams</div></div>
+  // Lo circunstancial se desliza a la derecha y no vuelve por hoy: pasa a la siguiente cosa.
+  const oc = (k) => tiraOculta(k, hoyIso);
+  const alarmas = tiraAlarmas(ctx);
+  // La de la alarma se recuerda por la noche entera (no vuelve a aparecer pasada la medianoche).
+  if (alarmas && !oc(alarmas.match(/data-desliza="([^"]+)"/)[1])) return alarmas;
+  if (bna && ctx.min >= bna.ini - 30 && ctx.min < bna.ini + 15 && leer("fichado") !== hoyIso && !oc("fichar")) {
+    return `<div class="tira tira-bna" data-desliza="fichar"><div><div class="k">BNA · entrás a las ${bna.inicio}</div><div class="t">Acordate de fichar en Teams</div></div>
       <button class="btn" style="height:40px;padding:0 14px" data-accion="fichado" data-dia="${hoyIso}">Listo</button></div>`;
   }
-  // Sin alarma para mañana y arrancás temprano: aviso, con opción de cargarla a mano.
-  const primero = ctx.manana[0];
-  if (ctx.modo === "noche" && !ctx.alarmaManana && primero && primero.ini < 10 * 60) {
-    return `<form class="tira" data-form="alarma" style="flex-wrap:wrap"><div style="flex:1;min-width:150px"><div class="k">Sin alarma para mañana</div>
-      <div class="t">${esc(primero.titulo)} a las ${primero.inicio}</div></div>
-      <label style="display:flex;gap:8px;align-items:center"><span class="sr">Hora de la alarma</span>
-        <input type="time" name="hora" required style="height:42px;padding:0 10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);font-size:16px">
-        <button class="btn" style="height:42px;padding:0 14px">Listo</button></label></form>`;
-  }
-  if (ctx.cumpleManana && ctx.cumpleManana.length && ctx.modo !== "river") {
-    return `<div class="tira"><div><div class="k">Mañana cumple</div><div class="t">${esc(unir(ctx.cumpleManana))}</div></div><div class="n">mañana</div></div>`;
+  if (ctx.cumpleManana && ctx.cumpleManana.length && ctx.modo !== "river" && !oc("cumple")) {
+    return `<div class="tira" data-desliza="cumple"><div><div class="k">Mañana cumple</div><div class="t">${esc(unir(ctx.cumpleManana))}</div></div><div class="n">mañana</div></div>`;
   }
   // Te pasaste del diario: cuánto, y cómo quedan los próximos días.
   const pr = ctx.demo ? null : presupuesto(ctx.fecha);
-  if (pr && pr.pasado && pr.diarioManana != null && !leer("plataOculta", false)) {
-    return `<a class="tira" href="#/u/finanzas" style="text-decoration:none;border-color:var(--accent)"><div><div class="k">Te pasaste ${pesos(-pr.quedaHoy)} hoy</div>
+  if (pr && pr.pasado && pr.diarioManana != null && !leer("plataOculta", false) && !oc("diario")) {
+    return `<a class="tira" data-desliza="diario" href="#/u/finanzas" style="text-decoration:none;border-color:var(--accent)"><div><div class="k">Te pasaste ${pesos(-pr.quedaHoy)} hoy</div>
       <div class="t">Los próximos días tenés ${pesos(Math.max(0, pr.diarioManana))} por día</div></div></a>`;
   }
   // Problemas en la línea E (la tuya, Emilio Mitre): alerta con alternativa, los días que vas al BNA.
   const tr = leer("transporte");
-  if (bna && tr?.lineas?.E && !tr.lineas.E.ok && ctx.min < bna.fin && Date.now() - tr.cuando < 30 * 60000) {
-    return `<div class="tira" style="border-color:var(--accent)"><div><div class="k">Línea E con problemas</div>
+  if (bna && tr?.lineas?.E && !tr.lineas.E.ok && ctx.min < bna.fin && Date.now() - tr.cuando < 30 * 60000 && !oc("linea")) {
+    return `<div class="tira" data-desliza="linea" style="border-color:var(--accent)"><div><div class="k">Línea E con problemas</div>
       <div class="t">${esc(tr.lineas.E.texto || "Servicio interrumpido o demorado")}</div><div class="sub" style="font-size:13px;color:var(--muted);margin-top:3px">Alternativa: colectivo 42, 26 o 135. Salí con margen.</div></div></div>`;
   }
   // Aniversario o cumple de Agus: aviso desde 3 días antes.
   const fa = (leer("listas")?.agus || []).filter((x) => x.tipo === "fecha" && x.fecha && /anual/i.test(x.nota))
     .map((x) => ({ ...x, ...proximaAnual(x.fecha, ctx.fecha) })).filter((x) => x.dias <= 3).sort((a, b) => a.dias - b.dias)[0];
-  if (fa && ctx.modo !== "river") {
-    return `<a class="tira" href="#/u/agus" style="text-decoration:none"><div><div class="k">Se viene</div><div class="t">${esc(fa.titulo)}</div></div><div class="n">${cuandoTexto(fa.dias)}</div></a>`;
+  if (fa && ctx.modo !== "river" && !oc("agus")) {
+    return `<a class="tira" data-desliza="agus" href="#/u/agus" style="text-decoration:none"><div><div class="k">Se viene</div><div class="t">${esc(fa.titulo)}</div></div><div class="n">${cuandoTexto(fa.dias)}</div></a>`;
   }
-  if (ctx.modo === "river" && ctx.partido) {
+  if (ctx.modo === "river" && ctx.partido && !oc("river")) {
     const p = ctx.partido;
     const fin = ctx.min >= p.fin;
-    return `<div class="tira"><div><div class="k">${fin ? "Resultado" : "Formación probable"}</div>
+    return `<div class="tira" data-desliza="river"><div><div class="k">${fin ? "Resultado" : "Formación probable"}</div>
       <div class="t">${esc(fin ? p.titulo : (p.detalle?.formacion || "—"))}</div></div>
       <div class="n">${fin ? esc(p.detalle?.resultado || "—") : p.inicio}</div></div>`;
   }
-  if (ctx.modo === "marvel") {
+  if (ctx.modo === "marvel" && !oc("marvel")) {
     const e = ctx.estreno;
     if (e && (e.dias <= 14 || !ctx.viaje || ctx.fecha.getDate() === 7))
-      return `<div class="tira"><div><div class="k">Se viene</div><div class="t">${esc(e.titulo)}</div></div><div class="n">${cuandoTexto(e.dias)}</div></div>`;
+      return `<div class="tira" data-desliza="marvel"><div><div class="k">Se viene</div><div class="t">${esc(e.titulo)}</div></div><div class="n">${cuandoTexto(e.dias)}</div></div>`;
     if (ctx.viaje)
-      return `<div class="tira"><div><div class="k">Cuenta regresiva</div><div class="t">${esc(ctx.viaje.titulo)}</div></div><div class="n">${cuandoTexto(ctx.viaje.dias)}</div></div>`;
+      return `<div class="tira" data-desliza="marvel"><div><div class="k">Cuenta regresiva</div><div class="t">${esc(ctx.viaje.titulo)}</div></div><div class="n">${cuandoTexto(ctx.viaje.dias)}</div></div>`;
   }
   // Un rato libre hoy y una entrega cerca: sugerencia para estudiar (sin tocar el calendario, salvo que lo pidas).
   const est = ratoDeEstudio(ctx, datos);
-  if (est) {
+  if (est && !oc("estudio")) {
     const puede = permisosG().calendario;
-    return `<div class="tira" style="flex-wrap:wrap"><div style="flex:1;min-width:170px"><div class="k">Rato para estudiar</div>
+    return `<div class="tira" data-desliza="estudio" style="flex-wrap:wrap"><div style="flex:1;min-width:170px"><div class="k">Rato para estudiar</div>
       <div class="t">${hhmm(est.ini)}–${hhmm(est.fin)} · ${esc(est.tp.titulo)} (${cuandoTexto(est.tp.dias)})</div></div>
       ${puede ? `<button class="btn" style="height:40px;padding:0 14px" data-accion="agendar-estudio" data-titulo="${esc(est.tp.titulo)}" data-ini="${est.desde}" data-fin="${est.hasta}">Agendar</button>` : ""}</div>`;
   }
   // El dólar, solo si se movió fuerte.
   const dm = movimientoDolar();
-  if (dm && Math.abs(dm.pct) >= 2) {
-    return `<a class="tira" href="#/u/finanzas" style="text-decoration:none"><div><div class="k">Dólar MEP</div><div class="t">${dm.pct > 0 ? "Subió" : "Bajó"} ${Math.abs(dm.pct).toFixed(1).replace(".", ",")}% desde ayer</div></div>
+  if (dm && Math.abs(dm.pct) >= 2 && !oc("dolar")) {
+    return `<a class="tira" data-desliza="dolar" href="#/u/finanzas" style="text-decoration:none"><div><div class="k">Dólar MEP</div><div class="t">${dm.pct > 0 ? "Subió" : "Bajó"} ${Math.abs(dm.pct).toFixed(1).replace(".", ",")}% desde ayer</div></div>
       <div class="n">$ ${Math.round(dm.mep).toLocaleString("es-AR")}</div></a>`;
   }
   return "";
@@ -318,7 +336,9 @@ function wTransporte() {
   const mal = vivo ? LINEAS.filter(([l]) => t.lineas[l] && !t.lineas[l].ok).map(([l]) => l) : [];
   const sub = !vivo ? (t?.error === "sin-configurar" ? "Esperando las credenciales de la Ciudad" : "Sin datos en vivo")
     : mal.length ? "Problemas en la " + mal.join(", ") : "Subte normal";
-  return `<div class="w ancho trans ${mal.length ? "con-problemas" : ""}"><span class="k">Transporte</span>
+  const hoy = new Date(); const dia = hoy.getFullYear() + "-" + String(hoy.getMonth() + 1).padStart(2, "0") + "-" + String(hoy.getDate()).padStart(2, "0");
+  if (tiraOculta("trans", dia)) return "";
+  return `<div class="w ancho trans ${mal.length ? "con-problemas" : ""}" data-desliza="trans"><span class="k">Transporte</span>
     <div class="lineas">${LINEAS.map(([l, c]) => `<span class="linea ${vivo && mal.includes(l) ? "mal" : ""}" style="background:${c}">${l}</span>`).join("")}<span class="cole">42 · 26 · 135</span></div>
     <span class="sub">${sub}</span></div>`;
 }

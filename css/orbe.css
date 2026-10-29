@@ -960,3 +960,7 @@ details.bloque.plegable[open] > summary { margin-bottom: 10px; }
 .fx-hora .res { margin-right: 6px; width: 20px; height: 20px; font-size: 11px; vertical-align: middle; }
 .tabla-pos td, .tabla-pos th { white-space: nowrap; }
 .tabla-pos .eq { white-space: nowrap; }
+
+/* ---------- v0.29 · Deslizar lo circunstancial ---------- */
+[data-desliza] { touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+.tira-alarmas .t { font-family: var(--serif); font-size: 20px; }

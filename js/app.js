@@ -738,6 +738,41 @@ window.addEventListener("hashchange", () => { cerrarHoja(); clearInterval(timerM
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") { cerrarHoja(); const b = document.querySelector(".buscador.flotante"); if (b && !b.hidden) b.hidden = true; }
 });
+// Deslizar a la derecha lo circunstancial de Inicio (tiras, transporte): se va por hoy.
+let desl = null;
+document.addEventListener("pointerdown", (e) => {
+  const el = e.target.closest("[data-desliza]");
+  if (!el || e.target.closest("input, select, textarea")) return;
+  desl = { el, x: e.clientX, y: e.clientY, dx: 0, activo: false };
+});
+document.addEventListener("pointermove", (e) => {
+  if (!desl) return;
+  const dx = e.clientX - desl.x, dy = e.clientY - desl.y;
+  if (!desl.activo) { if (Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)) { desl = null; return; } if (dx > 10) desl.activo = true; else return; }
+  desl.dx = Math.max(0, dx);
+  desl.el.style.transition = "none";
+  desl.el.style.transform = `translateX(${desl.dx}px)`;
+  desl.el.style.opacity = String(Math.max(.2, 1 - desl.dx / 260));
+});
+["pointerup", "pointercancel"].forEach((t) => document.addEventListener(t, () => {
+  if (!desl) return;
+  const { el, dx, activo } = desl;
+  desl = null;
+  if (!activo) return;
+  el.style.transition = "transform .22s ease, opacity .22s ease";
+  if (dx > 90) {
+    el.style.transform = "translateX(110%)"; el.style.opacity = "0";
+    const h = new Date(); const dia = h.getFullYear() + "-" + String(h.getMonth() + 1).padStart(2, "0") + "-" + String(h.getDate()).padStart(2, "0");
+    const oc = leer("tirasOcultas", {});
+    Object.keys(oc).forEach((k) => { if (oc[k] < dia && !(k.startsWith("alarma-") && k.slice(7) >= dia)) delete oc[k]; });
+    oc[el.dataset.desliza] = dia; guardar("tirasOcultas", oc);
+    vibrar(); el.dataset.deslizado = "1";
+    setTimeout(() => pintar(true), 230);
+  } else { el.style.transform = ""; el.style.opacity = ""; }
+}));
+// Un deslizamiento no cuenta como toque (no abre el link de la tira).
+document.addEventListener("click", (e) => { const el = e.target.closest("[data-desliza]"); if (el && el.style.transform && el.style.transform !== "none" && el.style.transform !== "") { e.preventDefault(); e.stopPropagation(); } }, true);
+
 // Tres toques en el saludo: un guiño al toque.
 let toques = [];
 document.addEventListener("click", (e) => {
