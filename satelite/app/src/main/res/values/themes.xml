@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="fondo">#FFFFFF</color>
+    <color name="tinta">#111113</color>
+    <color name="rojo">#C8102E</color>
+    <style name="Tema" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/fondo</item>
+        <item name="android:colorAccent">@color/rojo</item>
+    </style>
+</resources>
