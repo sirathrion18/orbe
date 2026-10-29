@@ -6,7 +6,7 @@ import { RoundedBoxGeometry } from '../vendor/three/RoundedBoxGeometry.js';
 
 const stage = document.getElementById('stage');
 const $ = (id) => document.getElementById(id);
-const D = await fetch('pedri.json?v=2').then((r) => r.json());
+const D = await fetch('pedri.json?v=3').then((r) => r.json());
 const dec = (s, T) => { const b = atob(s), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return new T(u.buffer); };
 
 // ---------- Escena ----------
@@ -51,7 +51,7 @@ function malla(m, mat) {
   g.setIndex(new THREE.BufferAttribute(dec(m.idx, Uint32Array), 1));
   g.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(dec(m.si, Uint16Array), 4));
   g.setAttribute('skinWeight', new THREE.BufferAttribute(dec(m.sw, Float32Array), 4));
-  if (m.col) g.setAttribute('color', new THREE.BufferAttribute(dec(m.col, Float32Array), 3));
+  if (m.col) { const c = dec(m.col, Float32Array); for (let i = 0; i < c.length; i++) c[i] = Math.pow(c[i], 2.2); g.setAttribute('color', new THREE.BufferAttribute(c, 3)); }
   g.computeVertexNormals();
   const o = new THREE.SkinnedMesh(g, mat); o.castShadow = o.receiveShadow = true; o.frustumCulled = false;
   avatar.add(o); o.bind(skel); return o;
