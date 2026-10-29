@@ -6,7 +6,7 @@ import { RoundedBoxGeometry } from '../vendor/three/RoundedBoxGeometry.js';
 
 const stage = document.getElementById('stage');
 const $ = (id) => document.getElementById(id);
-const V = '?v=23';
+const V = '?v=24';
 const D = await fetch('pedri2.json' + V).then((r) => r.json());
 const dec = (s, T) => { const b = atob(s), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return new T(u.buffer); };
 const carga = new THREE.TextureLoader();
@@ -108,38 +108,42 @@ const pelo = new THREE.Group(); cabeza.add(pelo);
   for (let k = 0; k < CAPAS; k++) {
     const t = k / (CAPAS - 1), pos = new Float32Array(n * 3);
     for (let i = 0; i < n; i++) { const L = hl[i];
-      for (let c = 0; c < 3; c++) pos[i * 3 + c] = hp[i * 3 + c] - o0[c] + hn[i * 3 + c] * L * t * 0.55 + hf[i * 3 + c] * L * 0.95 * Math.pow(t, 1.3) - (c === 1 ? L * 0.25 * t * t : 0); }
+      for (let c = 0; c < 3; c++) pos[i * 3 + c] = hp[i * 3 + c] - o0[c] + hn[i * 3 + c] * L * t * 0.4 + hf[i * 3 + c] * L * 0.6 * Math.pow(t, 1.3) - (c === 1 ? L * 0.15 * t * t : 0); }
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.BufferAttribute(huv, 2)); g.setIndex(new THREE.BufferAttribute(hi, 1)); g.computeVertexNormals();
     const m = new THREE.MeshStandardMaterial({ map: peloTex, alphaTest: 0.04 + 0.72 * t, roughness: 0.62, envMapIntensity: 0.5, color: new THREE.Color().setScalar(0.55 + 0.6 * t), side: THREE.DoubleSide });
     const o = new THREE.Mesh(g, m); o.castShadow = k % 4 === 0; pelo.add(o);
   }
 }
-// mechones sueltos: tiras curvas con la misma textura, sobre todo adelante y arriba
+// hebras: tiras finas con raíz oscura y puntas más claras, sobre la base de capas
 {
   const hp = dec(D.hair.pos, Float32Array), hn = dec(D.hair.nor, Float32Array), hf = dec(D.hair.flow, Float32Array), n = D.hair.n;
   let sem = 3; const rnd = () => (sem = (sem * 16807) % 2147483647) / 2147483647;
-  const pos = [], uv = [], ind = []; const SEG = 5;
+  const pos = [], col = [], ind = []; const SEG = 6, POR = 4;
   const v3 = (a, i) => new THREE.Vector3(a[i * 3], a[i * 3 + 1], a[i * 3 + 2]);
+  const raizC = new THREE.Color('#1c130c'), puntaC = new THREE.Color('#4b3121'), tmpC = new THREE.Color();
+  const arribaAtras = new THREE.Vector3(0, 0.45, -0.55).normalize();
   for (let i = 0; i < n; i++) {
-    const p = v3(hp, i); const ry = p.y - D.mid[1], rz = p.z - D.mid[2];
-    const frente = ry > 0.035 && rz > -0.07, arriba = ry > 0.06;
-    if (!(frente ? rnd() < 0.55 : arriba ? rnd() < 0.18 : rnd() < 0.05)) continue;
-    const nr = v3(hn, i), fl = v3(hf, i);
-    const d = fl.clone().multiplyScalar(0.85).addScaledVector(nr, 0.35).normalize();
-    const L = (frente ? 0.045 : 0.035) * (0.7 + rnd() * 0.6), w = 0.012 + rnd() * 0.01;
-    const lado = new THREE.Vector3().crossVectors(d, nr).normalize();
-    const base = p.clone().sub(new THREE.Vector3(hR.x, hR.y, hR.z)).addScaledVector(nr, 0.012), u0 = rnd() * 0.8, b0 = pos.length / 3;
-    for (let k = 0; k <= SEG; k++) {
-      const t = k / SEG; const c = base.clone().addScaledVector(d, L * t).add(new THREE.Vector3(0, -L * 0.45 * t * t, 0)).addScaledVector(nr, 0.008 * Math.sin(Math.PI * t));
-      const hw = w * 0.5 * (1 - 0.7 * t);
-      const a1 = c.clone().addScaledVector(lado, -hw), a2 = c.clone().addScaledVector(lado, hw);
-      pos.push(a1.x, a1.y, a1.z, a2.x, a2.y, a2.z); uv.push(u0, t * 0.35, u0 + 0.2, t * 0.35);
-      if (k) { const q = b0 + (k - 1) * 2; ind.push(q, q + 1, q + 2, q + 1, q + 3, q + 2); }
+    const p0 = v3(hp, i), nr = v3(hn, i), fl = v3(hf, i); const ry = p0.y - D.mid[1], rz = p0.z - D.mid[2];
+    const frente = rz > -0.02 && ry < 0.075, arriba = ry > 0.07;
+    for (let r = 0; r < POR; r++) {
+      const L = arriba ? 0.04 + rnd() * 0.025 : frente ? 0.018 + rnd() * 0.012 : 0.016 + rnd() * 0.014;
+      const d = frente ? nr.clone().multiplyScalar(0.7).addScaledVector(arribaAtras, 0.6).normalize() : fl.clone().multiplyScalar(arriba ? 0.75 : 0.85).addScaledVector(nr, arriba ? 0.6 : 0.35).normalize();
+      const lado = new THREE.Vector3().crossVectors(d, nr).normalize(), w = 0.0024 + rnd() * 0.0016, fase = rnd() * 6.28;
+      const base = p0.clone().sub(new THREE.Vector3(hR.x, hR.y, hR.z)).addScaledVector(lado, (rnd() - 0.5) * 0.008).addScaledVector(d, (rnd() - 0.5) * 0.006).addScaledVector(nr, 0.002);
+      const b0 = pos.length / 3;
+      for (let k = 0; k <= SEG; k++) {
+        const t = k / SEG;
+        const c = base.clone().addScaledVector(d, L * t).add(new THREE.Vector3(0, -L * (arriba ? 0.35 : 0.2) * t * t, 0)).addScaledVector(lado, 0.004 * Math.sin(t * 6.28 * 1.2 + fase) * t);
+        const hw = w * 0.5 * (1 - 0.8 * t);
+        const a1 = c.clone().addScaledVector(lado, -hw), a2 = c.clone().addScaledVector(lado, hw);
+        pos.push(a1.x, a1.y, a1.z, a2.x, a2.y, a2.z);
+        tmpC.copy(raizC).lerp(puntaC, t * (0.6 + rnd() * 0.4)); col.push(tmpC.r, tmpC.g, tmpC.b, tmpC.r, tmpC.g, tmpC.b);
+        if (k) { const q = b0 + (k - 1) * 2; ind.push(q, q + 1, q + 2, q + 1, q + 3, q + 2); }
+      }
     }
   }
-  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(ind); g.computeVertexNormals();
-  const tx = peloTex.clone(); tx.repeat.set(1, 1); tx.needsUpdate = true;
-  const o = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ map: tx, alphaTest: 0.3, roughness: 0.6, color: new THREE.Color().setScalar(0.95), side: THREE.DoubleSide, envMapIntensity: 0.5 }));
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); g.setIndex(ind); g.computeVertexNormals();
+  const o = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55, side: THREE.DoubleSide, envMapIntensity: 0.6 }));
   o.castShadow = true; pelo.add(o);
 }
 // pulsera en la muñeca izquierda
