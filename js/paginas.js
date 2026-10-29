@@ -24,6 +24,7 @@ import { heroHoy, avisoRacha, graficoDias, tarjetaAgus, heroMes, analisisGastos 
 import { renderMes } from "./agendames.js";
 import { bloqueHoy } from "./bnahoy.js";
 import { equiposSeguidos } from "./extras.js";
+import { heroBienestar, tarjetaRutina } from "./bienestar.js";
 
 const MESES_LARGOS = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 
@@ -302,12 +303,11 @@ const PAGINAS = {
       <div class="chips" style="margin-top:12px"><button class="chip" data-accion="partido-nuevo">+ Anotar partido</button></div></section>`
       : `<section class="bloque"><h2>Fútbol</h2><p class="vacio">El registro de partidos vive en tu planilla: activá la sincronización en Ajustes.</p></section>`;
 
-    return `${semanaHtml}${futbol}
+    return `${heroBienestar(ctx.fecha)}${tarjetaRutina(ctx.fecha)}${semanaHtml}${futbol}
       <section class="bloque"><h2>Meditación</h2><div class="medita"><span class="reloj" id="medita-reloj">05:00</span>
         <div class="chips">${[3, 5, 10].map((m) => `<button class="chip" data-accion="medita" data-min="${m}">${m} min</button>`).join("")}<button class="chip" data-accion="medita-parar">Parar</button></div></div></section>
       <section class="bloque"><h2>Comida</h2><p>El menú de la semana vive en Amorcitos.</p><div class="chips" style="margin-top:12px"><a class="chip" href="#/u/agus">Ver menú con Agus</a></div></section>
-      ${pronto("Pasos y sueño", "Llegan con Satélite, la mini app Android que lee Health Connect de tu celu y del reloj.")}
-      ${pronto("Rutina de gym", "La armamos más adelante.")}`;
+      ${pronto("Sueño", "Llega con Satélite, la mini app Android que lee Health Connect de tu celu y del reloj.")}`;
   },
 
   finanzas(datos, ctx) {

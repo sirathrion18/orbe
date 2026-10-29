@@ -233,11 +233,9 @@ export function terminar(fecha) {
 // ---------- Pedri ----------
 // Lugar reservado: el modelo 3D llega en una próxima versión.
 function pedriSlot(n) {
-  return `<div class="pedri-slot" aria-label="Pedri, tu avatar, llega pronto">
-    <svg viewBox="0 0 120 160" aria-hidden="true"><ellipse cx="60" cy="152" rx="34" ry="5" class="ps-sombra"/>
-      <circle cx="60" cy="34" r="20" class="ps-cuerpo"/><path d="M30 150 L34 92 Q36 64 60 62 Q84 64 86 92 L90 150 Z" class="ps-cuerpo"/>
-      <circle cx="60" cy="100" r="9" class="ps-anillo"/><circle cx="66" cy="94" r="3" class="ps-punto"/></svg>
-    <span class="ps-txt">Pedri llega pronto</span><span class="ps-nivel">Nivel ${n}</span></div>`;
+  const ropa = n >= 2 ? "traje" : "calle";
+  return `<div class="pedri-slot" id="pedri-escena" data-ropa="${ropa}" aria-label="Pedri, tu avatar, con ${ropa === "traje" ? "el traje de logro" : "su ropa de calle"}">
+    <span class="ps-txt">Cargando a Pedri…</span><span class="ps-nivel">Nivel ${n}</span></div>`;
 }
 
 function anilloPasos(fecha) {
@@ -283,6 +281,7 @@ export function tarjetaRutina(fecha) {
 }
 
 // ---------- Página del entrenamiento ----------
+const VER = { sentadilla: "sen", estocada: "est" };
 export function renderGym(fecha) {
   const b = borrador();
   const hechos = Object.values(b.ej).filter((e) => e.hecho).length;
@@ -293,6 +292,7 @@ export function renderGym(fecha) {
           <button class="ge-tilde" data-accion="gym-hecho" data-id="${x.id}" aria-pressed="${!!e.hecho}" aria-label="Hecho: ${esc(x.nombre)}"></button>
           <div class="ge-txt"><b>${esc(x.nombre)}</b><span class="ge-dosis">${esc(x.dosis)}</span></div></div>
         <ul class="ge-claves">${x.claves.map((c) => `<li>${esc(c)}</li>`).join("")}</ul>
+        ${VER[x.id] ? `<a class="chip ge-ver" href="/taller/pedri.html?modo=${VER[x.id]}">Ver a Pedri hacerlo</a>` : ""}
         ${x.peso ? `<div class="ge-peso"><label>Peso <input type="number" inputmode="decimal" min="0" step="0.5" data-accion="gym-peso" data-id="${x.id}" value="${esc(e.peso ?? "")}" placeholder="${sg.ultimo ?? "kg"}"> kg</label>
           <button class="chip${e.comodo ? " on" : ""}" data-accion="gym-comodo" data-id="${x.id}">Salió cómodo</button></div>
           ${sg.subir ? '<p class="fuente-dato ge-sube">Las dos últimas veces salió cómodo: probá con un poquito más.</p>' : sg.ultimo ? `<p class="fuente-dato" style="margin-top:4px">La vez pasada: ${sg.ultimo} kg.</p>` : ""}` : ""}</li>`;

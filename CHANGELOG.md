@@ -1,5 +1,17 @@
 # Novedades de Orbe
 
+## v0.31.0 · 29/10/2026
+
+Bienestar con Pedri, rutina y logros.
+
+- Pedri, tu avatar en 3D, arriba de Bienestar: lo girás con el dedo, respira, parpadea y festeja cuando subís de nivel. Desde el nivel 2 aparece con el traje de logro. Cuerpo base: MakeHuman (CC0).
+- Anillo de pasos contra tu promedio de las últimas cuatro semanas (los pasos llegan con Satélite).
+- Rutina de gym de cuerpo completo para un día por semana, con las claves de cada ejercicio. En el entrenamiento tildás lo que hiciste, anotás el peso y marcás si salió cómodo; si dos veces seguidas salió cómodo con el mismo peso, te sugiere subir un poco.
+- Sentadilla y estocada tienen «Ver a Pedri hacerlo»: la ficha de Pedri con el movimiento, las fases, el tempo y las guías.
+- Logros por temporadas de tres meses (la primera va hasta el 31/1/2027): XP por gym, ejercicios, fútbol, pasos sobre tu promedio y meditación; doce niveles, un poder por nivel e insignias. Entrenar de más no suma.
+- «Pausar esta semana» por dolor o enfermedad: no corta la racha. El poder Escudo cubre solo una semana salteada por mes.
+- La meditación terminada suma XP. Lo del gym y los logros se sincroniza entre celu y compu.
+
 ## v0.30.0 · 29/10/2026
 
 Finanzas nueva.
