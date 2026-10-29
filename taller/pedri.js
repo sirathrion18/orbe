@@ -6,7 +6,7 @@ import { RoundedBoxGeometry } from '../vendor/three/RoundedBoxGeometry.js';
 
 const stage = document.getElementById('stage');
 const $ = (id) => document.getElementById(id);
-const V = '?v=22';
+const V = '?v=23';
 const D = await fetch('pedri2.json' + V).then((r) => r.json());
 const dec = (s, T) => { const b = atob(s), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return new T(u.buffer); };
 const carga = new THREE.TextureLoader();
@@ -77,7 +77,7 @@ const MN = Object.keys(D.morphs);
   cuerpo.geometry.morphTargetsRelative = true; cuerpo.updateMorphTargets();
 }
 const campera = malla(D.hood, hoodM), camperaC = malla(D.hoodc, trajeM), remera = malla(D.tee, teeM), jean = malla(D.jean, jeanM), short = malla(D.shorts, shoM), zapas = malla(D.shoes, shoeM);
-D.lashes.forEach((l) => { const o = malla(l, S('#1a120d', 0.8, { side: THREE.DoubleSide })); o.castShadow = false; });
+D.lashes.forEach((l, i) => { const o = malla(l, S('#2a1c14', 0.8, { side: THREE.DoubleSide, transparent: true, opacity: i % 2 ? 0.25 : 0.6, depthWrite: false })); o.castShadow = false; });
 D.teeth.forEach((t) => malla(t, S('#ece6da', 0.35)));
 
 // ---------- Ojos, boca y pelo (pegados a la cabeza) ----------
@@ -114,6 +114,34 @@ const pelo = new THREE.Group(); cabeza.add(pelo);
     const o = new THREE.Mesh(g, m); o.castShadow = k % 4 === 0; pelo.add(o);
   }
 }
+// mechones sueltos: tiras curvas con la misma textura, sobre todo adelante y arriba
+{
+  const hp = dec(D.hair.pos, Float32Array), hn = dec(D.hair.nor, Float32Array), hf = dec(D.hair.flow, Float32Array), n = D.hair.n;
+  let sem = 3; const rnd = () => (sem = (sem * 16807) % 2147483647) / 2147483647;
+  const pos = [], uv = [], ind = []; const SEG = 5;
+  const v3 = (a, i) => new THREE.Vector3(a[i * 3], a[i * 3 + 1], a[i * 3 + 2]);
+  for (let i = 0; i < n; i++) {
+    const p = v3(hp, i); const ry = p.y - D.mid[1], rz = p.z - D.mid[2];
+    const frente = ry > 0.035 && rz > -0.07, arriba = ry > 0.06;
+    if (!(frente ? rnd() < 0.55 : arriba ? rnd() < 0.18 : rnd() < 0.05)) continue;
+    const nr = v3(hn, i), fl = v3(hf, i);
+    const d = fl.clone().multiplyScalar(0.85).addScaledVector(nr, 0.35).normalize();
+    const L = (frente ? 0.045 : 0.035) * (0.7 + rnd() * 0.6), w = 0.012 + rnd() * 0.01;
+    const lado = new THREE.Vector3().crossVectors(d, nr).normalize();
+    const base = p.clone().sub(new THREE.Vector3(hR.x, hR.y, hR.z)).addScaledVector(nr, 0.012), u0 = rnd() * 0.8, b0 = pos.length / 3;
+    for (let k = 0; k <= SEG; k++) {
+      const t = k / SEG; const c = base.clone().addScaledVector(d, L * t).add(new THREE.Vector3(0, -L * 0.45 * t * t, 0)).addScaledVector(nr, 0.008 * Math.sin(Math.PI * t));
+      const hw = w * 0.5 * (1 - 0.7 * t);
+      const a1 = c.clone().addScaledVector(lado, -hw), a2 = c.clone().addScaledVector(lado, hw);
+      pos.push(a1.x, a1.y, a1.z, a2.x, a2.y, a2.z); uv.push(u0, t * 0.35, u0 + 0.2, t * 0.35);
+      if (k) { const q = b0 + (k - 1) * 2; ind.push(q, q + 1, q + 2, q + 1, q + 3, q + 2); }
+    }
+  }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(ind); g.computeVertexNormals();
+  const tx = peloTex.clone(); tx.repeat.set(1, 1); tx.needsUpdate = true;
+  const o = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ map: tx, alphaTest: 0.3, roughness: 0.6, color: new THREE.Color().setScalar(0.95), side: THREE.DoubleSide, envMapIntensity: 0.5 }));
+  o.castShadow = true; pelo.add(o);
+}
 // pulsera en la muñeca izquierda
 const pulsera = new THREE.Group(); bone('wrist.L').add(pulsera); pulsera.rotation.x = Math.PI / 2;
 { pulsera.add(new THREE.Mesh(new THREE.TorusGeometry(0.031, 0.0045, 10, 32), S('#141414', 0.5))); const d = new THREE.Mesh(new THREE.SphereGeometry(0.0062, 12, 10), S('#e24b4a', 0.35)); d.position.set(0, 0.032, 0); pulsera.add(d); }
@@ -122,7 +150,7 @@ const capucha = new THREE.Group(); bone('spine01').add(capucha);
 { const nk = local('spine01', D.heads[idx.neck01]); const tela = S('#1c1c20', 0.85);
   const fondo = new THREE.Mesh(new THREE.SphereGeometry(0.12, 32, 20, 0, Math.PI * 2, 0, Math.PI * 0.62), tela);
   fondo.position.set(nk.x, nk.y - 0.06, nk.z - 0.075); fondo.scale.set(1.25, 0.6, 0.55); fondo.rotation.x = -2.2; fondo.castShadow = true; capucha.add(fondo);
-  const aro = new THREE.Mesh(new THREE.TorusGeometry(0.088, 0.016, 14, 40), tela); aro.position.set(nk.x, nk.y - 0.015, nk.z - 0.012); aro.rotation.x = Math.PI / 2 - 0.35; aro.scale.set(1.12, 1, 1); aro.castShadow = true; capucha.add(aro);
+  const aro = new THREE.Mesh(new THREE.TorusGeometry(0.09, 0.016, 14, 40, Math.PI * 1.15), tela); aro.position.set(nk.x, nk.y - 0.035, nk.z - 0.02); aro.rotation.set(Math.PI / 2 - 0.35, 0, Math.PI + Math.PI * 0.075); aro.scale.set(1.15, 1, 1); aro.castShadow = true; capucha.add(aro);
   [0.035, -0.035].forEach((x) => { const c = new THREE.Mesh(new THREE.CylinderGeometry(0.0035, 0.0035, 0.17, 8), S('#2a2a2e', 0.7)); c.position.set(x, nk.y - 0.1, nk.z + 0.075); c.rotation.x = 0.12; capucha.add(c); });
 }
 const emblema = new THREE.Group(); bone('spine02').add(emblema);
