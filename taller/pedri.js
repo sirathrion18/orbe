@@ -6,7 +6,7 @@ import { RoundedBoxGeometry } from '../vendor/three/RoundedBoxGeometry.js';
 
 const stage = document.getElementById('stage');
 const $ = (id) => document.getElementById(id);
-const D = await fetch('pedri.json?v=3').then((r) => r.json());
+const D = await fetch('pedri.json?v=4').then((r) => r.json());
 const dec = (s, T) => { const b = atob(s), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return new T(u.buffer); };
 
 // ---------- Escena ----------
@@ -78,7 +78,7 @@ D.eyes.forEach((e) => {
   let seed = 11; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
   const per = 4, bolas = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 10, 8), hairM, n * per), rul = new THREE.InstancedMesh(new THREE.TorusGeometry(1, 0.38, 8, 16), hairM, n * 2);
   bolas.castShadow = rul.castShadow = true;
-  const tonos = ['#3d2618', '#4a2f1d', '#5a3a22', '#33200f'].map((c) => new THREE.Color(c));
+  const tonos = ['#5a3a22', '#6b4529', '#4a2f1d', '#7a5232'].map((c) => new THREE.Color(c));
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), p = new THREE.Vector3(), nn = new THREE.Vector3(), s3 = new THREE.Vector3();
   let k = 0, r = 0;
   for (let i = 0; i < n; i++) {
