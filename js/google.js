@@ -89,7 +89,10 @@ const MONTO = /\$\s?[\d.]+(,\d{1,2})?/;
 function pendienteDe(titulo, fecha) {
   const m = titulo.match(MONTO);
   const limpio = titulo.replace(MONTO, "").replace(/^vence:?\s*/i, "").replace(/\s{2,}/g, " ").trim();
-  const facu = /entrega|\btp\b|parcial|final/i.test(titulo) && !/^vence/i.test(titulo);
+  // Lo de la facu va a UFASTA aunque el evento empiece con «Vence» (foros, actividades, TPs, parciales…).
+  const deFacu = /entrega|\btp\b|parcial|final\b|foro|actividad|campus|ufasta|cr[ií]tica de los lenguajes|marketing|c[aá]tedra|materia|consigna|trabajo pr[aá]ctico/i.test(titulo);
+  // La cuota de la facu es plata: esa sí va a Finanzas.
+  const facu = deFacu && !/cuota|arancel|matr[ií]cula \$/i.test(titulo);
   return {
     titulo: limpio, monto: m ? m[0].replace(/\s/g, " ").replace("$ ", "$ ") : null, fecha,
     tipo: facu ? "facu" : /tarjeta|visa|master/i.test(titulo) ? "tarjeta" : "vencimiento",

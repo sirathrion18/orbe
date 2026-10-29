@@ -9,6 +9,7 @@ import { leerRangos } from "./hoja.js";
 import { datosEconomia, MESES_AR } from "./economia.js";
 import { datosFinanzas, actualizarMovs } from "./finanzas.js";
 import { estimadoNeto } from "./escalafon.js";
+import { mesReal } from "./mesreal.js";
 
 const dos = (n) => String(n).padStart(2, "0");
 export const iso = (d) => d.getFullYear() + "-" + dos(d.getMonth() + 1) + "-" + dos(d.getDate());
@@ -111,8 +112,11 @@ export function presupuesto(hoy = new Date()) {
   const col = eco && String(eco.anio) === String(p.col.anio) ? eco.meses[p.col.mes] : null;
   const fin = datosFinanzas();
   const movs = fin?.movs || [];
-  const ing = ingresoDe(p);
-  const total = col?.total ?? null;
+  // El mes real (tus renglones con la plata de verdad + el colchón) manda; si no hay, tu planilla como antes.
+  const real = mesReal(p, leer("agenda")?.pendientes || []);
+  const ing = real?.ingreso?.estado === "real" ? { monto: real.ingreso.monto, fuente: real.ingreso.fuente } : ingresoDe(p);
+  const colchon = real ? real.colchon - real.usado : 0;
+  const total = real ? real.totalReal + colchon : col?.total ?? null;
   // Compras con tarjeta del período anterior que ya pesaron en el diario: vienen dentro del resumen que pagás ahora.
   const pAnt = periodo(new Date(p.inicio.getTime() - 86400000));
   // Solo las que Orbe ya contó en un diario: desde el día que empezó a llevarlo (antes, tu planilla las tenía en su línea).
@@ -142,7 +146,7 @@ export function presupuesto(hoy = new Date()) {
   const porDia = {};
   contados.forEach((m) => { const d = iso(new Date(m.ts)); porDia[d] = (porDia[d] || 0) + parte(m); });
   return { p, col, ingreso: ing, total, tarjetaAnterior, base, diario, gastoHoy, quedaHoy, queda, gastoTotal, diarioManana,
-    pasado: diario != null && diario > 0 && quedaHoy < 0, sinDiario: base != null && base <= 0, agus, esperadoAgus, agusMail, ajustes, division: div, contados, porDia };
+    pasado: diario != null && diario > 0 && quedaHoy < 0, sinDiario: base != null && base <= 0, agus, esperadoAgus, agusMail, ajustes, division: div, contados, porDia, real };
 }
 
 // ---------- Cruce entre lo que cargás y lo que llega por mail ----------

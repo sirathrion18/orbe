@@ -28,7 +28,8 @@ import { escribirResumen } from "./resumen.js";
 import { leer, guardar, borrar, todo, borrarTodo, sesion } from "./almacen.js";
 import { sol } from "./sol.js";
 import { guinoActivo, guinoYa, guinosPrendidos } from "./guinos.js";
-import { marcarAgus, hojaAgus2 } from "./finanzasui.js";
+import { marcarAgus, hojaAgus2, hojaPagado, hojaColchon } from "./finanzasui.js";
+import { marcarPagado, usarColchon, fijarColchonPct, mesReal } from "./mesreal.js";
 import { periodo } from "./presupuesto.js";
 import { sincronizarRiver } from "./rivercal.js";
 import { anotarCobros, escribirEnEconomia } from "./suscripciones.js";
@@ -430,6 +431,9 @@ document.addEventListener("click", (e) => {
     sesion("riverTab", el.dataset.tab); pintar(true);
     if (el.dataset.tab === "otros") traerEquipos().then(() => pintar(true)).catch(() => avisar("No pude traer los otros equipos"));
   }
+  else if (a === "mr-pagado") { abrirHoja(hojaPagado(el.dataset.c, Number(el.dataset.m) || 0), "Marcar pagado"); setTimeout(() => document.querySelector('.hoja [name="monto"]')?.select(), 250); }
+  else if (a === "mr-pct") { fijarColchonPct(Number(el.dataset.v)); vibrar(); pintar(true); }
+  else if (a === "mr-usar") { const r = mesReal(periodo(new Date())); abrirHoja(hojaColchon(r ? r.colchon : 0, Number(el.dataset.m) || 0), "Usar el colchón"); }
   else if (a === "fin-dia") { sesion("finDia", el.dataset.d); pintar(true); }
   else if (a === "agus-paso") { abrirHoja(hojaAgus2(periodo(new Date()).clave, Number(el.dataset.monto) || 0), "Agus te pasó"); setTimeout(() => document.querySelector('.hoja [name="monto"]')?.select(), 250); }
   else if (a === "river-tabla") { sesion("riverTabla", el.dataset.v); pintar(true); }
@@ -631,6 +635,12 @@ document.addEventListener("submit", async (e) => {
     const sus = guardarSuscripcion(d, f.dataset.id || "");
     if (!sus) { avisar("Faltan el nombre o la fecha de renovación"); return; }
     cerrarHoja(); avisar(`${sus.nombre} guardada`); pintar(true);
+  }
+  else if (tipo === "mr-pagado" || tipo === "mr-usar") {
+    const monto = Number(String(d.monto).replace(/\./g, "").replace(",", ".")) || 0;
+    const clave = periodo(new Date()).clave;
+    if (tipo === "mr-pagado") marcarPagado(clave, f.dataset.c, monto); else usarColchon(clave, monto);
+    cerrarHoja(); avisar(tipo === "mr-usar" ? (monto ? "Pasaste $ " + Math.round(monto).toLocaleString("es-AR") + " del colchón al día a día" : "Colchón entero otra vez") : monto ? "Marcado como pagado" : "Vuelve a lo automático"); pintar(true);
   }
   else if (tipo === "agus-paso") {
     const monto = Number(String(d.monto).replace(/\./g, "").replace(",", "."));

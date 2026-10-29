@@ -43,7 +43,8 @@ export function leerAnio(filas) {
     const ing = ingresos ? num(ingresos[c]) : null;
     const tot = total ? num(total[c]) : egresos.reduce((s, e) => s + e.monto, 0);
     if (!ing && !egresos.length) return null; // mes sin cargar
-    return { mes: i, nombre, ingresos: ing, egresos: egresos.sort((a, b) => b.monto - a.monto), total: tot,
+    const todos = conceptos.map((f) => ({ concepto: String(f[0]).trim(), monto: num(f[c]) || 0 }));
+    return { mes: i, nombre, ingresos: ing, egresos: egresos.sort((a, b) => b.monto - a.monto), todos, total: tot,
       saldo: saldo ? num(saldo[c]) : (ing || 0) - (tot || 0), semanal: semanal ? num(semanal[c]) : null, diario: diario ? num(diario[c]) : null };
   });
 }

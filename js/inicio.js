@@ -407,7 +407,7 @@ function wDiario(datos, ctx) {
   if (b.sinDiario) {
     return `<div class="w ancho"><div class="fila"><span class="k">Diario · ${b.p.nombre}</span><span class="fila" style="gap:8px">${ojo}${mas}</span></div>
       <span class="medio" style="font-size:20px;color:var(--accent)">No queda diario</span>
-      <span class="sub">Los egresos de tu planilla (${$(b.total)}) superan el ingreso (${$(b.ingreso.monto)}${b.ingreso.propuesta ? ", estimado" : ""}) por ${$(-b.base)}. Revisá los Ingresos de ${b.p.nombre} en ECONOMÍA.</span></div>`;
+      <span class="sub">${b.real ? `Tus egresos reales más el colchón (${$(b.total)}) superan el ingreso (${$(b.ingreso.monto)}) por ${$(-b.base)}. Mirá el mes real en Finanzas.` : `Los egresos de tu planilla (${$(b.total)}) superan el ingreso (${$(b.ingreso.monto)}${b.ingreso.propuesta ? ", estimado" : ""}) por ${$(-b.base)}. Revisá los Ingresos de ${b.p.nombre} en ECONOMÍA.`}</span></div>`;
   }
   const rojo = b.quedaHoy < 0;
   const uso = b.diario > 0 ? Math.min(1, Math.max(0, b.gastoHoy / b.diario)) : 1;

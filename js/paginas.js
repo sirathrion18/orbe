@@ -20,7 +20,7 @@ import { datosEconomia, linkEconomia, idEconomia } from "./economia.js";
 import { ultimaEdicion, htmlEdicion } from "./semanal.js";
 import { GUINOS, guinosPrendidos, resumenGuinos } from "./guinos.js";
 import { bloqueSuscripciones } from "./suscripciones.js";
-import { heroHoy, avisoRacha, graficoDias, tarjetaAgus, heroMes, analisisGastos } from "./finanzasui.js";
+import { heroHoy, avisoRacha, graficoDias, tarjetaAgus, heroMes, analisisGastos, bloqueMesReal } from "./finanzasui.js";
 import { renderMes } from "./agendames.js";
 import { bloqueHoy } from "./bnahoy.js";
 import { equiposSeguidos } from "./extras.js";
@@ -315,7 +315,9 @@ const PAGINAS = {
     const r = resumenMes(fin, ctx.fecha);
     const oculto = leer("plataOculta", false);
     const $ = (n) => oculto ? "••••" : "$\u00a0" + Math.round(n).toLocaleString("es-AR");
-    const venc = pendientesCon(datos, ctx.fecha).filter((x) => x.universo === "finanzas" && x.dias >= -60);
+    // En Finanzas, solo lo que es plata (lo urgente de todo junto vive en Inicio).
+    const esFacu = (x) => x.tipo === "facu" || x.universo === "ufasta" || /foro|\btp\b|entrega|parcial|actividad|campus|consigna/i.test(x.titulo || "");
+    const venc = pendientesCon(datos, ctx.fecha).filter((x) => x.universo === "finanzas" && x.dias >= -60 && !esFacu(x));
     const dia = ctx.fecha.getDay();
     const cuandoMov = (ts) => { const d = new Date(ts); return d.getDate() + "/" + (d.getMonth() + 1); };
     const CLASE = { gasto: "", "gasto-tarjeta": "tarjeta", tarjeta: "pago de tarjeta", deuda: "cuota", ahorro: "ahorro", propia: "entre tus cuentas", usd: "dólares", ingreso: "ingreso", devolucion: "devolución" };
@@ -379,14 +381,14 @@ const PAGINAS = {
     if (tabF === "periodo") tabF = "hoy";
     const pestF = `<div class="pestanas" role="tablist">${[["hoy", "Hoy"], ["mes", "Mes"], ["analisis", "Análisis"], ["cuentas", "Cuentas"]].map(([id, t]) =>
       `<button class="pestana ${tabF === id ? "on" : ""}" role="tab" aria-selected="${tabF === id}" data-accion="fin-tab" data-tab="${id}">${t}</button>`).join("")}</div>`;
-    const vencHtml = `<section class="bloque"><h2>Vencimientos ${datos.agenda ? "" : '<span class="ejemplo">Ejemplo</span>'}</h2><ul class="lista">${venc.map((d) => `<li style="align-items:flex-start"><span style="display:flex;flex-direction:column;gap:4px;min-width:0"><span>${esc(d.titulo)}${d.vernet ? ' <span class="tag">Vernet</span>' : ""}${d.nota ? ` <span class="tag">${esc(d.nota)}</span>` : ""}</span>${d.monto ? `<b>${esc(d.monto)}</b>` : ""}<span class="der ${d.dias <= 7 && !d.vernet ? "rojo" : ""}" style="font-size:17px">${cuandoTexto(d.dias)}</span></span>
+    const vencHtml = `<section class="bloque"><h2>Pagos y vencimientos ${datos.agenda ? "" : '<span class="ejemplo">Ejemplo</span>'}</h2><ul class="lista">${venc.map((d) => `<li style="align-items:flex-start"><span style="display:flex;flex-direction:column;gap:4px;min-width:0"><span>${esc(d.titulo)}${d.vernet ? ' <span class="tag">Vernet</span>' : ""}${d.nota ? ` <span class="tag">${esc(d.nota)}</span>` : ""}</span>${d.monto ? `<b>${esc(d.monto)}</b>` : ""}<span class="der ${d.dias <= 7 && !d.vernet ? "rojo" : ""}" style="font-size:17px">${cuandoTexto(d.dias)}</span></span>
         <button class="hecho" style="margin:0" data-accion="hecho" data-clave="${esc(d.clave)}" aria-label="Marcar ${esc(d.titulo)} como hecho">${ICONOS.check}</button></li>`).join("") || '<li class="vacio">Nada pendiente.</li>'}</ul>
         ${leer("hechos", []).length ? '<button class="link" style="margin-top:12px;font-size:13px" data-accion="deshacer-hechos">Volver a mostrar los marcados como hechos</button>' : ""}</section>`;
     const plegable = (titulo, html) => html ? `<details class="bloque plegable"><summary>${titulo}</summary>${html.replace(/^<section class="bloque[^"]*">/, "").replace(/<\/section>\s*$/, "")}</details>` : "";
     const promos = `<section class="bloque"><ul class="lista">${((datosEconomia()?.alias?.promos?.[dia]?.length ? datosEconomia().alias.promos[dia] : null) || (PROMOS[dia] || []).concat(PROMOS_SIEMPRE)).map((x) => `<li><span>${esc(x)}</span></li>`).join("")}</ul>
         <p class="vacio" style="margin-top:10px;font-size:12px">Los topes cambian seguido: verificalos antes de pagar.</p></section>`;
     if (tabF === "analisis") return pestF + analisisGastos(ctx, $, oculto) + `<h2 class="fz-titulo">Tu historia con la plata</h2>` + bloqueAnalisis($);
-    if (tabF === "mes") return `${pestF}${heroMes(ctx, $)}${bloquePeriodo(ctx, $)}${vencHtml}${revisar}${bloqueEconomia(ctx, $)}${movs}`;
+    if (tabF === "mes") { const mr = bloqueMesReal(ctx, $, oculto, linkEconomia()); return `${pestF}${heroMes(ctx, $)}${mr || bloquePeriodo(ctx, $)}${vencHtml}${revisar}${mr ? "" : bloqueEconomia(ctx, $)}${movs}`; }
     if (tabF === "cuentas") return `${pestF}${deudas}${bloqueSuscripciones(ctx.fecha)}${bloqueAlias()}
       ${plegable("Promos de hoy, " + DIAS[dia], promos)}${plegable("Dólar hoy", dolar)}${plegable("Topes del mes", topes)}
       ${linkHoja() ? `<section class="bloque"><h2>Planilla</h2><p>Todo vive en tu planilla <b>Orbe · datos</b>: podés corregir a mano lo que quieras.</p><div class="chips" style="margin-top:12px"><a class="chip" href="${esc(linkHoja())}" target="_blank" rel="noopener">Abrir la planilla</a></div></section>` : ""}`;

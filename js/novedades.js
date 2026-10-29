@@ -1,6 +1,20 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.31.0",
+    fecha: "29/10/2026",
+    titulo: "Mes real y colchón.",
+    cambios: [
+      "Mes real (Finanzas › Mes): los mismos renglones de tu ECONOMÍA, pero cada uno con la plata de verdad, de dónde salió y si está pagado, por pagar o estimado. El préstamo sale del talón del recibo; las tarjetas, del pago del resumen; lo compartido, de DIVISIÓN; lo demás, de tus mails o del aviso de vencimiento.",
+      "Lo que Orbe no encuentra queda como estimado (el del mes pasado o tu planilla) hasta que lo tocás y le ponés «pagado» con el monto. Nada se inventa.",
+      "Colchón en vez de gastos «de más»: un porcentaje del sueldo (5% de entrada, se cambia a 3 o 10%) que se aparta antes de calcular el diario. No se acumula; si un día te pasás, sale de los días que quedan. Solo usás el colchón si tocás «Usar».",
+      "Lo compartido con Agus cuenta tu mitad.",
+      "El ingreso del mes es el neto del recibo; el préstamo va como egreso.",
+      "Lo de la facu ya no aparece en Finanzas: ahí quedan solo «Pagos y vencimientos». Lo urgente de todo vive en Inicio y cada cosa en su universo.",
+      "Tu ECONOMÍA sigue igual: Orbe solo escribe la fila Suscripciones.",
+    ],
+  },
+  {
     version: "0.30.0",
     fecha: "29/10/2026",
     titulo: "Finanzas nueva.",

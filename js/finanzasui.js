@@ -40,7 +40,7 @@ export function heroHoy(ctx, $, oculto) {
   const ojo = `<button class="ojo" data-accion="ocultar-plata" aria-label="${oculto ? "Mostrar" : "Ocultar"} la plata">${oculto ? ICONOS.ojoNo : ICONOS.ojo}</button>`;
   const mas = `<button class="mas-gasto" data-accion="gasto-rapido" aria-label="Cargar un gasto">+ Gasto</button>`;
   if (b.total == null || b.base == null || b.sinDiario) {
-    const motivo = b.total == null ? "Falta tu planilla de este período en ECONOMÍA." : b.base == null ? `Falta el ingreso de ${b.p.nombre}.` : `Los egresos de tu planilla superan el ingreso por ${$(-b.base)}.`;
+    const motivo = b.total == null ? "Falta tu planilla de este período en ECONOMÍA." : b.base == null ? `Falta el ingreso de ${b.p.nombre}.` : b.real ? `Tus egresos reales más el colchón superan el ingreso por ${$(-b.base)}. Mirá el detalle en Mes.` : `Los egresos de tu planilla superan el ingreso por ${$(-b.base)}.`;
     return `<section class="fz hero"><div class="fz-cab"><span class="fz-k">Hoy</span><span class="fz-acc">${ojo}${mas}</span></div>
       <p class="fz-big rojo">${b.sinDiario ? "No queda diario" : "Sin diario"}</p><p class="fz-sub">${esc(motivo)}</p></section>`;
   }
@@ -118,7 +118,7 @@ export function tarjetaAgus(ctx, $) {
   const man = agusManual(b.p.clave);
   return `<section class="fz agus ${ya ? "ok" : ""}"><div class="fz-cab"><span class="fz-k">${ya ? "Agus te pasó" : "Agus te tiene que pasar"}</span>${ya ? `<span class="fz-ok">${ICONOS.check}</span>` : ""}</div>
     <p class="fz-big">${ya ? $(b.agus) : esperado != null ? $(esperado) : "—"}</p>
-    <p class="fz-sub">${ya ? (man && !b.agusMail ? "Lo marcaste el " + dm(new Date(man.cuando)) + "." : "Lo vio Orbe en tus mails.") + (esperado != null ? ` Esperado: ${$(esperado)}.` : "") : "Su mitad de lo compartido" + (b.ajustes.length ? ", menos " + b.ajustes.map((a) => esc(a.concepto.toLowerCase())).join(" y ") : "") + "."} Va al colchón de imprevistos, no al diario.</p>
+    <p class="fz-sub">${ya ? (man && !b.agusMail ? "Lo marcaste el " + dm(new Date(man.cuando)) + "." : "Lo vio Orbe en tus mails.") + (esperado != null ? ` Esperado: ${$(esperado)}.` : "") : "Su mitad de lo compartido" + (b.ajustes.length ? ", menos " + b.ajustes.map((a) => esc(a.concepto.toLowerCase())).join(" y ") : "") + "."} Cubre su mitad de lo compartido (alquiler, expensas, servicios), que en tu mes ya cuenta como tu mitad.</p>
     <div class="chips" style="margin-top:10px">${ya ? `<button class="chip" data-accion="agus-paso" data-monto="${Math.round(b.agus)}">Corregir</button>` : `<button class="btn" data-accion="agus-paso" data-monto="${Math.round(esperado || 0)}">Agus ya me pasó</button>`}</div></section>`;
 }
 export function hojaAgus2(clave, monto) {
@@ -137,7 +137,7 @@ export function heroMes(ctx, $) {
   const pctDias = p.dias ? transcurridos / p.dias : 0;
   const pctGasto = b.base > 0 ? Math.min(1, b.gastoTotal / b.base) : 1;
   return `<section class="fz hero"><span class="fz-k">Te quedan para el día a día</span>
-    <p class="fz-big ${b.queda < 0 ? "rojo" : ""}">${$(b.queda)}</p>
+    <p class="fz-big ${b.queda < 0 ? "rojo" : ""}">${b.queda < 0 ? "−" : ""}${$(Math.abs(b.queda))}</p>
     <div class="fz-doble"><div><small>Gastaste</small><div class="fz-barra"><i style="width:${Math.round(pctGasto * 100)}%"></i></div></div>
       <div><small>Pasó del período</small><div class="fz-barra gris"><i style="width:${Math.round(pctDias * 100)}%"></i></div></div></div>
     <p class="fz-sub">${pctGasto > pctDias + 0.05 ? "Vas gastando más rápido de lo que pasan los días." : pctGasto < pctDias - 0.05 ? "Vas más lento que los días: bien ahí." : "Vas parejo con los días."} Del ${dm(p.inicio)} al ${dm(p.fin)} · faltan ${p.restantes} ${p.restantes === 1 ? "día" : "días"}.</p></section>`;
@@ -188,4 +188,36 @@ export function analisisGastos(ctx, $, oculto) {
       <div class="fz-ley2"><span><i class="este"></i>este período</span><span><i class="antes"></i>el pasado</span></div></section>
     <section class="fz"><span class="fz-k">Gastos hormiga · 30 días</span>
       ${hormiga.length ? `<p class="fz-big chico">${$(totHormiga)}</p><p class="fz-sub">en cosas de menos de $ 5.000 que se repiten.</p>${barrasH(hormiga.map(([, g]) => [g.nombre, g.total, g.n + " veces"]), $, "var(--accent)")}` : '<p class="fz-sub">No hay gastos chiquitos que se repitan. Bien ahí.</p>'}</section>`;
+}
+
+// ---------- Mes real: tus renglones de ECONOMÍA con la plata de verdad ----------
+const ESTADO = { pagado: "pagado", "por pagar": "por pagar", estimado: "estimado" };
+export function bloqueMesReal(ctx, $, oculto, linkEco) {
+  const b = presupuesto(ctx.fecha);
+  const r = b.real;
+  if (!r) return "";
+  const dif = (real, plan) => { const d = Math.round((real || 0) - (plan || 0)); return !plan || Math.abs(d) < 1 ? "" : `<small class="mr-dif ${d > 0 ? "sube" : "baja"}">${d > 0 ? "+" : "−"}${oculto ? "••" : $(Math.abs(d))} vs. planilla</small>`; };
+  const filas = [...r.filas].sort((a, c) => (c.real || 0) - (a.real || 0)).map((f) => `<li><button class="mr-fila" data-accion="mr-pagado" data-c="${esc(f.concepto)}" data-m="${Math.round(f.real || 0)}">
+      <span class="mr-izq"><b>${esc(f.concepto)}</b><small><span class="mr-est ${f.estado.replace(" ", "-")}">${ESTADO[f.estado]}</span> ${esc(f.fuente)}${f.nota ? " · " + esc(f.nota) : ""}</small></span>
+      <span class="mr-der"><b>${$(f.real || 0)}</b>${dif(f.real, f.plan)}</span></button></li>`).join("");
+  const base = (r.ingreso?.monto || 0) - r.totalReal - (r.colchon - r.usado);
+  return `<section class="fz mesreal"><div class="fz-cab"><span class="fz-k">Tu mes real · ${esc(b.p.nombre)}</span>${linkEco ? `<a class="fz-link" href="${esc(linkEco)}" target="_blank" rel="noopener">tu planilla</a>` : ""}</div>
+      <div class="mr-ing"><span><small>Ingreso</small><b>${r.ingreso ? $(r.ingreso.monto) : "—"}</b></span><small>${r.ingreso ? (r.ingreso.estado === "real" ? "del " + esc(r.ingreso.fuente.toLowerCase()) : "estimado, de tu planilla") : "falta el recibo"}${r.planIngreso && r.ingreso ? " · planilla " + $(r.planIngreso) : ""}</small></div>
+      <ul class="mr-lista">${filas}</ul>
+      <div class="mr-colchon"><div><small>Colchón · ${r.pct}% del ingreso</small><b>${$(r.colchon - r.usado)}</b>${r.usado ? `<small>usaste ${$(r.usado)}</small>` : ""}</div>
+        <div class="chips">${[3, 5, 10].map((x) => `<button class="chip ${r.pct === x ? "on" : ""}" data-accion="mr-pct" data-v="${x}">${x}%</button>`).join("")}<button class="chip" data-accion="mr-usar" data-m="${r.usado || 0}">${r.usado ? "Cambiar" : "Usar"}</button></div></div>
+      <div class="mr-tot"><span><small>Egresos reales</small>${$(r.totalReal)}</span><span><small>Planilla</small>${$(r.totalPlan)}</span><span class="mr-base"><small>Para el día a día, al empezar el período</small><b class="${base < 0 ? "rojo" : ""}">${base < 0 ? "−" : ""}${$(Math.abs(base))}</b></span></div>
+      <p class="fz-sub">${r.estimados ? `${r.estimados} ${r.estimados === 1 ? "renglón todavía no es definitivo" : "renglones todavía no son definitivos"} (estimados o lo que pensás pagar): tocá cualquiera para marcarlo pagado con el monto real. ` : "Todos los renglones tienen su número real. "}El colchón se aparta antes del diario; si lo necesitás, tocás «Usar».</p></section>`;
+}
+export function hojaPagado(concepto, monto) {
+  return `<h2>${esc(concepto)}</h2><form data-form="mr-pagado" data-c="${esc(concepto)}">
+    <label class="campo-sus"><span>Lo que pagaste (o vas a pagar) este mes</span><input name="monto" inputmode="decimal" value="${monto ? Math.round(monto).toLocaleString("es-AR") : ""}" required></label>
+    <p class="fuente-dato">Queda como «pagado, lo marcaste vos» y manda sobre el resto. Para volver a lo automático, poné 0.</p>
+    <div class="grupo" style="display:flex;gap:10px"><button type="button" class="btn sec" data-accion="cerrar-hoja" style="flex:1">Cancelar</button><button class="btn" style="flex:2">Guardar</button></div></form>`;
+}
+export function hojaColchon(disponible, usado) {
+  return `<h2>Usar el colchón</h2><form data-form="mr-usar">
+    <label class="campo-sus"><span>Cuánto pasás al día a día (de ${Math.round(disponible).toLocaleString("es-AR")})</span><input name="monto" inputmode="decimal" value="${usado ? Math.round(usado).toLocaleString("es-AR") : ""}" required></label>
+    <p class="fuente-dato">Para una emergencia o un gasto que no estaba. Se suma a lo que te queda y sube el diario. Con 0 lo devolvés.</p>
+    <div class="grupo" style="display:flex;gap:10px"><button type="button" class="btn sec" data-accion="cerrar-hoja" style="flex:1">Cancelar</button><button class="btn" style="flex:2">Guardar</button></div></form>`;
 }
