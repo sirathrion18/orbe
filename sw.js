@@ -1,5 +1,5 @@
 // Orbe funciona sin internet: guarda la app y muestra lo último que tenía.
-const VERSION = "orbe-0.34.1";
+const VERSION = "orbe-0.34.2";
 const APP = [
   "./", "index.html", "manifest.webmanifest", "css/orbe.css",
   "js/app.js", "js/almacen.js", "js/finanzas.js", "js/hoja.js", "js/facu.js", "js/campus.js", "js/campusui.js", "js/satelite.js", "js/sateliteui.js", "js/saldo.js", "js/recibos.js", "js/extras.js", "js/preguntas.js", "js/economia.js", "js/huella.js", "js/listas.js", "js/productividad.js", "js/presupuesto.js", "js/escalafon.js", "js/analisis.js", "js/semanal.js", "js/checklists.js", "js/guinos.js", "js/suscripciones.js", "js/rivercal.js", "js/agendames.js", "js/bnahoy.js", "js/finanzasui.js", "js/mesreal.js", "js/resumen.js", "js/movimientos.js", "js/rubros.js", "js/sincro.js", "js/config.js", "js/contexto.js", "js/fuente.js", "js/google.js",

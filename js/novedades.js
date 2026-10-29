@@ -1,6 +1,14 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.34.2",
+    fecha: "29/10/2026",
+    titulo: "Arreglo al vincular.",
+    cambios: [
+      "Ajustes › Satélite: al pedir el código después de crear el buzón, ahora aparece el código (antes se quedaba mostrando los pasos de «falta el buzón»).",
+    ],
+  },
+  {
     version: "0.34.1",
     fecha: "29/10/2026",
     titulo: "Satélite, segunda revisión.",

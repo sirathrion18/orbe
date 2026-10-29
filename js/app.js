@@ -516,7 +516,11 @@ document.addEventListener("click", (e) => {
   }
   else if (a === "sat-codigo") {
     avisar("Pidiendo un código…");
-    codigoSatelite(el.dataset.nombre || "Celu").then((r) => { sesion("satCodigo", r); pintar(true); })
+    codigoSatelite(el.dataset.nombre || "Celu").then((r) => {
+      // Si hay código, el buzón existe: se olvida el aviso viejo de «falta el buzón».
+      const st = datosSatelite() || {}; if (st.error) guardar("satelite", { ...st, error: null }, true);
+      sesion("satCodigo", r); pintar(true);
+    })
       .catch((e) => avisar(e.message === "falta-buzon" ? "Falta crear el buzón en Cloudflare (mirá los pasos en Ajustes)" : "No se pudo: " + textoError(e.message)));
   }
   else if (a === "sat-anular") {

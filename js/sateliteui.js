@@ -22,7 +22,7 @@ export function bloqueSatelite(conectado) {
   const cod = sesion("satCodigo");
   const codVivo = cod && cod.vence > Date.now();
   let cuerpo;
-  if (s.error === "falta-buzon" && !devs.length) {
+  if (s.error === "falta-buzon" && !devs.length && !codVivo) {
     cuerpo = `<p>Satélite necesita un buzón en tu Cloudflare (gratis, una sola vez, 3 minutos). Ahí el celu deja los pagos cifrados hasta que Orbe los retira.</p>${PASOS_KV}
       <div class="chips"><button class="btn" data-accion="sat-codigo" data-nombre="Xiaomi">Ya lo hice: vincular un celu</button></div>`;
   } else if (codVivo) {

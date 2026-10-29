@@ -1,5 +1,11 @@
 # Novedades de Orbe
 
+## v0.34.2 · 29/10/2026
+
+Arreglo al vincular.
+
+- Ajustes › Satélite: al pedir el código después de crear el buzón, ahora aparece el código (antes se quedaba mostrando los pasos de «falta el buzón»).
+
 ## v0.34.1 · 29/10/2026
 
 Satélite, segunda revisión.
