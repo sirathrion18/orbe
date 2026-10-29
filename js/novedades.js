@@ -1,6 +1,21 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.32.0",
+    fecha: "29/10/2026",
+    titulo: "UFASTA desde el campus.",
+    cambios: [
+      "UFASTA nuevo: lo arma la revisión diaria que hace Claude en el campus (todos los días a las 8:20) y deja en tu carpeta Orbe de Drive. Orbe lee el archivo más nuevo.",
+      "Arriba, lo próximo en grande: materia, cuántos días faltan, qué hay que hacer, «Abrir en el campus» y «Ya lo hice».",
+      "Después, por urgencia: Ahora (vencido o 3 días o menos), Esta semana, Más adelante y Hecho. Cada cosa con su materia en color, la fecha y el link directo a la actividad.",
+      "«Ya lo hice»: se tilda al toque y queda en tu planilla (hoja TILDES_FACU), igual en el celu y en la compu. Si el campus confirma la entrega, pasa a verde «Confirmado por el campus»; si no, queda como «lo marcaste vos».",
+      "Marketing · camino al final: el plan por pasos con tildes por tarea y la barra de avance.",
+      "Materias: una tarjeta por materia con cuántas cosas pendientes tiene y cómo viene.",
+      "Las fechas que salen del cronograma (no de la actividad) dicen «estimada». Si la revisión de hoy no llegó, arriba lo avisa.",
+      "Lo que vence en 3 días o menos aparece también en Urgente y en Inicio.",
+    ],
+  },
+  {
     version: "0.31.1",
     fecha: "29/10/2026",
     titulo: "En qué gastaste, hoy y en el mes.",

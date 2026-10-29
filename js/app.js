@@ -15,6 +15,7 @@ import { sincronizar, activa as sincroActiva } from "./sincro.js";
 import { leerPlanilla, traerMails, corregir, datosFinanzas, pendientesDeTarjetas, guardarTope } from "./finanzas.js";
 import { leerRecibos } from "./recibos.js";
 import { datosFacu, traerCampus, leerFacu, tildarTp, nuevoTp, guardarMateria, asignarTp, pendientesDeTps, HOJAS_FACU } from "./facu.js";
+import { datosCampus, leerCampus, tildarCampus, pendientesDeCampus, HOJAS_CAMPUS } from "./campus.js";
 import { asegurarHojas, asegurarLeeme, fijarSemillas, escribir as escribirHoja } from "./hoja.js";
 import { fijarHoja, idHoja } from "./hoja.js";
 import { traerDolar, traerRiver, traerTransporte, traerEquipos, equiposSeguidos } from "./extras.js";
@@ -87,7 +88,7 @@ function pintar(refresco = false) {
   const demo = sesion("demo");
   // Lo que se deriva de Finanzas (pagar las tarjetas) se suma a los pendientes del calendario.
   if (!estado.datos.pendientesBase) estado.datos.pendientesBase = estado.datos.pendientes || [];
-  estado.datos.pendientes = [...estado.datos.pendientesBase, ...pendientesDeTarjetas(datosFinanzas()), ...pendientesDeTps(datosFacu()), ...pendientesDeSemanal(), ...pendientesDeSuscripciones()];
+  estado.datos.pendientes = [...estado.datos.pendientesBase, ...pendientesDeTarjetas(datosFinanzas()), ...(datosCampus()?.datos ? pendientesDeCampus(datosCampus()) : pendientesDeTps(datosFacu())), ...pendientesDeSemanal(), ...pendientesDeSuscripciones()];
   estado.ctx = construirContexto(estado.datos, demo);
   const r = ruta();
   let html;
@@ -495,6 +496,12 @@ document.addEventListener("click", (e) => {
   else if (a === "usar-tope") {
     avisar("Guardando tope…");
     guardarTope(el.dataset.rubro, Number(el.dataset.tope)).then(() => { avisar("Tope de " + el.dataset.rubro + " guardado"); pintar(true); }).catch((e) => avisar("No se pudo: " + textoError(e.message)));
+  }
+  else if (a === "campus-tilde" || a === "campus-hecho") {
+    const hecho = a === "campus-hecho" ? true : el.checked;
+    tildarCampus(el.dataset.id, hecho).then(() => { vibrar(); if (hecho && a === "campus-hecho") avisar("Anotado. Mañana el campus lo confirma."); pintar(true); })
+      .catch((e) => { avisar("Quedó en este dispositivo; no llegó a la planilla: " + textoError(e.message)); pintar(true); });
+    pintar(true);
   }
   else if (a === "tp-tilde") {
     tildarTp(el.dataset.id, el.checked).then(() => { vibrar(); pintar(true); }).catch((e) => avisar("No se pudo: " + textoError(e.message)));
@@ -935,6 +942,11 @@ async function refrescarTodo(forzar = false) {
     try { await traerCampus(); estadoParte("facu"); }
     catch (e) { estadoParte("facu", e.message); fallas.push(["facu", e.message]); }
   }
+  // La revisión diaria del campus (archivo en tu Drive) y tus tildes. Nunca frena el resto.
+  if (forzar || !datosCampus() || Date.now() - datosCampus().cuando > 30 * 60000) {
+    try { const c = await leerCampus(); estadoParte("campus", null, c.datos?.actualizado ? "revisión del " + c.datos.actualizado.slice(8, 10) + "/" + c.datos.actualizado.slice(5, 7) : "todavía no hay revisión"); pintar(true); }
+    catch (e) { estadoParte("campus", e.message); }
+  }
   if (!fallas.length) {
     try {
       if (forzar || !leer("presuConfig") || Date.now() - leer("presuConfig").cuando > 6 * 3600000) await leerConfigPresu().catch(() => {});
@@ -977,11 +989,12 @@ async function refrescarTodo(forzar = false) {
 }
 
 // Hojas que Orbe crea solo en tu planilla si todavía no están.
-const HOJAS_EXTRA = { ...HOJAS_FACU, ...HOJAS_LISTAS, ...HOJAS_PROD, ...HOJAS_PRESU, ...HOJAS_ESC, ...HOJAS_ANALISIS };
+const HOJAS_EXTRA = { ...HOJAS_FACU, ...HOJAS_CAMPUS, ...HOJAS_LISTAS, ...HOJAS_PROD, ...HOJAS_PRESU, ...HOJAS_ESC, ...HOJAS_ANALISIS };
 // Lo que dice el LEEME de tu planilla sobre cada hoja que Orbe fue sumando (mismo estilo que las demás).
 const LEEME = [
   "MATERIAS: tus materias de UFASTA, con pistas para reconocer los mails del campus, profe, aula, links y notas.",
   "TPS: cada TP con su materia, fecha de entrega y si está hecho. Los avisos del campus lo tildan solo.",
+  "TILDES_FACU: lo que marcaste «ya lo hice» en UFASTA (id del ítem del campus o del plan de Marketing, sí/vacío y cuándo).",
   "AGUS: lo compartido con Agus: fechas (anual), viaje, vuelos, planes, pelis y series, docs.",
   "FUTBOL: cada partido: fecha, resultado (G/E/P), goles y cómo jugaste.",
   "PROYECTOS: tus proyectos con repo, estado y próximos pasos (separados por ;).",
@@ -995,7 +1008,7 @@ const LEEME = [
   "HISTORICO: cada movimiento de tus extractos de la caja de ahorro y de tus resúmenes de tarjeta (fecha, cuenta, concepto, monto, saldo, categoría y de qué archivo salió). Lo arma Orbe leyendo tus PDF de Drive; podés corregir la categoría a mano.",
   "PESOS_PRODUCTIVIDAD: cuánto vale cada tarea (puntos por unidad) y cuántos minutos lleva; grupo carga, control, ms (MS y cambio de cartera), otras o meta. Las filas «meta» dicen desde qué fecha vale cada meta diaria y los minutos efectivos."
 ];
-const NOMBRE_PARTE = { facu: "el campus de UFASTA", sincro: "la sincronización", mails: "los mails", economia: "ECONOMÍA", agenda: "la agenda", recibos: "los recibos", listas: "Agus, fútbol y proyectos", prod: "la productividad" };
+const NOMBRE_PARTE = { campus: "la revisión del campus", facu: "el campus de UFASTA", sincro: "la sincronización", mails: "los mails", economia: "ECONOMÍA", agenda: "la agenda", recibos: "los recibos", listas: "Agus, fútbol y proyectos", prod: "la productividad" };
 export function textoError(m) {
   m = String(m || "");
   if (m === "reconectar" || m.startsWith("reconectar")) return "hay que volver a conectar con Google";

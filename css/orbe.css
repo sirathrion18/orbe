@@ -1095,3 +1095,66 @@ details.bloque.plegable[open] > summary { margin-bottom: 10px; }
 .fz-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); text-align: center; }
 .fz-nav .icon-btn { font-size: 20px; flex: none; }
 .fz-nav .icon-btn[disabled] { opacity: .3; }
+/* ---------- UFASTA desde el campus (v0.31) ---------- */
+.uf-estado { margin-top: 14px; font-size: 13px; color: var(--muted); line-height: 1.45; }
+.uf-estado p { margin: 0; }
+.uf-estado b { color: var(--text); font-weight: 600; }
+.uf-estado .uf-res { margin-top: 4px; }
+.uf-estado.viejo { padding: 12px 14px; border-radius: 14px; border: 1px solid var(--accent); }
+.uf-hero { position: relative; margin-top: 16px; padding: 20px 18px 18px 22px; border-radius: 22px; background: var(--tile); overflow: hidden; }
+.uf-hero::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: var(--c, var(--text)); }
+.uf-k { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--c, var(--muted)); }
+.uf-hero h3 { margin: 8px 0 0; font-family: var(--serif); font-weight: 400; font-size: 30px; line-height: 1.08; }
+.uf-hcuando { margin: 8px 0 0; font-size: 15px; font-weight: 600; }
+.uf-hdet { margin: 10px 0 0; font-size: 14px; line-height: 1.5; color: var(--muted); }
+.uf-hbtn { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.uf-btn { display: inline-flex; align-items: center; gap: 6px; height: 42px; padding: 0 16px; border-radius: 999px; border: 0;
+  background: var(--text); color: var(--bg); font: 600 14px var(--sans); text-decoration: none; }
+.uf-btn.sec { background: transparent; color: var(--text); border: 1px solid var(--line); }
+.uf-btn svg, .uf-ir svg { width: 15px; height: 15px; }
+.uf-n { display: inline-block; margin-left: 6px; min-width: 18px; padding: 0 6px; border-radius: 999px; background: var(--line); color: var(--text); text-align: center; letter-spacing: 0; }
+.uf-lista { list-style: none; margin: 0; padding: 0; }
+.uf-it { display: grid; grid-template-columns: 26px 1fr auto; gap: 10px; align-items: start; padding: 13px 0; border-top: 1px solid var(--line); }
+.uf-it:first-child { border-top: 0; padding-top: 0; }
+.uf-tx { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.uf-tx b { font-size: 15px; font-weight: 600; line-height: 1.3; }
+.uf-tx small { font-size: 13px; color: var(--muted); line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.uf-mat { align-self: flex-start; font-size: 10.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--c); }
+.uf-der { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; text-align: right; }
+.uf-der { max-width: 112px; }
+.uf-cuando { font-family: var(--serif); font-size: 18px; line-height: 1.1; }
+.uf-cuando.rojo { color: var(--accent); }
+.uf-fecha { font-size: 11px; color: var(--muted); line-height: 1.3; }
+.uf-ir { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; margin-top: 4px; border-radius: 16px; border: 1px solid var(--line); color: var(--text); }
+.uf-check { position: relative; width: 24px; height: 24px; margin-top: 1px; cursor: pointer; flex: none; }
+.uf-check input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.uf-check span { position: absolute; inset: 0; border-radius: 8px; border: 1.5px solid var(--muted); transition: background .15s, border-color .15s; }
+.uf-check input:checked + span { background: var(--text); border-color: var(--text); }
+.uf-check input:checked + span::after { content: ""; position: absolute; left: 7px; top: 3px; width: 6px; height: 11px; border: solid var(--bg); border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.uf-check input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+.vacio-check { border: 0; }
+.uf-it.vencido .uf-tx b { color: var(--accent); }
+.uf-it.confirmado .uf-tx b, .uf-it.marcado .uf-tx b { text-decoration: line-through; color: var(--muted); font-weight: 500; }
+.uf-sello { font-size: 11.5px; color: var(--muted); }
+.uf-sello.ok { color: #1F8A4C; font-weight: 600; }
+:root[data-theme="oscuro"] .uf-sello.ok { color: #4ADE80; }
+.uf-it.confirmado .vacio-check { background: #1F8A4C; border-radius: 8px; width: 24px; height: 24px; }
+.uf-it.confirmado .vacio-check::after { content: ""; display: block; margin: 3px 0 0 8px; width: 6px; height: 11px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.uf-plan-res { font-size: 14px; }
+.cifra-chica { font-family: var(--serif); font-size: 24px; margin-right: 4px; }
+.uf-paso { border-top: 1px solid var(--line); padding: 10px 0; }
+.uf-paso summary { display: flex; justify-content: space-between; gap: 8px; align-items: center; cursor: pointer; list-style: none; font-size: 14px; font-weight: 600; }
+.uf-paso summary::-webkit-details-marker { display: none; }
+.uf-tareas { list-style: none; margin: 10px 0 0; padding: 0; }
+.uf-tareas li { display: grid; grid-template-columns: 26px 1fr auto; gap: 10px; align-items: center; padding: 6px 0; font-size: 14px; }
+.uf-tareas li.hecha .uf-ttx { text-decoration: line-through; color: var(--muted); }
+.uf-ttx small { color: var(--muted); }
+.uf-tareas .uf-ir { margin-top: 0; }
+.uf-materias { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.uf-materia { position: relative; display: flex; flex-direction: column; gap: 4px; padding: 14px 12px 12px 16px; border-radius: 16px; background: var(--bg); text-decoration: none; overflow: hidden; }
+.uf-materia::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--c); }
+.uf-mnom { font-size: 13.5px; font-weight: 600; line-height: 1.25; }
+.uf-mpend { font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--c); }
+.uf-mest { font-size: 12px; color: var(--muted); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.uf-sinfecha summary, .uf-hechos summary { margin-top: 0; }
+.uf-sinfecha .uf-lista, .uf-hechos .uf-lista { margin-top: 14px; }

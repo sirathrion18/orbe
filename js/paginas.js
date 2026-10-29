@@ -16,6 +16,8 @@ import { linkHoja } from "./hoja.js";
 import { ultimaSincro, activa as sincroActiva } from "./sincro.js";
 import { RUBROS } from "./rubros.js";
 import { datosFacu, promedio } from "./facu.js";
+import { datosCampus } from "./campus.js";
+import { paginaCampus } from "./campusui.js";
 import { datosEconomia, linkEconomia, idEconomia } from "./economia.js";
 import { ultimaEdicion, htmlEdicion } from "./semanal.js";
 import { GUINOS, guinosPrendidos, resumenGuinos } from "./guinos.js";
@@ -232,6 +234,13 @@ const PAGINAS = {
 
   ufasta(datos, ctx) {
     const f = datosFacu();
+    const c = datosCampus();
+    if (c && c.datos) {
+      const hace = (ts) => { const d = Math.round((Date.now() - ts) / 86400000); return d <= 0 ? "hoy" : d === 1 ? "ayer" : "hace " + d + " días"; };
+      const feed = (f?.feed || []).slice(0, 8);
+      const mails = feed.length ? `<section class="bloque"><details class="mas"><summary>Avisos por mail (${feed.length})</summary><ul class="lista">${feed.map((x) => `<li><span>${esc(x.titulo)}${x.materia ? `<br><small class="vacio">${esc(x.materia)}</small>` : ""}</span><span class="tag">${hace(x.ts)}</span></li>`).join("")}</ul></details></section>` : "";
+      return paginaCampus(c, ctx, mails);
+    }
     const entregas = pendientesCon(datos, ctx.fecha).filter((p) => p.tipo === "facu" && p.dias >= -3);
     const proximas = `<section class="bloque"><h2>Próximas entregas</h2><ul class="lista">${entregas.map((p) => `<li><span>${esc(p.titulo)}${p.nota ? `<br><small class="vacio">${esc(p.nota)}</small>` : ""}</span><span class="der ${p.dias <= 3 ? "rojo" : ""}">${cuandoTexto(p.dias)}</span></li>`).join("") || '<li class="vacio">Nada con fecha. Cuando cargues la fecha de un TP, aparece acá y en Inicio 3 días antes.</li>'}</ul></section>`;
     if (!f) return proximas + '<section class="bloque"><h2>Materias</h2><p class="vacio">Se arman en cuanto actives la sincronización en Ajustes.</p></section>';
@@ -563,7 +572,7 @@ const FAMILIA = { logo: "var(--sans);font-weight:600;letter-spacing:-.045em", re
   cursiva: "var(--serif);font-style:italic" };
 
 // Qué anda y qué no, parte por parte, con el motivo y el arreglo cuando lo hay.
-const PARTES = [["agenda", "Agenda"], ["sincro", "Celu y compu"], ["economia", "Planilla ECONOMÍA"], ["mails", "Mails del BNA y Mercado Pago"], ["recibos", "Recibos de sueldo (Drive)"], ["facu", "Campus de UFASTA"], ["listas", "Agus, fútbol y proyectos"], ["prod", "Productividad del BNA"], ["semanal", "El Semanal (Drive)"], ["resumen", "Resumen para El Semanal"], ["rivercal", "Calendario «River»"]];
+const PARTES = [["agenda", "Agenda"], ["sincro", "Celu y compu"], ["economia", "Planilla ECONOMÍA"], ["mails", "Mails del BNA y Mercado Pago"], ["recibos", "Recibos de sueldo (Drive)"], ["campus", "Revisión del campus (Drive)"], ["facu", "Campus de UFASTA"], ["listas", "Agus, fútbol y proyectos"], ["prod", "Productividad del BNA"], ["semanal", "El Semanal (Drive)"], ["resumen", "Resumen para El Semanal"], ["rivercal", "Calendario «River»"]];
 function estadoPartes(est) {
   const hace = (t) => { const m = Math.round((Date.now() - t) / 60000); return m < 1 ? "recién" : m < 60 ? "hace " + m + " min" : "hace " + Math.round(m / 60) + " h"; };
   const filas = PARTES.filter(([k]) => est[k]).map(([k, n]) => {
