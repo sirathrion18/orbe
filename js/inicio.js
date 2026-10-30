@@ -350,9 +350,9 @@ function wClima(clima, ctx) {
   if (!c) return `<div class="w clima marco"><span class="k">CABA</span><div class="fila-clima"><span class="grande">—</span></div><span class="sub">Sin datos del clima</span></div>`;
   const d = describirClima(c.codigo);
   const h = ctx ? Math.floor(ctx.min / 60) : 12;
-  return `<div class="w clima marco"><span class="k">${noche ? "Mañana" : "CABA"}</span>
+  return `<a class="w clima marco" href="https://www.smn.gob.ar/" target="_blank" rel="noopener" aria-label="Clima: abrir el pronóstico del Servicio Meteorológico" style="text-decoration:none"><span class="k">${noche ? "Mañana" : "CABA"}</span>
     <div class="fila-clima"><span class="grande">${c.temp}°</span><span class="minmax"><span>↑${c.max}°</span><span>↓${c.min}°</span></span></div>
-    <span class="sub">${d.estado}</span>${dibujoClima(c.codigo, !noche && (h >= 20 || h < 6))}</div>`;
+    <span class="sub">${d.estado}</span>${dibujoClima(c.codigo, !noche && (h >= 20 || h < 6))}</a>`;
 }
 
 // Transporte: estado en vivo de tus líneas de subte (E, H, A) y tus colectivos.
@@ -414,12 +414,12 @@ function wDiario(datos, ctx) {
   if (b.sinMargen) {
     return `<div class="w ancho"><div class="fila"><span class="k">Diario · ${b.p.nombre}</span><span class="fila" style="gap:8px">${ojo}${mas}</span></div>
       <a href="#/u/finanzas" style="text-decoration:none"><span class="medio" style="font-size:20px;color:var(--accent)">No queda diario</span></a>
-      <span class="sub">${esc(motivoSinDiario(b, $).replace("Abajo ves en qué.", "En Finanzas ves en qué."))}</span>${enQueHtml}</div>`;
+      <span class="sub">${esc(motivoSinDiario(b, $).replace("Abajo ves en qué.", "En Finanzas ves en qué."))}</span>${enQueHtml}<a class="dt-ir" href="#/d/plata">Cómo se arma <span aria-hidden="true">›</span></a></div>`;
   }
   if (b.sinDiario) {
     return `<div class="w ancho"><div class="fila"><span class="k">Diario · ${b.p.nombre}</span><span class="fila" style="gap:8px">${ojo}${mas}</span></div>
       <span class="medio" style="font-size:20px;color:var(--accent)">No queda diario</span>
-      <span class="sub">${b.real ? `Tus egresos reales más el colchón (${$(b.total)}) superan el ingreso (${$(b.ingreso.monto)}) por ${$(-b.base)}. Mirá el mes real en Finanzas.` : `Los egresos de tu planilla (${$(b.total)}) superan el ingreso (${$(b.ingreso.monto)}${b.ingreso.propuesta ? ", estimado" : ""}) por ${$(-b.base)}. Revisá los Ingresos de ${b.p.nombre} en ECONOMÍA.`}</span>${enQueHtml}</div>`;
+      <span class="sub">${b.real ? `Tus egresos reales más el colchón (${$(b.total)}) superan el ingreso (${$(b.ingreso.monto)}) por ${$(-b.base)}. Mirá el mes real en Finanzas.` : `Los egresos de tu planilla (${$(b.total)}) superan el ingreso (${$(b.ingreso.monto)}${b.ingreso.propuesta ? ", estimado" : ""}) por ${$(-b.base)}. Revisá los Ingresos de ${b.p.nombre} en ECONOMÍA.`}</span>${enQueHtml}<a class="dt-ir" href="#/d/plata">Cómo se arma <span aria-hidden="true">›</span></a></div>`;
   }
   const rojo = b.quedaHoy < 0 && b.gastoHoy > 0;
   const uso = b.diario > 0 ? Math.min(1, Math.max(0, b.gastoHoy / b.diario)) : 1;
@@ -428,6 +428,7 @@ function wDiario(datos, ctx) {
     <div class="barra"><i style="width:${oculto ? 0 : Math.round(uso * 100)}%;${rojo ? "background:var(--accent)" : ""}"></i></div>
     <span class="sub">Diario ${$(b.diario)} · gastaste ${$(b.gastoHoy)} hoy · te quedan ${$(b.queda)} hasta el ${finTxt} (${b.p.restantes} ${b.p.restantes === 1 ? "día" : "días"})</span>
     ${enQueHtml}
+    <a class="dt-ir" href="#/d/plata">Cómo se arma <span aria-hidden="true">›</span></a>
     ${b.ingreso.propuesta ? `<span class="sub" style="color:var(--accent)">Ingreso estimado: confirmalo en Finanzas.</span>` : ""}</div>`;
 }
 

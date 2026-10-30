@@ -4,6 +4,7 @@ import * as G from "./google.js";
 import { construirContexto } from "./contexto.js";
 import { renderInicio, despuesInicio, esc, colorUniverso, regresiva } from "./inicio.js";
 import { ICONOS } from "./iconos.js";
+import { renderDetalle, DETALLE_UNI } from "./detalles.js";
 import { renderRiver, renderUniverso, renderBloqueo, renderIdeas, renderAgenda, renderRespiro, renderDatos, renderAjustes, renderNovedades, renderNoEncontrado, renderSemanal, renderUrgente, hojaMovimiento, hojaTp, hojaMateria, hojaAsignar, hojaAgus, hojaPartido, hojaPasos, hojaPesos, hojaGasto } from "./paginas.js";
 import { HOJAS_PRESU, leerConfigPresu, cruzar, responder as responderPresu, confirmarIngreso } from "./presupuesto.js";
 import { agregarManual } from "./finanzas.js";
@@ -94,6 +95,13 @@ function pintar(refresco = false) {
   estado.datos.pendientes = [...estado.datos.pendientesBase, ...pendientesDeTarjetas(datosFinanzas()), ...(datosCampus()?.datos ? pendientesDeCampus(datosCampus()) : pendientesDeTps(datosFacu())), ...pendientesDeSemanal(), ...pendientesDeSuscripciones()];
   estado.ctx = construirContexto(estado.datos, demo);
   const r = ruta();
+  // Un link puede abrir un universo en una pestaña (#/u/finanzas?tab=mes, #/u/bna?tab=prod&mes=2026-09): se aplica una vez y se limpia.
+  const q = new URLSearchParams(location.hash.split("?")[1] || "");
+  if (q.get("tab") && (r === "/u/finanzas" || r === "/u/bna")) {
+    sesion(r === "/u/bna" ? "bnaTab" : "finTab", q.get("tab"));
+    if (q.get("mes")) sesion("prodMes", q.get("mes"));
+    history.replaceState(null, "", "#" + r);
+  }
   let html;
   const esInicio = r === "/" || r === "";
   estado.ctx.guino = esInicio ? guinoActivo(estado.ctx.fecha, sesion("demoGuino")) : null;
@@ -103,6 +111,12 @@ function pintar(refresco = false) {
     const u = UNIVERSOS.find((x) => x.id === id);
     const bloqueado = u && u.bloqueo && (leer("pin") || huellaActiva()) && !sesion("abierto-" + id);
     html = bloqueado ? renderBloqueo(id, huellaActiva(), !!leer("pin")) : renderUniverso(id, estado.datos, estado.ctx, tema);
+  }
+  else if (r.startsWith("/d/")) {
+    // Detalles (sueldo, plata, productividad, escalafón): se abren con el mismo PIN o huella que su universo.
+    const id = r.slice(3), uni = DETALLE_UNI[id];
+    const bloqueado = uni && (leer("pin") || huellaActiva()) && !sesion("abierto-" + uni);
+    html = bloqueado ? renderBloqueo(uni, huellaActiva(), !!leer("pin")) : renderDetalle(id, estado.datos, estado.ctx);
   }
   else if (r === "/semanal") {
     const bloqueado = (leer("pin") || huellaActiva()) && !sesion("abierto-semanal");

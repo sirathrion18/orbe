@@ -212,7 +212,7 @@ const PAGINAS = {
         <div><span class="k">Semana</span><b>${h(sem.hecho)}</b><span class="fuente-dato" style="margin:0">de ${h(sem.hecho + sem.agenda)}</span></div>
         <div><span class="k">${MESES_LARGOS[ctx.fecha.getMonth()]}</span><b>${h(mes.hecho)}</b><span class="fuente-dato" style="margin:0">de ${h(mes.hecho + mes.agenda)}</span></div>
         <div><span class="k">Días</span><b>${mes.diasHechos}</b><span class="fuente-dato" style="margin:0">de ${mes.dias} en el mes</span></div></div>
-      <p class="fuente-dato">Trabajadas hasta ahora, sobre el total con lo que queda en tu agenda${mes.estimado ? ". Los días sin evento en el calendario se cuentan con tu horario fijo" : ""}.</p></section>`;
+      <p class="fuente-dato">Trabajadas hasta ahora, sobre el total con lo que queda en tu agenda${mes.estimado ? ". Los días sin evento en el calendario se cuentan con tu horario fijo" : ""}.</p><a class="dt-ir" href="#/agenda">Ver en la agenda <span aria-hidden="true">›</span></a></section>`;
     // Sueldo: lo que Orbe leyó de tus recibos (hoja MES).
     const oculto = leer("plataOculta", false);
     const $ = (n) => oculto ? "••••" : "$\u00a0" + Math.round(n).toLocaleString("es-AR");
@@ -220,7 +220,7 @@ const PAGINAS = {
     const nombreMes = (m) => { const [y, mm] = m.split("-").map(Number); return MESES_LARGOS[mm - 1] + (y !== ctx.fecha.getFullYear() ? " " + y : ""); };
     const sueldo = meses.length ? `<section class="bloque"><h2>Sueldo <span class="tag">de tus recibos</span></h2><ul class="lista">${meses.map((m) =>
       `<li><span>Para vivir en ${nombreMes(m.mes)}<br><small class="vacio">${esc(m.fuente)}</small></span><span class="der">${$(m.disponible)}</span></li>`).join("")}</ul>
-      <p class="fuente-dato">Disponible real = neto − talón complementario. Lo leo de tu carpeta BNA en Drive.</p></section>`
+      <p class="fuente-dato">Disponible real = neto − talón complementario. Lo leo de tu carpeta BNA en Drive.</p><a class="dt-ir" href="#/d/sueldo">Tu sueldo mes a mes <span aria-hidden="true">›</span></a></section>`
       : pronto("Sueldo", "Cuando des permiso de Drive en Ajustes, leo tus recibos de la carpeta BNA y te muestro el disponible real de cada mes.");
     const tab = sesionLeer("bnaTab") || "hoy";
     const pestanas = `<div class="pestanas" role="tablist">${[["hoy", "Hoy"], ["prod", "Productividad"], ["horas", "Horarios y sueldo"]].map(([id, t]) =>
@@ -943,7 +943,7 @@ function bloqueProductividad(ctx) {
       ${((fila) => { const ds = hi.dias.slice().reverse(); return `<ul class="lista dias-prod">${ds.slice(0, 5).map(fila).join("")}</ul>` +
         (ds.length > 5 ? `<details class="mas"><summary>Ver los ${ds.length} días</summary><ul class="lista dias-prod">${ds.slice(5).map(fila).join("")}</ul></details>` : ""); })((d) => `<li><button class="dia-prod" data-accion="prod-ir" data-fecha="${d.fecha}"><span>${diaLargo(d.fecha)}</span><span class="der">${f1(d.total)}${d.verificado ? ' <span class="verif" title="Verificado con la planilla del banco">✓</span>' : ""}${d.banda ? ` <span class="chip-banda chica b-${d.banda.id}">${d.banda.txt}</span>` : d.enCurso ? ' <span class="tag">en curso</span>' : ""}</span></button></li>`)}`
       : '<p class="vacio">Sin días cargados en este mes.</p>'}
-    <p class="fuente-dato">Bandas: más de la meta Óptimo, hasta un 10% abajo Esperado, menos es Bajo. La meta va según la fecha.</p>
+    <p class="fuente-dato">Bandas: más de la meta Óptimo, hasta un 10% abajo Esperado, menos es Bajo. La meta va según la fecha.</p><a class="dt-ir" href="#/d/productividad">Tu productividad mes a mes <span aria-hidden="true">›</span></a>
     ${(() => { const o = leer("prodOficial"); return `<div class="chips" style="margin-top:12px"><button class="chip" data-accion="prod-comparar">Comparar con la planilla del banco</button></div>
       <p class="fuente-dato">${o ? `Última comparación: ${new Date(o.cuando).toLocaleDateString("es-AR")} con «${esc(o.archivo)}» (hasta el ${o.hasta.slice(8)}/${o.hasta.slice(5, 7)}): ${o.verificados} coinciden, ${o.ajustados} ajustados, ${o.nuevos} agregados. ` : ""}Lee tu carpeta PRODUCTIVIDAD de Drive y toma solo tu fila; los días que coinciden quedan con ✓.</p>`; })()}</section>`;
 
@@ -1010,7 +1010,7 @@ function bloqueEscalafon(ctx, $) {
       ${tabla.map((c) => `<tr class="${c.tuyo ? "yo" : ""}"><td>${esc(c.cargo)}</td><td>${String(c.coef).replace(".", ",")}</td><td>${$(c.sueldo)}</td><td>${$(c.total)}</td><td>${c.bancario ? $(c.bancario) : "—"}</td></tr>`).join("")}</tbody></table></div></details>
     <form class="form" data-form="conformado" style="margin-top:14px;flex-wrap:wrap"><input type="month" name="mes" required value="${isoHoy(ctx.fecha).slice(0, 7)}" aria-label="Mes" style="flex:1 1 140px">
       <input name="monto" inputmode="decimal" required placeholder="Conformado nuevo" aria-label="Conformado" style="flex:1 1 140px"><button class="btn">Cargar</button></form>
-    <p class="fuente-dato">Cuando sale un acuerdo nuevo, cargás el conformado (el sueldo de Auxiliar E) y toda la grilla se recalcula. Valores estimados ±0,5%, como las grillas que circulan.</p></section>`;
+    <p class="fuente-dato">Cuando sale un acuerdo nuevo, cargás el conformado (el sueldo de Auxiliar E) y toda la grilla se recalcula. Valores estimados ±0,5%, como las grillas que circulan.</p><a class="dt-ir" href="#/d/escalafon">Escalafón y aumentos a fondo <span aria-hidden="true">›</span></a></section>`;
 }
 
 // ---------- Finanzas · Análisis (histórico) ----------
