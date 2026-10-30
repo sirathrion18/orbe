@@ -1,6 +1,6 @@
 // Estructura de Orbe: qué universos hay y qué trae cada uno.
 // Esto es diseño, no datos: no hay nada personal acá.
-export const VERSION = "0.34.3";
+export const VERSION = "0.35.0";
 
 // ID de cliente de Google (es público por diseño: no es una contraseña).
 // Se crea en Google Cloud con el origen https://orbe-5es.pages.dev
@@ -33,6 +33,7 @@ export const SECCIONES = [
   { ruta: "#/checklists", nombre: "Checklists", palabras: "checklist lista tildar tareas pendientes hacer valija super" },
   { ruta: "#/ideas", nombre: "Ideas", palabras: "notas ideas anotar" },
   { ruta: "#/agenda", nombre: "Agenda del día", palabras: "agenda hoy mañana calendario anillo" },
+  { ruta: "#/rastreador", nombre: "Rastreador de precios", palabras: "precio precios comprar compra barato buscar producto comparar donde conviene rastreador oficina" },
   { ruta: "#/respiro", nombre: "Respiro", palabras: "respirar zona libre calma" },
   { ruta: "#/datos", nombre: "Mis datos", palabras: "datos exportar borrar privacidad" },
   { ruta: "#/ajustes", nombre: "Ajustes", palabras: "ajustes diseño diseno tema oscuro claro compacto tipografia reloj pin modos guiños guinos marvel" },

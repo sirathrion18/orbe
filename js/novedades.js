@@ -1,6 +1,16 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.35.0",
+    fecha: "29/10/2026",
+    titulo: "El Rastreador, a un toque.",
+    cambios: [
+      "Rastreador: decile a Orbe qué querés comprar (escrito o dictado) y lo manda a la Oficina de Compras de Claude, que compara precios, calidad y dónde conviene, y arma las 5 mejores opciones y una de reserva.",
+      "Está en el «+» de Inicio, pestaña Precio, y en su propia página (buscá «precio» o «comprar»). La página guarda tus últimos pedidos y tiene el acceso a los expedientes.",
+      "Dictar: Orbe ahora puede usar el micrófono (antes lo tenía bloqueado), así que «Dictar» anda en ideas, checklists y precios. Si el navegador no tiene el permiso, te lo avisa.",
+    ],
+  },
+  {
     version: "0.34.3",
     fecha: "29/10/2026",
     titulo: "Satélite en órbita.",

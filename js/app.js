@@ -38,6 +38,7 @@ import { sincronizarRiver } from "./rivercal.js";
 import { anotarCobros, escribirEnEconomia } from "./suscripciones.js";
 import { mesActual, claveMes, mesViejo } from "./agendames.js";
 import { pendientesDeSuscripciones, hojaSuscripcion, guardarSuscripcion, borrarSuscripcion } from "./suscripciones.js";
+import { renderRastreador, formPrecio, mandarPedido } from "./rastreador.js";
 import { renderChecklists, formChecklist, crear as crearChecklist, tildar as tildarChk, sumarItem, sacarItem, usarDeNuevo, borrarChecklist, itemsDeTexto, usarColores } from "./checklists.js";
 
 const app = document.getElementById("app");
@@ -112,6 +113,7 @@ function pintar(refresco = false) {
   else if (r === "/ideas") html = renderIdeas();
   else if (r === "/agenda") { html = renderAgenda(estado.datos, estado.ctx, tema); if (sesion("agendaTab") === "mes") setTimeout(traerMes, 0); }
   else if (r === "/respiro") html = renderRespiro();
+  else if (r === "/rastreador") html = renderRastreador(`<a class="volver" href="#/">${ICONOS.volver} Inicio</a>`);
   else if (r === "/river") { html = renderRiver(estado.ctx); if (sesion("riverTab") === "otros" && !leer("equipos")) traerEquipos().then(() => pintar(true)).catch(() => {}); }
   else if (r === "/datos") html = renderDatos();
   else if (r === "/ajustes") {
@@ -320,8 +322,8 @@ function formIdea() {
 }
 function pestanaMas(hoja, cual) {
   hoja.querySelectorAll(".mas-tabs button").forEach((b) => { const on = b.dataset.tab === cual; b.classList.toggle("on", on); b.setAttribute("aria-selected", on); });
-  hoja.querySelector(".mas-cuerpo").innerHTML = cual === "chk" ? formChecklist() : formIdea();
-  hoja.setAttribute("aria-label", cual === "chk" ? "Armar un checklist" : "Anotar una idea");
+  hoja.querySelector(".mas-cuerpo").innerHTML = cual === "chk" ? formChecklist() : cual === "precio" ? formPrecio(true) : formIdea();
+  hoja.setAttribute("aria-label", cual === "chk" ? "Armar un checklist" : cual === "precio" ? "Buscar un precio" : "Anotar una idea");
   guardar("masPestana", cual);
   const foco = hoja.querySelector(cual === "chk" ? "#chk-lineas" : "textarea");
   if (foco) foco.focus();
@@ -333,7 +335,8 @@ function abrirHojaIdea(cual = leer("masPestana") || "idea") {
   hoja.style.maxHeight = "92vh"; hoja.style.overflowY = "auto";
   hoja.innerHTML = `<div class="mas-tabs" role="tablist" aria-label="Qué querés anotar">
       <button type="button" role="tab" data-accion="mas-tab" data-tab="idea">Idea</button>
-      <button type="button" role="tab" data-accion="mas-tab" data-tab="chk">Checklist</button></div>
+      <button type="button" role="tab" data-accion="mas-tab" data-tab="chk">Checklist</button>
+      <button type="button" role="tab" data-accion="mas-tab" data-tab="precio">Precio</button></div>
     <div class="mas-cuerpo"></div>`;
   document.body.append(velo, hoja);
   requestAnimationFrame(() => { hoja.classList.add("on"); pestanaMas(hoja, cual); });
@@ -613,7 +616,7 @@ document.addEventListener("click", (e) => {
       else campo.value = (campo.value ? campo.value + " " : "") + t;
     };
     rec.onend = () => { el.classList.remove("escuchando"); el.lastChild.textContent = campo.classList.contains("chk-lineas") ? "Dictar un ítem" : "Dictar"; campo.focus(); };
-    rec.onerror = () => avisar("No te escuché: probá de nuevo");
+    rec.onerror = (ev) => avisar(ev && ev.error === "not-allowed" ? "Orbe no tiene permiso para el micrófono: dáselo en los ajustes del navegador" : "No te escuché: probá de nuevo");
     rec.start();
   }
   else if (a === "idea-tag") { sesion("tagIdea", el.dataset.tag || null); pintar(true); }
@@ -700,6 +703,7 @@ document.addEventListener("submit", async (e) => {
     cerrarHoja(); avisar(`«${c.titulo}» está en Inicio`); pintar(true);
   }
   else if (tipo === "chk-sumar") { sumarItem(f.dataset.id, d.t); pintar(true); document.querySelector(`[data-form="chk-sumar"][data-id="${f.dataset.id}"] input`)?.focus(); }
+  else if (tipo === "precio") { if (!mandarPedido(d)) { avisar("Decime qué querés comprar"); return; } cerrarHoja(); avisar("Pedido al Rastreador"); if (ruta() === "/rastreador") pintar(true); }
   else if (tipo === "idea-hoja") { guardarIdea(d.t.trim(), d.u || ""); cerrarHoja(); if (ruta() === "/ideas") pintar(); }
   else if (tipo === "futbol") { const l = leer("futbol", []); l.push({ t: d.t.trim(), f: new Date().toLocaleDateString("es-AR") }); guardar("futbol", l); avisar("Partido anotado"); pintar(); }
   else if (tipo === "gasto") {

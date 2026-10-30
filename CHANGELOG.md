@@ -1,5 +1,13 @@
 # Novedades de Orbe
 
+## v0.35.0 · 29/10/2026
+
+El Rastreador, a un toque.
+
+- Rastreador: decile a Orbe qué querés comprar (escrito o dictado) y lo manda a la Oficina de Compras de Claude, que compara precios, calidad y dónde conviene, y arma las 5 mejores opciones y una de reserva.
+- Está en el «+» de Inicio, pestaña Precio, y en su propia página (buscá «precio» o «comprar»). La página guarda tus últimos pedidos y tiene el acceso a los expedientes.
+- Dictar: Orbe ahora puede usar el micrófono (antes lo tenía bloqueado), así que «Dictar» anda en ideas, checklists y precios. Si el navegador no tiene el permiso, te lo avisa.
+
 ## v0.34.3 · 29/10/2026
 
 Satélite en órbita.
