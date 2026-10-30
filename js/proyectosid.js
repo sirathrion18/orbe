@@ -1,6 +1,9 @@
 // La cara de cada proyecto: color, logo y en qué anillo del cosmos va.
 // Es diseño, no datos: los proyectos y su estado vienen de tu planilla y de la central de Drive.
 
+import { LOGOS } from "./logos.js";
+import { leer, guardar } from "./almacen.js";
+
 const svg = (cuerpo, vb = "0 0 24 24") => `<svg viewBox="${vb}" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${cuerpo}</svg>`;
 const B = "#f4f4f2";
 
@@ -46,8 +49,12 @@ export const slug = (s) => String(s || "").toLowerCase().normalize("NFD").replac
 
 // Un proyecto nuevo que aparece en la central toma un color propio (estable) y su inicial como logo.
 const PALETA = [["#0f766e", "#5eead4"], ["#9d174d", "#f9a8d4"], ["#3f6212", "#bef264"], ["#7c2d12", "#fdba74"], ["#1e3a5f", "#93c5fd"], ["#4c1d95", "#d8b4fe"], ["#7f1d1d", "#fca5a5"]];
+// El logo elegido de cada proyecto (se sincroniza entre el celu y la compu).
+export const logoElegido = (id) => Math.max(0, Math.min((LOGOS[id]?.length || 1) - 1, Number(leer("logos", {})[id]) || 0));
+export function elegirLogo(id, i) { const l = { ...leer("logos", {}) }; l[id] = Number(i) || 0; guardar("logos", l); }
+export const opcionesLogo = (id) => (LOGOS[id] || []).map((c) => svg(c));
 export function identidad(id, nombre) {
-  if (IDENT[id]) return IDENT[id];
+  if (IDENT[id]) return LOGOS[id] ? { ...IDENT[id], logo: svg(LOGOS[id][logoElegido(id)]) } : IDENT[id];
   let h = 0; for (const c of id) h = (h * 31 + c.charCodeAt(0)) >>> 0;
   const [base, acc] = PALETA[h % PALETA.length];
   const ini = (String(nombre || id).trim()[0] || "?").toUpperCase().replace(/[<>&"]/g, "");

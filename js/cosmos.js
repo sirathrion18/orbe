@@ -123,7 +123,7 @@ function armar() {
   comp.addPass(bloom); comp.addPass(new OutputPass());
 
   return { lienzo, render, escena, cam, halo, aroT, ambiente, cielo, nebulosas, sol, sistema, nucleo, esfera, aro, aroMat, puntoMat, caraNucleo, auraN, comp, bloom,
-    planetas: [], orbitas: [], rayos: [], agenda: [], activos: [], piedras: [], giro: [.4, 1.2], incl: .38, inclObj: .38,
+    planetas: [], orbitas: [], rayos: [], agenda: [], activos: [], piedras: [], giro: [.4, 1.2], incl: .38, inclObj: .38, roll: 0, rollObj: 0, eclipse: 0, meteoros: [], hilosL: [],
     carga: 0, soberano: 0, sel: null, giroObj: null, t: 0, tam: new THREE.Vector2(1, 1), firma: "" };
 }
 
@@ -136,7 +136,7 @@ const atmosfera = (color) => new THREE.ShaderMaterial({
   transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.BackSide
 });
 function ponerPlanetas(lista) {
-  const firma = lista.map((p) => [p.id, p.nombre, p.anillo, p.sub].join("|")).join("~");
+  const firma = lista.map((p) => [p.id, p.nombre, p.anillo, p.sub, p.logo].join("|")).join("~");
   if (firma === E.firma) return;
   E.firma = firma;
   E.planetas.forEach((pl) => { E.sistema.remove(pl.g); pl.g.traverse((o) => { o.geometry?.dispose(); o.material?.map?.dispose(); o.material?.dispose(); }); });
@@ -396,15 +396,23 @@ function modoSoberano() {
 
 // ---------- La capa de arriba: nombres, controles y la ficha corta ----------
 let tAviso;
-function avisarCaja(t) {
+function avisarCaja(t, ms = 2400) {
   const a = caja?.querySelector(".cz-aviso"); if (!a) return;
-  a.textContent = t; a.classList.add("ver"); clearTimeout(tAviso); tAviso = setTimeout(() => a.classList.remove("ver"), 2400);
+  a.textContent = t; a.classList.add("ver"); clearTimeout(tAviso); tAviso = setTimeout(() => a.classList.remove("ver"), ms);
 }
 function capa() {
   caja.querySelectorAll(".cz-capa").forEach((n) => n.remove());
   const c = document.createElement("div"); c.className = "cz-capa";
   c.innerHTML = `<div class="cz-etqs"></div><div class="cz-aviso" role="status" aria-live="polite"></div>
-    <div class="cz-ctrl"><button type="button" class="cz-chip" data-cz="sobrio" aria-pressed="${sobrio}">${sobrio ? "Cosmos" : "Sobrio"}</button></div>
+    <div class="cz-ctrl"><button type="button" class="cz-chip" data-cz="tirar" aria-pressed="${lanzar}">◆ Tirar</button><button type="button" class="cz-chip" data-cz="chiches" aria-label="Qué se puede hacer acá">?</button><button type="button" class="cz-chip" data-cz="sobrio" aria-pressed="${sobrio}">${sobrio ? "Cosmos" : "Sobrio"}</button></div>
+    <div class="cz-chiches" hidden><b>Para jugar</b><ul>
+      <li><b>Girar:</b> un dedo, de costado. <b>Dos dedos:</b> pellizcá para acercar, subí o bajá los dos para verlo de canto o desde abajo, y giralos como una perilla.</li>
+      <li><b>◆ Tirar:</b> prendelo, arrastrá y soltá una piedra contra un planeta.</li>
+      <li><b>Lluvia de ideas:</b> deslizá dos dedos rápido para arriba. Tocá un meteorito y te tira una idea tuya.</li>
+      <li><b>Hilos:</b> mantené apretado un planeta y soltá sobre otro. Lo mismo otra vez lo borra.</li>
+      <li><b>Eclipses:</b> girá hasta que un planeta tape a Orbe.</li>
+      <li><b>Agujero negro:</b> mantené apretado el vacío.</li>
+      <li><b>Doble toque</b> en el vacío: vuelve a la vista de siempre.</li></ul><button type="button" class="cz-chip" data-cz="cerrar-chiches">Listo</button></div>
     <div class="cz-zoom" role="group" aria-label="Zoom"><button type="button" data-cz="lejos" aria-label="Alejar">−</button><button type="button" data-cz="todo">Ver todo</button><button type="button" data-cz="cerca" aria-label="Acercar">+</button></div>
     <div class="cz-hoja" aria-hidden="true"><div class="cz-caja"><div class="cz-ceja"></div><h3 class="cz-nombre"></h3><p class="cz-que"></p>
       <div class="cz-paso"><span>Próximo paso</span><div></div></div>
@@ -417,6 +425,9 @@ function capa() {
     const b = ev.target.closest("[data-cz]"); if (!b) return;
     const q = b.dataset.cz;
     if (q === "sobrio") ponerSobrio(!sobrio);
+    else if (q === "tirar") { lanzar = !lanzar; b.setAttribute("aria-pressed", String(lanzar)); caja.classList.toggle("lanzando", lanzar); avisarCaja(lanzar ? "Arrastrá y soltá: la piedra sale volando" : "Listo, se guardaron las piedras"); }
+    else if (q === "chiches") { const p = caja.querySelector(".cz-chiches"); p.hidden = !p.hidden; }
+    else if (q === "cerrar-chiches") caja.querySelector(".cz-chiches").hidden = true;
     else if (q === "lejos") ponerZoom(zoomObj * 1.3);
     else if (q === "cerca") ponerZoom(zoomObj / 1.3);
     else if (q === "todo") { if (E.sel !== null) soltar(); ponerZoom(1.7); }
@@ -449,63 +460,227 @@ function soltar() {
 }
 const paso = (d) => { if (E.sel !== null) elegir((E.sel + d + E.planetas.length) % E.planetas.length); };
 function ponerSobrio(v) {
-  sobrio = v; guardar("cosmosSobrio", v);
+  sobrio = v; guardar("cosmosSobrio", v); E.inclObj = v ? 0 : .38; E.rollObj = 0;
   const b = caja?.querySelector('[data-cz="sobrio"]'); if (b) { b.setAttribute("aria-pressed", String(v)); b.textContent = v ? "Cosmos" : "Sobrio"; }
   caja?.classList.toggle("sobrio", v);
   if (v) { E.rayos.forEach((r) => { r.vida = r.dur; }); E.agenda.length = 0; }
 }
 
 // ---------- Tocar y arrastrar ----------
+// Un dedo: gira de costado (como siempre). Dos dedos: pellizcar acerca o aleja, subir o bajar los dos lo inclina
+// (de frente, de canto, desde abajo) y girarlos como una perilla lo rota. Doble toque en el vacío: vista de siempre.
 const ray = new THREE.Raycaster(), ptr = new THREE.Vector2();
-let arrastre = null, inercia = 0, apretado = null;
-// Zoom: pellizcar, la ruedita o los botones. 1 = como abre; más chico = más cerca; más grande = más lejos.
+let arrastre = null, inercia = 0, apretado = null, ultimoToque = 0, lanzar = false;
 let zoom = 1, zoomObj = 1;
 const dedos = new Map();
 let pellizco = null;
 const ponerZoom = (z) => { zoomObj = Math.min(2.4, Math.max(.55, z)); };
+const lim = (v, a, b) => Math.max(a, Math.min(b, v));
 function apuntar(e) { const r = E.lienzo.getBoundingClientRect(); ptr.set((e.clientX - r.left) / r.width * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1); ray.setFromCamera(ptr, E.cam); }
 const tocaNucleo = (e) => { apuntar(e); return !!ray.intersectObject(E.esfera)[0] || !!ray.intersectObject(E.aro)[0]; };
+const planetaEn = (e) => { apuntar(e); const h = ray.intersectObjects(E.planetas.map((p) => p.toque))[0]; return h ? h.object.userData.i : -1; };
+// El punto del espacio bajo el dedo, a la profundidad de Orbe.
+function puntoEn(e) { apuntar(e); return ray.origin.clone().addScaledVector(ray.direction, E.cam.position.length()); }
+const dosDedos = () => { const [a, b] = [...dedos.values()]; return { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, ang: Math.atan2(b.y - a.y, b.x - a.x), my: (a.y + b.y) / 2 }; };
+function vistaDeSiempre() { E.inclObj = sobrio ? 0 : .38; E.rollObj = 0; ponerZoom(1); if (E.sel !== null) soltar(); }
+
 function conectarToques() {
   const L = E.lienzo;
   L.addEventListener("wheel", (e) => { e.preventDefault(); ponerZoom(zoomObj * Math.exp(e.deltaY * .0012)); }, { passive: false });
   L.addEventListener("pointerdown", (e) => {
     dedos.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (dedos.size === 2) {
-      const [a, b] = [...dedos.values()];
-      pellizco = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, z: zoomObj }; clearTimeout(apretado);
-      if (arrastre) arrastre.mov = 99; // no cuenta como toque
+      const g = dosDedos();
+      pellizco = { ...g, z: zoomObj, incl: E.inclObj, roll: E.rollObj, t: performance.now(), y0: g.my }; clearTimeout(apretado);
+      if (arrastre) { arrastre.mov = 99; if (arrastre.piedra) soltarLanzada(arrastre.piedra, null); arrastre.piedra = null; }
       return;
     }
-    arrastre = { x: e.clientX, y: e.clientY, x0: e.clientX, mov: 0, largo: false }; inercia = 0;
-    if (!sobrio && tocaNucleo(e)) apretado = setTimeout(() => { if (arrastre && arrastre.mov < 10) { arrastre.largo = true; modoSoberano(); } }, 650);
+    arrastre = { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY, mov: 0, largo: false, t: performance.now() }; inercia = 0;
+    // Modo tirar: aparece una piedra bajo el dedo.
+    if (lanzar) { arrastre.piedra = tomarPiedra(e); return; }
+    const pi = planetaEn(e);
+    if (pi >= 0) { apretado = setTimeout(() => { if (arrastre && arrastre.mov < 10) { arrastre.largo = true; arrastre.hilo = pi; E.planetas[pi].flash = 1; avisarCaja("Soltá sobre otro planeta para unirlos"); } }, 550); return; }
+    if (!sobrio && tocaNucleo(e)) { apretado = setTimeout(() => { if (arrastre && arrastre.mov < 10) { arrastre.largo = true; modoSoberano(); } }, 650); return; }
+    apretado = setTimeout(() => { if (arrastre && arrastre.mov < 10) { arrastre.largo = true; agujero(); avisarCaja("Lo llamaste vos."); } }, 700);
   });
   L.addEventListener("pointermove", (e) => {
     if (dedos.has(e.pointerId)) dedos.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pellizco && dedos.size >= 2) {
-      const [a, b] = [...dedos.values()];
-      ponerZoom(pellizco.z * pellizco.d / (Math.hypot(a.x - b.x, a.y - b.y) || 1));
+      const g = dosDedos();
+      ponerZoom(pellizco.z * pellizco.d / g.d);
+      E.rollObj = pellizco.roll + (g.ang - pellizco.ang);
+      E.inclObj = lim(pellizco.incl + (g.my - pellizco.my) * .008, -1.45, 1.45);
+      // Dos dedos rápido para arriba: lluvia de ideas.
+      if (!pellizco.lluvia && pellizco.y0 - g.my > 120 && performance.now() - pellizco.t < 380 && Math.abs(g.d - pellizco.d) < 60) { pellizco.lluvia = true; E.inclObj = pellizco.incl; lluvia(); }
       return;
     }
     if (!arrastre) return;
     const dx = e.clientX - arrastre.x, dy = e.clientY - arrastre.y; arrastre.x = e.clientX; arrastre.y = e.clientY; arrastre.mov += Math.abs(dx) + Math.abs(dy);
-    if (E.sel !== null) return;
+    if (arrastre.piedra) { moverLanzada(arrastre.piedra, e); return; }
+    if (arrastre.hilo != null || E.sel !== null) return;
+    if (arrastre.mov > 10) clearTimeout(apretado);
+    // El lienzo no deja que el navegador mueva la página (para poder usar dos dedos): un dedo vertical la mueve a mano.
+    if (!arrastre.eje && arrastre.mov > 8) arrastre.eje = Math.abs(e.clientX - arrastre.x0) >= Math.abs(e.clientY - arrastre.y0) ? "x" : "y";
+    if (arrastre.eje === "y") { window.scrollBy(0, -dy); return; }
     E.giro[0] += dx * .006; E.giro[1] += dx * .006; inercia = dx * .006 * 60;
   });
   const soltarDedo = (e) => { dedos.delete(e.pointerId); if (dedos.size < 2) pellizco = null; };
-  L.addEventListener("pointercancel", (e) => { soltarDedo(e); clearTimeout(apretado); arrastre = null; });
+  L.addEventListener("pointercancel", (e) => { soltarDedo(e); clearTimeout(apretado); if (arrastre?.piedra) soltarLanzada(arrastre.piedra, null); arrastre = null; });
   L.addEventListener("pointerup", (e) => {
     const eraPellizco = !!pellizco || dedos.size > 1; soltarDedo(e);
     clearTimeout(apretado); if (!arrastre) return;
     if (eraPellizco || dedos.size) { arrastre = null; return; } const a = arrastre; arrastre = null;
+    if (a.piedra) { soltarLanzada(a.piedra, e); return; }
+    if (a.hilo != null) { const pj = planetaEn(e); if (pj >= 0 && pj !== a.hilo) cambiarHilo(a.hilo, pj); else avisarCaja("Soltalo arriba de otro planeta"); return; }
     if (a.largo) return;
     if (E.sel !== null && Math.abs(e.clientX - a.x0) > 50) { paso(e.clientX < a.x0 ? 1 : -1); return; }
     if (a.mov > 8) return;
+    if (tocarMeteoro(e)) return;
     apuntar(e);
     const hit = ray.intersectObjects(E.planetas.map((p) => p.toque))[0];
     if (hit) { elegir(hit.object.userData.i); return; }
     if (!sobrio && tocaNucleo(e)) { uno([piedraCruza, piedraLejana, triple, cadena])(); return; }
+    // Doble toque en el vacío: vuelve a la vista de siempre.
+    const ahora = performance.now();
+    if (ahora - ultimoToque < 320) { vistaDeSiempre(); ultimoToque = 0; return; }
+    ultimoToque = ahora;
     if (E.sel !== null) soltar();
   });
+}
+
+// ---------- Chiche: tirar piedras ----------
+function tomarPiedra(e) {
+  const p = piedraLibre(); if (!p) return null;
+  const pos = puntoEn(e);
+  p.g.position.copy(pos); p.g.scale.setScalar(.36); brilloPiedra(p, 1, .3);
+  return { p, hist: [{ pos: pos.clone(), t: performance.now() }] };
+}
+function moverLanzada(l, e) {
+  if (!l) return;
+  const pos = puntoEn(e); l.p.g.position.copy(pos);
+  l.hist.push({ pos: pos.clone(), t: performance.now() }); if (l.hist.length > 6) l.hist.shift();
+  if (Math.random() < .5) chispa(pos.clone(), l.p.c, null, .8);
+}
+function soltarLanzada(l, e) {
+  if (!l) return;
+  const p = l.p;
+  const a = l.hist[0], b = l.hist[l.hist.length - 1], dt = Math.max(16, b.t - a.t) / 1000;
+  const vel = b.pos.clone().sub(a.pos).divideScalar(dt);
+  if (!e || vel.length() < 1.5) { soltarPiedra(p); return; }
+  vel.clampLength(0, 30);
+  const w = new THREE.Vector3();
+  E.activos.push({ v: 0, update(dt) {
+    this.v += dt;
+    p.g.position.addScaledVector(vel, dt); vel.multiplyScalar(Math.exp(-dt * .6));
+    p.cuerpo.rotation.y += dt * 8; p.cuerpo.rotation.x += dt * 5;
+    if (Math.random() < .7) chispa(p.g.position.clone(), p.c, null, .9);
+    for (const pl of E.planetas) {
+      pl.g.getWorldPosition(w);
+      if (w.distanceTo(p.g.position) < pl.A.tam * pl.esc * 1.5) { impacto(pl, p); soltarPiedra(p); return false; }
+    }
+    if (this.v > 2.6 || p.g.position.length() > 30) { soltarPiedra(p); return false; }
+    brilloPiedra(p, Math.min(1, (2.6 - this.v) * 2), .3);
+    return true;
+  } });
+}
+function impacto(pl, p) {
+  const w = pl.g.getWorldPosition(new THREE.Vector3());
+  for (let k = 0; k < 40; k++) chispa(w.clone(), k % 2 ? p.c : pl.id.glow, new THREE.Vector3(azar(-1, 1), azar(-1, 1), azar(-1, 1)).normalize().multiplyScalar(azar(1.5, 4)), 1.4);
+  pl.flash = 1.6; onda(pl, p.c); onda(pl, pl.id.glow);
+  if (!sobrio) { cargar(.2, .6); luego(.2, () => rayo(borde(enSistema(pl.g)), enSistema(pl.g), pl.id.glow, .6)); }
+  avisarCaja(pl.p.paso ? `${pl.p.nombre} · próximo: ${pl.p.paso}` : `¡Pleno en ${pl.p.nombre}!`, 3600);
+}
+
+// ---------- Chiche: lluvia de ideas ----------
+const IDEAS_RELLENO = ["Anotá una idea con el + y aparece acá.", "Las ideas que no se anotan se las lleva el viento solar."];
+function lluvia() {
+  avisarCaja("Lluvia de ideas: tocá un meteorito");
+  for (let k = 0; k < 12; k++) luego(k * .18, () => {
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: E.halo, color: "#ffe6c7", transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }));
+    sp.scale.set(.55, .55, 1);
+    const desde = new THREE.Vector3(azar(-7, 9), azar(5, 8), azar(-4, 3));
+    const vel = new THREE.Vector3(azar(-3.5, -1.5), azar(-5, -3.5), azar(-.5, .5));
+    sp.position.copy(desde); E.escena.add(sp);
+    const m = { sp, vel, vivo: true };
+    E.meteoros.push(m);
+    E.activos.push({ v: 0, update(dt) {
+      this.v += dt; sp.position.addScaledVector(vel, dt);
+      if (Math.random() < .8) chispa(sp.position.clone(), "#ffb27a", vel.clone().multiplyScalar(-.08), .7);
+      if (!m.vivo || this.v > 4) { m.vivo = false; E.escena.remove(sp); sp.material.dispose(); E.meteoros = E.meteoros.filter((x) => x !== m); return false; }
+      return true;
+    } });
+  });
+}
+function tocarMeteoro(e) {
+  if (!E.meteoros.length) return false;
+  apuntar(e);
+  const m = E.meteoros.find((x) => ray.ray.distanceToPoint(x.sp.position) < .9);
+  if (!m) return false;
+  m.vivo = false;
+  for (let k = 0; k < 24; k++) chispa(m.sp.position.clone(), "#ffd6a8", new THREE.Vector3(azar(-1, 1), azar(-1, 1), azar(-1, 1)).multiplyScalar(2.4), 1.3);
+  const l = extras.ideas?.length ? extras.ideas : IDEAS_RELLENO;
+  avisarCaja("Idea: " + uno(l), 5200);
+  return true;
+}
+
+// ---------- Chiche: hilos entre proyectos ----------
+function cambiarHilo(i, j) {
+  const a = E.planetas[i].p.id, b = E.planetas[j].p.id;
+  const hilos = leer("cosmosHilos", []).filter((h) => Array.isArray(h) && h.length === 2);
+  const k = hilos.findIndex(([x, y]) => (x === a && y === b) || (x === b && y === a));
+  if (k >= 0) { hilos.splice(k, 1); avisarCaja(`Se cortó el hilo entre ${E.planetas[i].p.nombre} y ${E.planetas[j].p.nombre}`); }
+  else { hilos.push([a, b]); avisarCaja(`${E.planetas[i].p.nombre} y ${E.planetas[j].p.nombre}, unidos`); E.planetas[j].flash = 1; if (!sobrio) rayo(enSistema(E.planetas[i].g), enSistema(E.planetas[j].g), "#ffffff", .5); }
+  guardar("cosmosHilos", hilos.slice(-20));
+  armarHilos();
+}
+function armarHilos() {
+  E.hilosL.forEach((h) => { E.sistema.remove(h.l); h.l.geometry.dispose(); h.l.material.dispose(); });
+  E.hilosL = [];
+  const idx = (id) => E.planetas.findIndex((pl) => pl.p.id === id);
+  for (const [a, b] of leer("cosmosHilos", [])) {
+    const i = idx(a), j = idx(b); if (i < 0 || j < 0) continue;
+    const c = new THREE.Color(E.planetas[i].id.glow).lerp(new THREE.Color(E.planetas[j].id.glow), .5).multiplyScalar(1.2);
+    const m = new LineMaterial({ color: c, linewidth: 1.4, transparent: true, opacity: .55, dashed: true, dashSize: .18, gapSize: .14, depthWrite: false, toneMapped: false });
+    m.resolution.copy(E.tam);
+    const l = new Line2(new LineGeometry(), m); l.frustumCulled = false; E.sistema.add(l);
+    E.hilosL.push({ l, i, j });
+  }
+}
+function moverHilos(dt) {
+  for (const h of E.hilosL) {
+    const a = E.planetas[h.i]?.g.position, b = E.planetas[h.j]?.g.position; if (!a || !b) continue;
+    const mid = a.clone().add(b).multiplyScalar(.5); mid.y += .35;
+    const pts = new THREE.QuadraticBezierCurve3(a, mid, b).getPoints(16).flatMap((v) => [v.x, v.y, v.z]);
+    h.l.geometry.setPositions(pts); h.l.computeLineDistances();
+    h.l.material.dashOffset -= dt * .3;
+  }
+}
+
+// ---------- Chiche: eclipses ----------
+const FRASES_ECLIPSE = ["Por un momento, todo gira alrededor de {p}.", "Eclipse de {p}: hasta Orbe le hace sombra.", "{p} se puso delante. Raro, pero lindo.",
+  "Alineación perfecta: Orbe, {p} y vos.", "Dicen que cuando {p} tapa a Orbe, el próximo paso sale solo.", "Cosas que pasan una vez cada tanto: {p} en eclipse."];
+const vistoEclipse = {};
+const pa = new THREE.Vector3(), pb = new THREE.Vector3();
+function revisarEclipse() {
+  if (E.sel !== null) return;
+  E.nucleo.getWorldPosition(pa); const dNuc = pa.distanceTo(E.cam.position); pa.project(E.cam);
+  for (const pl of E.planetas) {
+    pl.g.getWorldPosition(pb); if (pb.distanceTo(E.cam.position) > dNuc - .5) continue;
+    pb.project(E.cam);
+    if (Math.hypot((pb.x - pa.x) * E.cam.aspect, pb.y - pa.y) < .07) {
+      const ahora = performance.now();
+      if (vistoEclipse[pl.p.id] && ahora - vistoEclipse[pl.p.id] < 60000) continue;
+      vistoEclipse[pl.p.id] = ahora;
+      E.eclipse = 1; pl.flash = 1.4;
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: E.aroT, color: "#fff4e0", transparent: true, opacity: .9, depthWrite: false, blending: THREE.AdditiveBlending }));
+      pl.g.add(sp);
+      E.activos.push({ v: 0, update(dt) { this.v += dt; const s = pl.A.tam * (2.1 + this.v * .6); sp.scale.set(s, s, 1); sp.material.opacity = .9 * Math.max(0, 1 - this.v / 2.4); if (this.v > 2.4) { pl.g.remove(sp); sp.material.dispose(); return false; } return true; } });
+      const vistos = leer("eclipsesVistos", []);
+      if (!vistos.includes(pl.p.id)) guardar("eclipsesVistos", [...vistos, pl.p.id], true);
+      avisarCaja("Eclipse · " + uno(FRASES_ECLIPSE).replace("{p}", pl.p.nombre), 4200);
+      return;
+    }
+  }
 }
 
 // ---------- Tamaño y bucle ----------
@@ -519,6 +694,7 @@ function medir() {
   E.cam.aspect = w / h; E.cam.fov = E.cam.aspect < .8 ? 58 : 45; E.cam.updateProjectionMatrix();
   D = E.cam.aspect < .8 ? 11.6 / Math.max(E.cam.aspect / .5, .8) : 10.5; alto = D * .3;
   E.rayos.forEach((r) => r.lineas.forEach((l) => l.material.resolution.copy(E.tam)));
+  E.hilosL.forEach((h) => h.l.material.resolution.copy(E.tam));
 }
 let ultimo = 0, proxRayo = 1.4, proxPiedra = 2.5, proxAgujero = 38, ultimoTipo = "", alterna = 0, proxAvance = 1.2;
 const tmp = new THREE.Vector3(), haciaCam = new THREE.Vector3(), qInv = new THREE.Quaternion();
@@ -548,7 +724,8 @@ function cuadro(ahora) {
   if (E.sel === null) {
     if (!arrastre) { const auto = q ? 0 : sobrio ? .25 : 1; E.giro[0] += (ANILLOS[0].vel * auto + inercia * .02) * dt; E.giro[1] += (ANILLOS[1].vel * auto + inercia * .02) * dt; inercia *= Math.exp(-dt * 2.2); }
   } else { const k = E.planetas[E.sel].p.anillo; E.giro[k] += (E.giroObj - E.giro[k]) * sig(3.2); }
-  E.incl += ((sobrio ? 0 : E.inclObj) - E.incl) * sig(4); E.sistema.rotation.x = E.incl;
+  E.incl += (E.inclObj - E.incl) * sig(4); E.roll += (E.rollObj - E.roll) * sig(5);
+  E.sistema.rotation.set(E.incl, 0, E.roll);
   E.cielo.rotation.y += dt * .004;
 
   qInv.copy(E.sistema.quaternion).invert();
@@ -592,7 +769,10 @@ function cuadro(ahora) {
     r.lineas.forEach((l, j) => { l.material.opacity = Math.max(0, f) * parp * (j === 2 ? .7 : 1); });
     if (r.vida >= r.dur) { r.lineas.forEach((l) => { E.sistema.remove(l); l.geometry.dispose(); l.material.dispose(); }); E.rayos.splice(k, 1); }
   }
-  E.sol.intensity = 40 + E.rayos.length * 8 + E.carga * 30;
+  moverHilos(dt);
+  if ((E.cuadros = (E.cuadros || 0) + 1) % 8 === 0) revisarEclipse();
+  E.eclipse *= Math.exp(-dt * 1.2);
+  E.sol.intensity = (40 + E.rayos.length * 8 + E.carga * 30) * (1 - E.eclipse * .7);
   if (ch) {
     for (let k = 0; k < NCH; k++) if (ch.vida[k] > 0) {
       ch.vida[k] -= dt * 1.1;
@@ -630,12 +810,15 @@ let mirador = null;
 
 // ---------- Lo que usa la página ----------
 // Monta el cosmos en el contenedor (o lo mueve ahí si ya existía). Devuelve false si el celu no tiene 3D.
-export function montar(contenedor, proyectos) {
+let extras = {};
+export function montar(contenedor, proyectos, mas = {}) {
+  extras = mas;
   if (!E) { E = armar(); if (!E) return false; armarPiedras(); conectarToques(); }
   caja = contenedor; ancho0 = alto0 = 0;
   caja.classList.toggle("sobrio", sobrio);
   caja.prepend(E.lienzo);
   ponerPlanetas(proyectos);
+  armarHilos();
   if (E.sel !== null && E.sel >= E.planetas.length) E.sel = null;
   capa();
   mirador?.disconnect();
@@ -645,4 +828,4 @@ export function montar(contenedor, proyectos) {
   return true;
 }
 export function parar() { vivo = false; mirador?.disconnect(); if (raf) cancelAnimationFrame(raf); raf = 0; }
-export const probar = { elegir: (i) => elegir(i), avance: (i) => avance(i), piedraLejana: () => piedraLejana(), piedraCruza: () => piedraCruza(), agujero: () => agujero(), modoSoberano: () => modoSoberano() };
+export const probar = { inclinar: (x, r = 0) => { E.inclObj = x; E.rollObj = r; }, lluvia: () => lluvia(), hilo: (i, j) => cambiarHilo(i, j), impacto: (i) => impacto(E.planetas[i], E.piedras[0]), vista: () => vistaDeSiempre(), elegir: (i) => elegir(i), avance: (i) => avance(i), piedraLejana: () => piedraLejana(), piedraCruza: () => piedraCruza(), agujero: () => agujero(), modoSoberano: () => modoSoberano() };

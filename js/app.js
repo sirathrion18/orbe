@@ -46,8 +46,9 @@ import { pendientesDeSuscripciones, hojaSuscripcion, guardarSuscripcion, borrarS
 import { renderRastreador, formPrecio, mandarPedido } from "./rastreador.js";
 import { renderChecklists, formChecklist, crear as crearChecklist, tildar as tildarChk, sumarItem, sacarItem, usarDeNuevo, borrarChecklist, itemsDeTexto, usarColores } from "./checklists.js";
 
-import { renderIdeas, renderFicha, renderPropuestas, proyectos as listaProyectos, paraCosmos, destinosIdea } from "./proyectosui.js";
+import { renderIdeas, renderFicha, renderPropuestas, proyectos as listaProyectos, paraCosmos, destinosIdea, textosIdeas } from "./proyectosui.js";
 import { leerCentral, leerPropuestas, responderPropuesta } from "./central.js";
+import { elegirLogo } from "./proyectosid.js";
 
 const app = document.getElementById("app");
 const estado = { datos: null, clima: null, ctx: null };
@@ -186,7 +187,7 @@ function montarCosmos(r) {
   import("./cosmos.js").then((m) => {
     cosmos = m;
     if (!document.body.contains(caja)) return;
-    if (!m.montar(caja, paraCosmos(listaProyectos(estado.datos)))) caja.remove();
+    if (!m.montar(caja, paraCosmos(listaProyectos(estado.datos)), { ideas: textosIdeas() })) caja.remove();
   }).catch(() => caja.remove());
 }
 
@@ -675,6 +676,7 @@ document.addEventListener("click", (e) => {
     const url = "https://claude.ai/new";
     if (/Android/i.test(navigator.userAgent)) location.href = enApp(url); else window.open(url, "_blank", "noopener");
   }
+  else if (a === "logo-elegir") { sesion("logosAbierto", true); elegirLogo(el.dataset.id, el.dataset.i); avisar("Logo cambiado"); pintar(true); }
   else if (a === "demo-huevo") { sesion("demoHuevo", el.dataset.h || null); pintar(true); }
   else if (a === "avisos-ir") document.getElementById(el.dataset.id)?.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
   else if (a === "idea-dest") { sesion("destIdea", el.dataset.dest || null); pintar(true); }

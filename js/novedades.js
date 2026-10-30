@@ -1,6 +1,16 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.43.0",
+    fecha: "30/10/2026",
+    titulo: "Para jugar.",
+    cambios: [
+      "Proyectos se gira para todos lados: con un dedo de costado, como siempre; con dos dedos pellizcás para acercar, los subís o bajás para verlo de canto o desde abajo, y los girás como una perilla. Doble toque en el vacío vuelve a la vista de siempre.",
+      "Chiches en el cosmos (tocá «?» para verlos): ◆ Tirar piedras contra un planeta (choca y te muestra su próximo paso), lluvia de ideas con dos dedos para arriba (tocás un meteorito y te tira una idea tuya), hilos de luz entre proyectos (mantené un planeta y soltá sobre otro), eclipses cuando un planeta tapa a Orbe, y un agujero negro si mantenés apretado el vacío.",
+      "Logos: 10 opciones por proyecto. Se elige en la ficha de cada proyecto, en «Logo», y cambia en el planeta y en la lista.",
+    ],
+  },
+  {
     version: "0.42.1",
     fecha: "30/10/2026",
     titulo: "La tapa correcta.",

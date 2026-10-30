@@ -5,7 +5,7 @@ import { leer, sesion } from "./almacen.js";
 import { datosListas } from "./listas.js";
 import { ultimaEdicion } from "./semanal.js";
 import { datosCentral, datosPropuestas, respuestas, propuestasNuevas } from "./central.js";
-import { identidad, insigniaHtml, slug, NOMBRES } from "./proyectosid.js";
+import { identidad, insigniaHtml, slug, NOMBRES, opcionesLogo, logoElegido } from "./proyectosid.js";
 import { UNIVERSOS } from "./config.js";
 import { permisos } from "./google.js";
 
@@ -42,7 +42,7 @@ export function paraCosmos(lista) {
   return lista.map((p) => {
     let anillo = p.anillo;
     if (anillo === 0 && ++adentro > 6) anillo = 1;
-    return { id: p.id, nombre: p.nombre, estado: p.estado, sub: p.sub, que: p.que, paso: p.paso, anillo };
+    return { id: p.id, nombre: p.nombre, estado: p.estado, sub: p.sub, que: p.que, paso: p.paso, anillo, logo: logoElegido(p.id) };
   });
 }
 
@@ -103,6 +103,7 @@ export function renderFicha(id, datos) {
     <div class="pestanas" role="tablist">${PESTANAS.map(([k, t]) => `<button class="pestana ${tab === k ? "on" : ""}" role="tab" aria-selected="${tab === k}" data-accion="ficha-tab" data-tab="${k}">${t}</button>`).join("")}</div>
     <section class="bloque ficha-cuerpo">${contenido}</section>
     ${links ? `<div class="chips" style="margin-top:14px">${links}</div>` : ""}
+    ${opcionesLogo(p.id).length ? `<details class="bloque plegable logos-p" ${sesion("logosAbierto") ? "open" : ""}><summary>Logo</summary><div class="logos-op">${opcionesLogo(p.id).map((l, k) => `<button class="logo-op ${logoElegido(p.id) === k ? "on" : ""}" data-accion="logo-elegir" data-id="${esc(p.id)}" data-i="${k}" aria-label="Logo ${k + 1}" aria-pressed="${logoElegido(p.id) === k}"><span class="insignia" style="width:52px;height:52px;background:${i.base}">${l}</span><small>${k + 1}</small></button>`).join("")}</div></details>` : ""}
     ${f ? "" : `<p class="fuente-dato">La ficha de este proyecto vive en la central de Drive; ${permisos().drive ? "se trae sola cada media hora." : "conectá Drive en Ajustes para verla acá."}</p>`}</div>`;
 }
 
@@ -149,6 +150,7 @@ function todasLasIdeas() {
   const procesadas = b.procesadas.filter((_, k) => !usadasProc.has(k)).map((x) => { const [d, t] = separar(x.t); return { t, destino: d || x.ficha, fecha: x.fecha, estado: x.ficha ? "En la ficha de " + x.ficha : "Procesada", origen: "procesada" }; });
   return { lista: [...orbe.reverse(), ...bandeja, ...procesadas], para: b.para || [] };
 }
+export function textosIdeas() { try { return todasLasIdeas().lista.map((i) => (i.destino ? i.destino + ": " : "") + i.t).slice(0, 80); } catch (e) { return []; } }
 const contarIdeas = () => { try { return todasLasIdeas().lista.length; } catch (e) { return 0; } };
 function ideasDe(p) {
   const n = norm(p.nombre), id = p.id;
