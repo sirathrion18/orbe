@@ -720,6 +720,16 @@ export function hojaPartido() {
     <div class="grupo"><span>¿Cómo jugaste?</span><input class="campo-hora" name="nota" placeholder="Bien atrás, cansado al final" style="text-align:left"></div>
     ${pie("Anotar")}</form>`;
 }
+export function hojaArchivosProd() {
+  const ar = leer("prodArchivos"), el = leer("prodArchivo");
+  const fila = (x) => `<label class="arch-prod"><input type="radio" name="id" value="${esc(x.id)}" ${el === x.id ? "checked" : ""} ${x.ultimo ? "" : "disabled"}>
+    <span><b>${esc(x.archivo)}</b><small>${x.ultimo ? "Tu fila llega hasta el " + x.ultimo.slice(8) + "/" + x.ultimo.slice(5, 7) : "No tiene tu fila"} · modificado ${new Date(x.mod).toLocaleDateString("es-AR")}</small></span></label>`;
+  return `<h2>¿Con qué planilla comparo?</h2><form data-form="prod-archivo">
+    <label class="arch-prod"><input type="radio" name="id" value="" ${el ? "" : "checked"}><span><b>La más al día</b><small>Orbe elige sola la que llega más lejos con tu fila.</small></span></label>
+    ${(ar?.lista || []).map(fila).join("")}
+    ${pie("Elegir y comparar")}</form>`;
+}
+
 export function hojaPasos(p) {
   return `<h2>${esc(p.nombre)}</h2><form data-form="proyecto-pasos" data-id="${esc(p.id)}">
     <div class="grupo"><span>Próximos pasos (uno por renglón)</span><textarea class="campo-texto" name="pasos">${esc(p.proximos.join("\n"))}</textarea></div>
@@ -913,8 +923,13 @@ function bloqueProductividad(ctx) {
         (ds.length > 5 ? `<details class="mas"><summary>Ver los ${ds.length} días</summary><ul class="lista dias-prod">${ds.slice(5).map(fila).join("")}</ul></details>` : ""); })((d) => `<li><button class="dia-prod" data-accion="prod-ir" data-fecha="${d.fecha}"><span>${diaLargo(d.fecha)}</span><span class="der">${f1(d.total)}${d.verificado ? ' <span class="verif" title="Verificado con la planilla del banco">✓</span>' : ""}${d.banda ? ` <span class="chip-banda chica b-${d.banda.id}">${d.banda.txt}</span>` : d.enCurso ? ' <span class="tag">en curso</span>' : ""}</span></button></li>`)}`
       : '<p class="vacio">Sin días cargados en este mes.</p>'}
     <p class="fuente-dato">Bandas: más de la meta Óptimo, hasta un 10% abajo Esperado, menos es Bajo. La meta va según la fecha.</p><a class="dt-ir" href="#/d/productividad">Tu productividad mes a mes <span aria-hidden="true">›</span></a>
-    ${(() => { const o = leer("prodOficial"); return `<div class="chips" style="margin-top:12px"><button class="chip" data-accion="prod-comparar">Comparar con la planilla del banco</button></div>
-      <p class="fuente-dato">${o ? `Última comparación: ${new Date(o.cuando).toLocaleDateString("es-AR")} con «${esc(o.archivo)}» (hasta el ${o.hasta.slice(8)}/${o.hasta.slice(5, 7)}): ${o.verificados} coinciden, ${o.ajustados} ajustados, ${o.nuevos} agregados. ` : ""}Lee tu carpeta PRODUCTIVIDAD de Drive y toma solo tu fila; los días que coinciden quedan con ✓.</p>`; })()}</section>`;
+    ${(() => { const o = leer("prodOficial"), ar = leer("prodArchivos"), el = leer("prodArchivo");
+      const elegido = el && ar?.lista?.find((x) => x.id === el);
+      return `<div class="comp-prod"><span class="k">Planilla del banco</span>
+        <b>${elegido ? "«" + esc(elegido.archivo) + "»" : o?.archivo ? "«" + esc(o.archivo) + "»" : "La más al día de tu Drive"}</b>
+        <span class="fuente-dato" style="margin:0">${elegido ? "La elegiste vos." : "Orbe usa el Excel donde tu fila llega más lejos."}${o ? ` Última comparación: ${new Date(o.cuando).toLocaleDateString("es-AR")}, con tus puntos hasta el ${o.hasta.slice(8)}/${o.hasta.slice(5, 7)}: ${o.verificados} coinciden, ${o.ajustados} ajustados, ${o.nuevos} agregados.` : ""}</span>
+        <div class="chips" style="margin-top:10px"><button class="chip" data-accion="prod-comparar">Comparar ahora</button>${ar?.lista?.length ? '<button class="chip" data-accion="prod-elegir">Elegir archivo</button>' : ""}</div></div>
+      <p class="fuente-dato">Busca los Excel de tu carpeta PRODUCTIVIDAD (y cualquier otro que se llame así), toma solo tu fila y marca con ✓ los días que coinciden.</p>`; })()}</section>`;
 
   const pie = `<section class="bloque"><h2>Pesos y metas</h2><p>Cuánto vale cada tarea y la meta de cada período. Si el banco cambia un peso, lo cambiás acá y vale desde ese día: lo ya cargado no se mueve.</p>
     <div class="chips" style="margin-top:12px"><button class="chip" data-accion="prod-pesos">Editar pesos</button>${linkHoja() ? `<a class="chip" href="${esc(linkHoja())}" target="_blank" rel="noopener">Abrir la planilla</a>` : ""}</div>

@@ -5,11 +5,13 @@ import { construirContexto } from "./contexto.js";
 import { renderInicio, despuesInicio, esc, colorUniverso, regresiva } from "./inicio.js";
 import { ICONOS } from "./iconos.js";
 import { renderDetalle, DETALLE_UNI } from "./detalles.js";
+import { hojaArchivosProd } from "./paginas.js";
 import { renderRiver, renderUniverso, renderBloqueo, renderAgenda, renderRespiro, renderDatos, renderAjustes, renderNovedades, renderNoEncontrado, renderSemanal, renderUrgente, hojaMovimiento, hojaTp, hojaMateria, hojaAsignar, hojaAgus, hojaPartido, hojaPasos, hojaPesos, hojaGasto } from "./paginas.js";
 import { HOJAS_PRESU, leerConfigPresu, cruzar, responder as responderPresu, confirmarIngreso } from "./presupuesto.js";
 import { agregarManual } from "./finanzas.js";
 import { HOJAS_ESC, leerEscalafon, cargarConformado, datosEsc } from "./escalafon.js";
 import { HOJAS_ANALISIS, importarHistorico, reclasificar, leerHistorico, datosHist } from "./analisis.js";
+import { elegirArchivoProd } from "./productividad.js";
 import { HOJAS_PROD, leerProd, datosProd, compararOficial, mandar as mandarProd, hayPendientes as prodPendiente, cambiar as prodCambiar, fijar as prodFijar, aplicarPreset, guardarPesos, cantidadesDe, isoHoy } from "./productividad.js";
 import { HOJAS_LISTAS, leerListas, datosListas, traerGithub, sumarSemanalAProyectos, agregarAgus, tildarAgus, anotarPartido, guardarProximos } from "./listas.js";
 import { sincronizar, activa as sincroActiva } from "./sincro.js";
@@ -608,6 +610,7 @@ document.addEventListener("click", (e) => {
   else if (a === "prod-mes") { if (el.dataset.mes) { sesion("prodMes", el.dataset.mes); pintar(true); } }
   else if (a === "prod-ir") { sesion("prodFecha", el.dataset.fecha === isoHoy() ? null : el.dataset.fecha); window.scrollTo({ top: 0, behavior: "smooth" }); pintar(true); }
   else if (a === "prod-pesos") abrirHoja(hojaPesos(), "Editar pesos");
+  else if (a === "prod-elegir") abrirHoja(hojaArchivosProd(), "Elegir planilla");
   else if (a === "prod-comparar") {
     avisar("Comparando con la planilla del banco…");
     compararOficial().then((r) => { avisar(`Listo: ${r.verificados} coinciden, ${r.ajustados} ajustados, ${r.nuevos} agregados`); pintar(true); })
@@ -714,6 +717,7 @@ document.addEventListener("submit", async (e) => {
   const tipo = f.dataset.form;
   if (tipo === "super") { const l = leer("super", []); l.push({ t: d.t.trim(), ok: false }); guardar("super", l); vibrar(); pintar(); document.querySelector('[data-form="super"] input')?.focus(); }
   else if (tipo === "idea") { guardarIdea(d.t.trim(), ""); pintar(); }
+  else if (tipo === "prod-archivo") { elegirArchivoProd(d.id || null); cerrarHoja(); document.querySelector('[data-accion="prod-comparar"]')?.click(); }
   else if (tipo === "idea-dest") { guardarIdea(d.t.trim(), d.u || ""); pintar(); }
   else if (tipo === "sus") {
     const sus = guardarSuscripcion(d, f.dataset.id || "");

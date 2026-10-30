@@ -237,31 +237,49 @@ export function leerMediciones(XLSX, buffer, anioRef) {
   return dias;
 }
 
-export async function compararOficial() {
+// Los Excel de productividad que hay en tu Drive: los de la carpeta PRODUCTIVIDAD y cualquier otro que se llame así.
+// Se saltean los «~$…» (archivos de bloqueo de Excel) y los vacíos. De cada uno se mira hasta qué día tiene tu fila.
+const XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+async function archivosProd(XLSX) {
   const DRIVE = "https://www.googleapis.com/drive/v3/files";
-  const q = (s) => DRIVE + "?fields=files(id,name,modifiedTime)&orderBy=modifiedTime desc&pageSize=20&q=" + encodeURIComponent(s);
+  const q = (s) => DRIVE + "?fields=files(id,name,modifiedTime,size)&orderBy=modifiedTime desc&pageSize=30&q=" + encodeURIComponent(s);
   const carpetas = (await api(q("name = 'PRODUCTIVIDAD' and mimeType = 'application/vnd.google-apps.folder' and trashed = false"))).files || [];
-  let archivos = [];
-  for (const c of carpetas) archivos = archivos.concat((await api(q(`'${c.id}' in parents and mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' and trashed = false`))).files || []);
-  archivos.sort((a, b) => b.modifiedTime.localeCompare(a.modifiedTime));
-  if (!archivos.length) throw new Error("sin-archivo");
-  const XLSX = await cargarSheetJS();
-  let mejor = null;
-  for (const f of archivos.slice(0, 4)) {
+  let todos = [];
+  for (const c of carpetas) todos = todos.concat((await api(q(`'${c.id}' in parents and mimeType = '${XLSX_MIME}' and trashed = false`))).files || []);
+  todos = todos.concat((await api(q(`name contains 'PRODUCTIVIDAD' and mimeType = '${XLSX_MIME}' and trashed = false`))).files || []);
+  const vistos = new Set();
+  const lista = todos.filter((f) => !vistos.has(f.id) && vistos.add(f.id) && !/^~\$/.test(f.name) && !(Number(f.size) > 0 && Number(f.size) < 2048))
+    .sort((a, b) => b.modifiedTime.localeCompare(a.modifiedTime)).slice(0, 8);
+  const out = [];
+  for (const f of lista) {
     const r = await fetch(DRIVE + "/" + f.id + "?alt=media", { headers: { Authorization: "Bearer " + await pedirPase() } });
     if (!r.ok) continue;
     const mod = new Date(f.modifiedTime);
     let dias = null;
     try { dias = leerMediciones(XLSX, new Uint8Array(await r.arrayBuffer()), { anio: mod.getFullYear(), mes: mod.getMonth() + 1 }); } catch (e) { dias = null; }
-    if (!dias || !Object.keys(dias).length) continue;
-    const ultimo = Object.keys(dias).sort().pop();
-    if (!mejor || ultimo > mejor.ultimo) mejor = { archivo: f.name, ultimo, dias };
+    const ultimo = dias && Object.keys(dias).length ? Object.keys(dias).sort().pop() : null;
+    out.push({ id: f.id, archivo: f.name, mod: f.modifiedTime, ultimo, dias });
   }
+  guardar("prodArchivos", { cuando: Date.now(), lista: out.map(({ dias, ...x }) => x) }, true);
+  return out;
+}
+export const datosArchivosProd = () => leer("prodArchivos");
+export const archivoElegidoProd = () => leer("prodArchivo");
+export function elegirArchivoProd(id) { guardar("prodArchivo", id || null, true); }
+
+// Compara con el Excel elegido (o, si no elegiste, con el que tiene tu fila más al día).
+export async function compararOficial() {
+  const XLSX = await cargarSheetJS();
+  const lista = await archivosProd(XLSX);
+  if (!lista.length) throw new Error("sin-archivo");
+  const con = lista.filter((f) => f.ultimo);
+  const elegido = archivoElegidoProd();
+  const mejor = con.find((f) => f.id === elegido) || con.sort((a, b) => b.ultimo.localeCompare(a.ultimo) || b.mod.localeCompare(a.mod))[0] || null;
   if (!mejor) throw new Error("sin-tu-fila");
   // Solo se compara desde que Orbe tiene datos tuyos (las semillas de octubre en adelante).
   const p = datosProd();
   const desde = (p?.filas || []).map((x) => x.fecha).sort()[0] || "0000";
-  const res = { archivo: mejor.archivo, hasta: mejor.ultimo, verificados: 0, ajustados: 0, nuevos: 0 };
+  const res = { archivo: mejor.archivo, id: mejor.id, hasta: mejor.ultimo, verificados: 0, ajustados: 0, nuevos: 0 };
   Object.entries(mejor.dias).filter(([f]) => f >= desde).forEach(([fecha, oficial]) => {
     const c = cantidadesDe(fecha);
     const base = Object.entries(c).filter(([t]) => t !== OFICIAL).reduce((s, [, v]) => s + v.puntos, 0);

@@ -405,6 +405,7 @@ function capa() {
   const c = document.createElement("div"); c.className = "cz-capa";
   c.innerHTML = `<div class="cz-etqs"></div><div class="cz-aviso" role="status" aria-live="polite"></div>
     <div class="cz-ctrl"><button type="button" class="cz-chip" data-cz="sobrio" aria-pressed="${sobrio}">${sobrio ? "Cosmos" : "Sobrio"}</button></div>
+    <div class="cz-zoom" role="group" aria-label="Zoom"><button type="button" data-cz="lejos" aria-label="Alejar">−</button><button type="button" data-cz="todo">Ver todo</button><button type="button" data-cz="cerca" aria-label="Acercar">+</button></div>
     <div class="cz-hoja" aria-hidden="true"><div class="cz-caja"><div class="cz-ceja"></div><h3 class="cz-nombre"></h3><p class="cz-que"></p>
       <div class="cz-paso"><span>Próximo paso</span><div></div></div>
       <div class="cz-acc"><a class="btn cz-entrar" href="#/u/proyectos">Ver ficha</a><button type="button" class="btn sec" data-cz="volver">Volver</button><span class="cz-esp"></span>
@@ -416,6 +417,9 @@ function capa() {
     const b = ev.target.closest("[data-cz]"); if (!b) return;
     const q = b.dataset.cz;
     if (q === "sobrio") ponerSobrio(!sobrio);
+    else if (q === "lejos") ponerZoom(zoomObj * 1.3);
+    else if (q === "cerca") ponerZoom(zoomObj / 1.3);
+    else if (q === "todo") { if (E.sel !== null) soltar(); ponerZoom(1.7); }
     else if (q === "volver") soltar();
     else if (q === "ant" || q === "sig") paso(q === "ant" ? -1 : 1);
   });
@@ -454,23 +458,45 @@ function ponerSobrio(v) {
 // ---------- Tocar y arrastrar ----------
 const ray = new THREE.Raycaster(), ptr = new THREE.Vector2();
 let arrastre = null, inercia = 0, apretado = null;
+// Zoom: pellizcar, la ruedita o los botones. 1 = como abre; más chico = más cerca; más grande = más lejos.
+let zoom = 1, zoomObj = 1;
+const dedos = new Map();
+let pellizco = null;
+const ponerZoom = (z) => { zoomObj = Math.min(2.4, Math.max(.55, z)); };
 function apuntar(e) { const r = E.lienzo.getBoundingClientRect(); ptr.set((e.clientX - r.left) / r.width * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1); ray.setFromCamera(ptr, E.cam); }
 const tocaNucleo = (e) => { apuntar(e); return !!ray.intersectObject(E.esfera)[0] || !!ray.intersectObject(E.aro)[0]; };
 function conectarToques() {
   const L = E.lienzo;
+  L.addEventListener("wheel", (e) => { e.preventDefault(); ponerZoom(zoomObj * Math.exp(e.deltaY * .0012)); }, { passive: false });
   L.addEventListener("pointerdown", (e) => {
+    dedos.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (dedos.size === 2) {
+      const [a, b] = [...dedos.values()];
+      pellizco = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, z: zoomObj }; clearTimeout(apretado);
+      if (arrastre) arrastre.mov = 99; // no cuenta como toque
+      return;
+    }
     arrastre = { x: e.clientX, y: e.clientY, x0: e.clientX, mov: 0, largo: false }; inercia = 0;
     if (!sobrio && tocaNucleo(e)) apretado = setTimeout(() => { if (arrastre && arrastre.mov < 10) { arrastre.largo = true; modoSoberano(); } }, 650);
   });
   L.addEventListener("pointermove", (e) => {
+    if (dedos.has(e.pointerId)) dedos.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pellizco && dedos.size >= 2) {
+      const [a, b] = [...dedos.values()];
+      ponerZoom(pellizco.z * pellizco.d / (Math.hypot(a.x - b.x, a.y - b.y) || 1));
+      return;
+    }
     if (!arrastre) return;
     const dx = e.clientX - arrastre.x, dy = e.clientY - arrastre.y; arrastre.x = e.clientX; arrastre.y = e.clientY; arrastre.mov += Math.abs(dx) + Math.abs(dy);
     if (E.sel !== null) return;
     E.giro[0] += dx * .006; E.giro[1] += dx * .006; inercia = dx * .006 * 60;
   });
-  L.addEventListener("pointercancel", () => { clearTimeout(apretado); arrastre = null; });
+  const soltarDedo = (e) => { dedos.delete(e.pointerId); if (dedos.size < 2) pellizco = null; };
+  L.addEventListener("pointercancel", (e) => { soltarDedo(e); clearTimeout(apretado); arrastre = null; });
   L.addEventListener("pointerup", (e) => {
-    clearTimeout(apretado); if (!arrastre) return; const a = arrastre; arrastre = null;
+    const eraPellizco = !!pellizco || dedos.size > 1; soltarDedo(e);
+    clearTimeout(apretado); if (!arrastre) return;
+    if (eraPellizco || dedos.size) { arrastre = null; return; } const a = arrastre; arrastre = null;
     if (a.largo) return;
     if (E.sel !== null && Math.abs(e.clientX - a.x0) > 50) { paso(e.clientX < a.x0 ? 1 : -1); return; }
     if (a.mov > 8) return;
@@ -497,7 +523,7 @@ function medir() {
 let ultimo = 0, proxRayo = 1.4, proxPiedra = 2.5, proxAgujero = 38, ultimoTipo = "", alterna = 0, proxAvance = 1.2;
 const tmp = new THREE.Vector3(), haciaCam = new THREE.Vector3(), qInv = new THREE.Quaternion();
 const camPos = new THREE.Vector3(0, 4, 14), camMira = new THREE.Vector3(), objPos = new THREE.Vector3(), objMira = new THREE.Vector3();
-const VERDE_C = new THREE.Color(VERDE), ARO = new THREE.Color("#e9e9e6"), ROJO = new THREE.Color("#ff2848");
+const VERDE_C = new THREE.Color(VERDE), ARO = new THREE.Color("#c4c4c0"), ROJO = new THREE.Color("#ff2848");
 function ambiente0() {
   if (E.sel !== null) { golpe(E.sel); return; }
   const T = [["golpe", .38], ["cadena", .2], ["pulso", .27], ["triple", .15]];
@@ -577,8 +603,9 @@ function cuadro(ahora) {
   }
 
   const apaisado = E.cam.aspect >= .8;
-  if (E.sel === null && sobrio) { objPos.set(0, D * (apaisado ? .9 : 1.3), .01); objMira.set(0, 0, 0); }
-  else if (E.sel === null) { objPos.set(0, alto, D); objMira.set(0, apaisado ? -.3 : .35, 0); }
+  zoom += (zoomObj - zoom) * sig(6);
+  if (E.sel === null && sobrio) { objPos.set(0, D * (apaisado ? .9 : 1.3) * zoom, .01); objMira.set(0, 0, 0); }
+  else if (E.sel === null) { objPos.set(0, alto * zoom, D * zoom); objMira.set(0, (apaisado ? -.3 : .35) * Math.max(0, Math.min(1, 2 - zoom)), 0); }
   else {
     E.planetas[E.sel].g.getWorldPosition(tmp);
     const z = E.planetas[E.sel].A.tam * (apaisado ? 8 : 11);
