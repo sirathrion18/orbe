@@ -31,7 +31,9 @@ export const SALUDOS = {
     "Hola, {n}. Hoy se juega de local.", "Buen día. Agenda clara, mate tibio, {n}.", "Buen día, {n}. Menos ruido, más foco.",
     "Buenos días. Un día más en órbita, {n}.", "Buen día. Que el día te encuentre listo, {n}.", "Buen día. Lo difícil, antes del almuerzo, {n}.",
     "Arriba, {n}. El mundo no se ordena solo.", "Buen día. Café cargado, ideas claras, {n}.", "Buen día. Hoy rinde el doble, {n}.",
-    "Buen día. Abrí la ventana y arrancá, {n}.", "Buen día, {n}. Lo de hoy, hoy.", "Buenos días. Respiro largo y a la cancha, {n}."
+    "Buen día. Abrí la ventana y arrancá, {n}.", "Buen día, {n}. Lo de hoy, hoy.", "Buenos días. Respiro largo y a la cancha, {n}.",
+    // v0.41: guiños sutiles (homenajes y paráfrasis propias, nunca frases textuales)
+    "Buen día, {n}. Con un gran termo viene una gran responsabilidad.", "Buen día. Variante del día: la tuya, {n}.", "Buen día, {n}. e4, y a ver qué contesta el día.", "Buen día. Доброе утро, {n}.", "Buen día, {n}. Hoy se juega como en Madrid: con paciencia.", "Buen día. Tres estrellas en el pecho y la agenda en la mano, {n}.", "Buen día, {n}. Respiración total: inhalá, exhalá, arrancá.", "Buen día. La línea temporal amaneció en orden, {n}.", "Buen día, {n}. El barrio no se cuida solo.", "Buen día. Pase al 10 y que pase algo, {n}."
   ],
   tarde: [
     "Buenas tardes, {n}.", "Mitad del día, {n}.", "Seguimos, {n}.", "Hola, {n}. ¿Cómo viene?", "Buenas, {f}.",
@@ -59,7 +61,9 @@ export const SALUDOS = {
     "Buenas tardes. Un pendiente menos, {n}.", "Buenas. Termo al día, {n}.", "Buenas tardes. Tarde de foco, {n}.",
     "Buenas, {n}. Tranqui, viene bien.", "Buenas tardes. La recta final, {n}.", "Hola, {n}. Bajá un cambio y seguí.",
     "Buenas tardes. Hoy rindió, {n}.", "Buenas. Revisá y cerrá, {n}.", "Buenas tardes, {n}. Agua, mate y a terminar.",
-    "Buenas. A la vuelta, descanso, {n}."
+    "Buenas. A la vuelta, descanso, {n}.",
+    // v0.41: guiños sutiles (homenajes y paráfrasis propias, nunca frases textuales)
+    "Buenas tardes, {n}. Jaque al pendiente más viejo.", "Buenas. Segundo tiempo, {n}: se define ahora.", "Buenas tardes. Привет, {n}.", "Buenas tardes, {n}. Expansión de dominio: tu escritorio.", "Buenas. Sentido arácnido: algo vence pronto, {n}.", "Buenas tardes, {n}. Clones no tenés: de a una cosa.", "Buenas tardes. Lo-fi de fondo y a seguir, {n}.", "Buenas, {n}. Peón a peón se gana la partida.", "Buenas tardes. Ninguna rama suelta en la línea, {n}.", "Buenas, {n}. Un caño a la tarde y seguimos."
   ],
   noche: [
     "Buenas noches, {n}.", "Cerraste el día, {n}.", "Hora de bajar, {n}.", "Buenas noches, {f}.",
@@ -82,7 +86,9 @@ export const SALUDOS = {
     "Buenas noches. Silencio y almohada, {n}.", "Noche. Lo bueno de hoy, para mañana, {n}.", "Buenas noches. Una página y a dormir, {n}.",
     "Noche, {n}. La órbita también descansa.", "Buenas noches. Mañana arranca solo, {n}.", "Noche. Sin culpa, a descansar, {n}.",
     "Buenas noches. Gran día, {n}.", "Noche, {n}. Ya no hay nada urgente.", "Buenas noches. Mañana, mate temprano, {n}.",
-    "Noche. Cortá acá, {n}.", "Buenas noches, {n}. Bien ahí."
+    "Noche. Cortá acá, {n}.", "Buenas noches, {n}. Bien ahí.",
+    // v0.41: guiños sutiles (homenajes y paráfrasis propias, nunca frases textuales)
+    "Buenas noches, {n}. Hoy el barrio quedó a salvo.", "Buenas noches. Tablas con el día, {n}.", "Buenas noches, {n}. Спокойной ночи.", "Buenas noches. Misión cumplida, traje a la percha, {n}.", "Buenas noches, {n}. El multiverso puede esperar.", "Buenas noches. Llama baja, respiración larga, {n}.", "Buenas noches, {n}. Lo que faltó, en otra línea temporal.", "Buenas noches. El Monumental ya apagó las luces, {n}."
   ],
   lunes: [
     "Feliz lunes, {n}.", "Lunes, {n}. Arranca la semana.", "Lunes otra vez, {f}.", "Semana nueva, {n}.",
@@ -91,7 +97,9 @@ export const SALUDOS = {
     // v0.33: más saludos
     "Lunes, {n}. Primera fecha de la semana.", "Lunes. Agenda fresca, {n}.", "Lunes, {f}. Con calma y en orden.",
     "Lunes. Se arranca de a poco, {n}.", "Lunes, {n}. A marcar el ritmo.", "Lunes. Semana en blanco, {n}.",
-    "Lunes. Primer mate de la semana, {n}.", "Lunes, {n}. Vamos que es corto."
+    "Lunes. Primer mate de la semana, {n}.", "Lunes, {n}. Vamos que es corto.",
+    // v0.41: guiños sutiles (homenajes y paráfrasis propias, nunca frases textuales)
+    "Lunes, {n}. Con un gran lunes viene una gran semana.", "Lunes. Arranca el torneo, {n}."
   ],
   martes: [
     "Feliz martes, {n}.", "Martes en marcha, {n}.", "Martes, {f}.", "Martes. Gym con mamá a la tarde, {n}.",
@@ -121,7 +129,9 @@ export const SALUDOS = {
     // v0.33: más saludos
     "Viernes, {n}. Último empujón.", "Viernes. Se cierra la semana, {f}.", "Viernes. Modo finde cargando, {n}.",
     "Viernes, {n}. La cabeza ya está en el finde.", "Viernes. Lo que no salió, el lunes, {n}.", "Viernes. Plan para el finde, {n}.",
-    "Viernes, {n}. Semana ganada.", "Viernes. Ya casi, {n}."
+    "Viernes, {n}. Semana ganada.", "Viernes. Ya casi, {n}.",
+    // v0.41: guiños sutiles (homenajes y paráfrasis propias, nunca frases textuales)
+    "Viernes, {n}. Último round de la semana.", "Viernes. Pitazo final a las 17, {n}."
   ],
   finde: [
     "Sábado tranqui, {n}.", "Domingo sin apuro, {n}.", "Finde, {n}.", "Hoy no hay que correr, {n}.", "Día libre, {n}.",
@@ -132,7 +142,9 @@ export const SALUDOS = {
     "Sábado, {n}. Sin alarma.", "Domingo. Pijama largo, {n}.", "Finde, {n}. Hoy no se apura nada.",
     "Sábado. Plan tranqui, {n}.", "Domingo, {f}. Para recargar.", "Finde. Mate al sol, {n}.",
     "Sábado. Salida, siesta o las dos, {n}.", "Domingo. Asado o pastas, {n}.", "Finde, {n}. El reloj descansa.",
-    "Sábado. Hoy se disfruta, {n}.", "Domingo. Mañana arranca, hoy no, {n}.", "Finde. Celu en silencio, {n}."
+    "Sábado. Hoy se disfruta, {n}.", "Domingo. Mañana arranca, hoy no, {n}.", "Finde. Celu en silencio, {n}.",
+    // v0.41: guiños sutiles (homenajes y paráfrasis propias, nunca frases textuales)
+    "Finde, {n}. Hoy el traje queda colgado.", "Finde. Partida larga y mate, {n}.", "Finde, {n}. Modo lo-fi activado.", "Finde. Sin entregas a la vista, {n}."
   ],
   libre: [
     "Día libre, {n}.", "Hoy es tuyo, {n}.", "Nada urgente, {n}.", "Tiempo para vos, {n}.", "Día para disfrutar, {n}.",
@@ -214,7 +226,9 @@ export const SALUDOS = {
     "Madrugada. Cerrá todo y a dormir, {n}.", "Es tardísimo, {f}.", "Madrugada. Lo de mañana, mañana, {n}.",
     "Hora de apagar, {n}.", "Madrugada, {n}. Ya no hay nada que no espere.", "Es tarde. Tu yo de mañana te lo pide, {n}.",
     "Madrugada. Celu a cargar, {n}.", "Sigue la luz prendida, {n}.", "Madrugada, {n}. Unas horas de sueño valen oro.",
-    "Es tarde. A la cucha, {n}."
+    "Es tarde. A la cucha, {n}.",
+    // v0.41: guiños sutiles (homenajes y paráfrasis propias, nunca frases textuales)
+    "Madrugada, {n}. Ni los ninjas entrenan a esta hora.", "Es tarde, {n}. Hasta los héroes duermen.", "Madrugada. El reloj de la TVA dice: a dormir, {n}.", "Madrugada, {n}. Jaque mate al insomnio."
   ],
   cumple: [
     "¡Feliz cumpleaños, {n}!", "Feliz cumple, {f}.",
