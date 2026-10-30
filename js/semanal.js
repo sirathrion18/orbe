@@ -109,7 +109,8 @@ function paraLeer(html) {
 // los Diarios (que pedís con /diario) viven en el Archivo, al final de cada edición.
 export async function actualizarSemanal(forzar = false) {
   const previa = ultimaEdicion();
-  if (!forzar && Date.now() - (leer("semanalCuando") || 0) < 30 * 60000) return false;
+  // Si lo guardado no es un Semanal (versiones viejas guardaban el Diario), se busca ya.
+  if (!forzar && previa?.tipo === "semanal" && Date.now() - (leer("semanalCuando") || 0) < 30 * 60000) return false;
   const sem = await buscar("name contains 'El Semanal' and mimeType = 'text/html' and trashed = false");
   guardar("semanalCuando", Date.now(), true);
   leerArchivo().catch(() => {});
@@ -137,16 +138,16 @@ export const htmlEdicion = () => leer("semanalHtml");
 // ---------- El Archivo: todas las ediciones ----------
 // La lista vive en este dispositivo (título, número y fecha de cada una); el contenido se baja cuando la abrís.
 const buscarTodas = (q) => drive(DRIVE + "?" + new URLSearchParams({ q, orderBy: "createdTime desc", pageSize: "30", fields: "files(id,name,createdTime)" }));
-export const datosArchivo = () => leer("semanalArchivo") || { lista: [] };
+export const datosArchivo = () => leer("semanalArchivo2") || { lista: [] };
 export async function leerArchivo(forzar = false) {
   const a = datosArchivo();
   if (!forzar && a.cuando && Date.now() - a.cuando < 30 * 60000) return false;
   const [sem, dia] = await Promise.all([
     buscarTodas("name contains 'El Semanal' and mimeType = 'text/html' and trashed = false"),
-    buscarTodas("name contains 'El Diario' and mimeType = 'application/vnd.google-apps.document' and trashed = false").catch(() => ({ files: [] }))
+    buscarTodas("name contains 'El Diario' and not name contains 'Ficha' and mimeType = 'application/vnd.google-apps.document' and trashed = false").catch(() => ({ files: [] }))
   ]);
   const vistos = new Map((a.lista || []).map((x) => [x.id, x]));
-  const archivos = [...(sem.files || []).filter((f) => /N\.?\s*º/.test(f.name)).map((f) => ["semanal", f]), ...(dia.files || []).map((f) => ["diario", f])];
+  const archivos = [...(sem.files || []).filter((f) => /N\.?\s*º/.test(f.name)).map((f) => ["semanal", f]), ...(dia.files || []).filter((f) => /^El Diario\b/i.test(f.name)).map((f) => ["diario", f])];
   const lista = [];
   let bajadas = 0;
   for (const [tipo, f] of archivos) {
@@ -157,7 +158,7 @@ export async function leerArchivo(forzar = false) {
     }
     lista.push(e || { id: f.id, tipo, nombre: tipo === "diario" ? "El Diario" : "El Semanal", numero: ((f.name.match(/N\.?\s*º\s*(\d+)/) || [])[1]) || "", fecha: fechaDeNombre(f.name) || f.createdTime.slice(0, 10), titular: "", pendiente: true });
   }
-  guardar("semanalArchivo", { cuando: Date.now(), lista: lista.sort((x, y) => (y.fecha || "").localeCompare(x.fecha || "")) }, true);
+  guardar("semanalArchivo2", { cuando: Date.now(), lista: lista.sort((x, y) => (y.fecha || "").localeCompare(x.fecha || "")) }, true);
   return true;
 }
 const resumen = (e) => ({ id: e.id, tipo: e.tipo, nombre: e.nombre, numero: e.numero, fecha: e.fecha, titular: e.titular, desde: e.desde, hasta: e.hasta });

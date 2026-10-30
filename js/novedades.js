@@ -1,6 +1,14 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.42.1",
+    fecha: "30/10/2026",
+    titulo: "La tapa correcta.",
+    cambios: [
+      "El Semanal: la tapa de Inicio ya no muestra El Diario. Orbe confundía la ficha «El Semanal y El Diario» de la central con una edición del Diario; ahora solo cuenta las ediciones de verdad, y la tapa se corrige sola al abrir Orbe.",
+    ],
+  },
+  {
     version: "0.42.0",
     fecha: "30/10/2026",
     titulo: "Huevitos.",

@@ -1,5 +1,11 @@
 # Novedades de Orbe
 
+## v0.42.1 · 30/10/2026
+
+La tapa correcta.
+
+- El Semanal: la tapa de Inicio ya no muestra El Diario. Orbe confundía la ficha «El Semanal y El Diario» de la central con una edición del Diario; ahora solo cuenta las ediciones de verdad, y la tapa se corrige sola al abrir Orbe.
+
 ## v0.42.0 · 30/10/2026
 
 Huevitos.
