@@ -1,5 +1,13 @@
 # Novedades de Orbe
 
+## v0.35.1 · 29/10/2026
+
+El Rastreador abre en la app de Claude.
+
+- Rastreador: en el celu, el pedido y «Ver expedientes» abren directo en la app de Claude, con tu sesión, en vez del navegador (que pedía iniciar sesión y mandaba a descargar la app).
+- En la app el pedido llega copiado: lo pegás en el cuadro y tocás «Mandar a rastrear».
+- Nuevo botón «Hablarlo con Claude»: abre el chat del Rastreador para pedirle que resuelva lo que está en espera.
+
 ## v0.35.0 · 29/10/2026
 
 El Rastreador, a un toque.

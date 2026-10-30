@@ -4,6 +4,21 @@ import { ICONOS } from "./iconos.js";
 import { leer, guardar } from "./almacen.js";
 
 export const URL_RASTREADOR = "https://claude.ai/artifact/HwojSFmVVfw3SJUcPUwGw8";
+// El chat de Claude donde se armó el Rastreador: ahí se le pide «procesá el Rastreador».
+export const URL_CHAT = "https://claude.ai/code/session_01ATaNuSiXwoeDz8Aa8SeQSk";
+const esAndroid = () => /Android/i.test(navigator.userAgent);
+
+// En Android, un link común lo abre el navegador (sin tu sesión de Claude) y termina en
+// «descargá la app». Con un link intent:// Android lo abre directo en la app de Claude
+// (com.anthropic.claude). Si la app no lo puede abrir, cae al link común.
+export function enApp(url) {
+  if (!esAndroid()) return url;
+  const u = new URL(url);
+  return "intent://" + u.host + u.pathname + "#Intent;scheme=https;package=com.anthropic.claude;S.browser_fallback_url=" + encodeURIComponent(url) + ";end";
+}
+const linkApp = (url, texto, clase = "chip") => esAndroid()
+  ? `<a class="${clase}" href="${esc(enApp(url))}">${texto}</a>`
+  : `<a class="${clase}" href="${esc(url)}" target="_blank" rel="noopener">${texto}</a>`;
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const puedeDictar = () => "webkitSpeechRecognition" in window || "SpeechRecognition" in window;
 
@@ -24,7 +39,7 @@ export function formPrecio(compacto = false) {
       <input name="uso" class="campo-linea" placeholder="Para qué (opcional)" maxlength="120" style="flex:2;min-width:160px;margin:0;font-family:var(--sans);font-size:15px">
     </div>
     <div class="grupo" style="display:flex;gap:10px">${compacto ? `<button type="button" class="btn sec" data-accion="cerrar-hoja" style="flex:1">Cancelar</button>` : ""}<button class="btn" style="flex:2">Mandar al Rastreador</button></div>
-    <p class="vacio" style="font-size:12.5px;margin:8px 0 0">Se abre el Rastreador con tu pedido ya cargado y queda en espera hasta que Claude busque precios reales. Por las dudas, el texto también queda copiado.</p>
+    <p class="vacio" style="font-size:12.5px;margin:8px 0 0">${esAndroid() ? "Se abre el Rastreador en la app de Claude con tu pedido copiado: mantené apretado el cuadro, «Pegar» y «Mandar a rastrear»." : "Se abre el Rastreador con tu pedido ya cargado y queda en espera hasta que Claude busque precios reales. Por las dudas, el texto también queda copiado."}</p>
   </form>`;
 }
 
@@ -37,6 +52,9 @@ export function mandarPedido(d) {
   const hist = leer("precios", []);
   hist.unshift({ t: p.p, tope: p.tope, cuando: p.ts });
   guardar("precios", hist.slice(0, 15));
+  // En Android va a la app de Claude. La app no recibe el pedido del link (se pierde el #),
+  // por eso queda copiado: en el Rastreador lo pegás y tocás «Mandar a rastrear».
+  if (esAndroid()) { setTimeout(() => { location.href = enApp(url); }, 60); return url; }
   const w = window.open(url, "_blank", "noopener");
   if (!w) location.href = url;
   return url;
@@ -48,7 +66,8 @@ export function renderRastreador(volver) {
   return `<div class="pagina">${volver}<h1>Rastreador</h1>
     <p class="bajada">Decile qué querés comprar. Claude compara precios, calidad y dónde conviene (online o en persona) y te arma las 5 mejores opciones y una de reserva.</p>
     <section class="bloque">${formPrecio()}</section>
-    <section class="bloque"><div class="chips"><a class="chip" href="${URL_RASTREADOR}" target="_blank" rel="noopener">Ver expedientes</a></div></section>
+    <section class="bloque"><div class="chips">${linkApp(URL_RASTREADOR, "Ver expedientes")}${linkApp(URL_CHAT, "Hablarlo con Claude")}</div>
+      <p class="vacio" style="font-size:12.5px;margin:8px 0 0">«Hablarlo con Claude» abre el chat del Rastreador. Decile «procesá el Rastreador» para que resuelva lo que está en espera.</p></section>
     ${hist.length ? `<section class="bloque"><h2>Lo último que pediste</h2><ul class="lista">${hist.map((h) => `<li><span>${esc(h.t)}${h.tope ? `<br><small class="vacio">Hasta ${esc(h.tope)}</small>` : ""}</span><span class="der">${fecha(h.cuando)}</span></li>`).join("")}</ul></section>` : ""}
   </div>`;
 }

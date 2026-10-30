@@ -1,6 +1,16 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.35.1",
+    fecha: "29/10/2026",
+    titulo: "El Rastreador abre en la app de Claude.",
+    cambios: [
+      "Rastreador: en el celu, el pedido y «Ver expedientes» abren directo en la app de Claude, con tu sesión, en vez del navegador (que pedía iniciar sesión y mandaba a descargar la app).",
+      "En la app el pedido llega copiado: lo pegás en el cuadro y tocás «Mandar a rastrear».",
+      "Nuevo botón «Hablarlo con Claude»: abre el chat del Rastreador para pedirle que resuelva lo que está en espera.",
+    ],
+  },
+  {
     version: "0.35.0",
     fecha: "29/10/2026",
     titulo: "El Rastreador, a un toque.",
