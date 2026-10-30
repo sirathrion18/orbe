@@ -152,7 +152,7 @@ export function bloqueHoy(ctx) {
   const r = resumenDia(fecha);
   const hechos = d.items.filter((i) => i.hecho).length;
   const meta = r.meta?.meta;
-  const pts = `<span class="lb-pts"><b>${f1(r.total)}</b>${meta ? " de " + f1(meta) : ""} pts</span>`;
+  const pts = `<a class="lb-pts" href="#/d/productividad" aria-label="Tu productividad mes a mes"><b>${f1(r.total)}</b>${meta ? " de " + f1(meta) : ""} pts <span aria-hidden="true">›</span></a>`;
   // Lo pendiente arriba, lo tachado abajo: como la hoja de la libretita a media mañana.
   const items = [...d.items.filter((i) => !i.hecho), ...d.items.filter((i) => i.hecho)];
   return `<section class="bloque libreta">

@@ -44,14 +44,14 @@ export function heroHoy(ctx, $, oculto) {
   if (b.total == null || b.base == null || b.sinDiario || b.sinMargen) {
     const motivo = motivoSinDiario(b, $);
     return `<section class="fz hero"><div class="fz-cab"><span class="fz-k">Hoy</span><span class="fz-acc">${ojo}${mas}</span></div>
-      <p class="fz-big rojo">${b.sinDiario || b.sinMargen ? "No queda diario" : "Sin diario"}</p><p class="fz-sub">${esc(motivo)}</p></section>`;
+      <p class="fz-big rojo">${b.sinDiario || b.sinMargen ? "No queda diario" : "Sin diario"}</p><p class="fz-sub">${esc(motivo)}</p><a class="dt-ir" href="#/d/plata">Cómo se arma <span aria-hidden="true">›</span></a></section>`;
   }
   const rojo = b.quedaHoy < 0 && b.gastoHoy > 0;
   const uso = b.diario > 0 ? Math.min(1, Math.max(0, b.gastoHoy / b.diario)) : 1;
   return `<section class="fz hero ${rojo ? "pasado" : ""}"><div class="fz-cab"><span class="fz-k">${rojo ? "Hoy te pasaste" : "Hoy podés gastar"}</span><span class="fz-acc">${ojo}${mas}</span></div>
     <p class="fz-big ${rojo ? "rojo" : ""}">${oculto ? "••••••" : $(Math.abs(b.quedaHoy))}</p>
     <div class="fz-barra"><i style="width:${oculto ? 0 : Math.round(uso * 100)}%"></i></div>
-    <div class="fz-mini"><span><small>Diario</small>${$(b.diario)}</span><span><small>Gastaste hoy</small>${$(b.gastoHoy)}</span><span><small>Hasta el ${dm(b.p.fin)}</small>${$(b.queda)}</span></div></section>`;
+    <div class="fz-mini"><span><small>Diario</small>${$(b.diario)}</span><span><small>Gastaste hoy</small>${$(b.gastoHoy)}</span><span><small>Hasta el ${dm(b.p.fin)}</small>${$(b.queda)}</span></div><a class="dt-ir" href="#/d/plata">Cómo se arma este número <span aria-hidden="true">›</span></a></section>`;
 }
 
 // Por qué no hay diario, en una frase (la usan Finanzas e Inicio).
@@ -206,7 +206,7 @@ export function heroMes(ctx, $) {
     <p class="fz-big ${b.queda < 0 ? "rojo" : ""}">${b.queda < 0 ? "−" : ""}${$(Math.abs(b.queda))}</p>
     <div class="fz-doble"><div><small>Gastaste</small><div class="fz-barra"><i style="width:${Math.round(pctGasto * 100)}%"></i></div></div>
       <div><small>Pasó del período</small><div class="fz-barra gris"><i style="width:${Math.round(pctDias * 100)}%"></i></div></div></div>
-    <p class="fz-sub">${pctGasto > pctDias + 0.05 ? "Vas gastando más rápido de lo que pasan los días." : pctGasto < pctDias - 0.05 ? "Vas más lento que los días: bien ahí." : "Vas parejo con los días."} Del ${dm(p.inicio)} al ${dm(p.fin)} · faltan ${p.restantes} ${p.restantes === 1 ? "día" : "días"}.</p></section>`;
+    <p class="fz-sub">${pctGasto > pctDias + 0.05 ? "Vas gastando más rápido de lo que pasan los días." : pctGasto < pctDias - 0.05 ? "Vas más lento que los días: bien ahí." : "Vas parejo con los días."} Del ${dm(p.inicio)} al ${dm(p.fin)} · faltan ${p.restantes} ${p.restantes === 1 ? "día" : "días"}.</p><a class="dt-ir" href="#/d/plata">Paso por paso <span aria-hidden="true">›</span></a></section>`;
 }
 
 // ---------- Análisis ----------
@@ -273,7 +273,7 @@ export function bloqueMesReal(ctx, $, oculto, linkEco) {
       <div class="mr-colchon"><div><small>Colchón · ${r.pct}% del ingreso</small><b>${$(r.colchon - r.usado)}</b>${r.usado ? `<small>usaste ${$(r.usado)}</small>` : ""}</div>
         <div class="chips">${[3, 5, 10].map((x) => `<button class="chip ${r.pct === x ? "on" : ""}" data-accion="mr-pct" data-v="${x}">${x}%</button>`).join("")}<button class="chip" data-accion="mr-usar" data-m="${r.usado || 0}">${r.usado ? "Cambiar" : "Usar"}</button></div></div>
       <div class="mr-tot"><span><small>Egresos reales</small>${$(r.totalReal)}</span><span><small>Planilla</small>${$(r.totalPlan)}</span><span class="mr-base"><small>Para el día a día, al empezar el período</small><b class="${base < 0 ? "rojo" : ""}">${base < 0 ? "−" : ""}${$(Math.abs(base))}</b></span></div>
-      <p class="fz-sub">${r.estimados ? `${r.estimados} ${r.estimados === 1 ? "renglón todavía no es definitivo" : "renglones todavía no son definitivos"} (estimados o lo que pensás pagar): tocá cualquiera para marcarlo pagado con el monto real. ` : "Todos los renglones tienen su número real. "}El colchón se aparta antes del diario; si lo necesitás, tocás «Usar».</p></section>`;
+      <p class="fz-sub">${r.estimados ? `${r.estimados} ${r.estimados === 1 ? "renglón todavía no es definitivo" : "renglones todavía no son definitivos"} (estimados o lo que pensás pagar): tocá cualquiera para marcarlo pagado con el monto real. ` : "Todos los renglones tienen su número real. "}El colchón se aparta antes del diario; si lo necesitás, tocás «Usar».</p><a class="dt-ir" href="#/d/plata">Del ingreso al diario <span aria-hidden="true">›</span></a></section>`;
 }
 export function hojaPagado(concepto, monto) {
   return `<h2>${esc(concepto)}</h2><form data-form="mr-pagado" data-c="${esc(concepto)}">
@@ -313,7 +313,7 @@ export function bloqueSaldo(ctx, $, oculto) {
       <div class="fz-mini"><span><small>Tenías</small>${$(totalControl(d.ant))}</span><span><small>Orbe esperaba</small>${$(d.esperado)}</span><span><small>Tenés</small>${$(d.real)}</span></div>
       <p class="fz-sub" style="font-size:12px">Orbe vio ${$(d.entra)} que entró y ${$(d.sale)} que salió (${d.n} movimientos; las compras con tarjeta de crédito cuentan cuando pagás el resumen).${d.resuelto && !cargado ? " Lo dejaste así." : ""}</p>${acciones}`;
   }
-  return `<section class="fz saldo"><div class="fz-cab"><span class="fz-k">Tu plata real</span></div>${cuerpo}<div style="margin-top:12px">${boton}</div></section>`;
+  return `<section class="fz saldo"><div class="fz-cab"><span class="fz-k">Tu plata real</span></div>${cuerpo}<div style="margin-top:12px">${boton}</div>${d ? `<a class="dt-ir" href="#/d/plata">Ver la cuenta <span aria-hidden="true">›</span></a>` : ""}</section>`;
 }
 export function hojaSaldo() {
   const ult = ultimoControl();
