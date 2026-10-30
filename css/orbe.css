@@ -1541,3 +1541,25 @@ a.dt-fuente:hover { color: var(--text); }
   background-position: calc(100% - 12px) 14px, calc(100% - 8px) 14px; background-size: 4px 4px; background-repeat: no-repeat; }
 .lb-modo-sel.m-control { color: var(--birome); border-color: color-mix(in srgb, var(--birome) 45%, transparent); }
 .lb.tachado .lb-modo-sel { opacity: .6; }
+
+/* ---------- v0.45.0 · Tu sueldo en dólares ---------- */
+.usd-casa { margin: 0 0 4px; }
+.usd-filas li { align-items: center; }
+.usd-eq { font-size: 15px; font-family: var(--sans); color: var(--muted); letter-spacing: 0; }
+.usd-graf { display: block; width: 100%; height: 140px; margin-top: 6px; overflow: visible; }
+.usd-graf .a { fill: color-mix(in srgb, var(--accent) 16%, transparent); }
+.usd-graf .l { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; }
+.usd-anios { position: relative; height: 16px; margin-top: 4px; font-size: 11px; color: var(--muted); }
+.usd-anios span { position: absolute; top: 0; transform: translateX(-2px); border-left: 1px solid var(--line); padding-left: 4px; }
+.usd-mm { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; margin: 10px 0 0; font-size: 13px; color: var(--muted); }
+.usd-mm b { color: var(--text); font-weight: 600; }
+.usd-anual { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+.usd-anual li { display: grid; grid-template-columns: 40px 1fr auto; grid-template-rows: auto auto; gap: 2px 10px; align-items: center; font-size: 14px; }
+.usd-anual li > span { color: var(--muted); font-weight: 600; font-size: 13px; }
+.usd-anual i { height: 8px; border-radius: 4px; background: var(--track); position: relative; overflow: hidden; }
+.usd-anual i::after { content: ""; position: absolute; inset: 0 auto 0 0; width: var(--w); border-radius: 4px; background: var(--accent); }
+.usd-anual b { font-weight: 600; font-variant-numeric: tabular-nums; }
+.usd-anual small { grid-column: 2 / 4; font-size: 11.5px; color: var(--muted); }
+.usd-anual small:empty { display: none; }
+.usd-lista .der { text-align: right; font-variant-numeric: tabular-nums; }
+.usd-sub { margin: -4px 0 10px; font-size: 13px; color: var(--muted); }

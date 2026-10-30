@@ -36,30 +36,45 @@ async function textoPdf(buffer) {
 // Del texto del recibo: mes, neto y total del talón complementario.
 export function leerRecibo(texto) {
   const mes = texto.match(/Mes\/Año:\s*(\d{2})\/(\d{4})/);
-  const neto = texto.match(/Sueldo Neto\s*([\d.]+,\d{2})/i);
+  // «Sueldo Neto» en los recibos nuevos; «Líquido a cobrar» en los de 2020 a 2025.
+  const neto = texto.match(/Sueldo Neto\s*([\d.]+,\d{2})/i) || texto.match(/L[ií]quido a cobrar\s*([\d.]+,\d{2})/i);
   const talon = texto.match(/TAL[ÓO]N COMPLEMENTARIO[\s\S]*?Total Descuentos[\s\S]*?([\d.]+,\d{2})\s*(?:PARA|$)/i) || texto.match(/TAL[ÓO]N COMPLEMENTARIO[\s\S]*([\d.]{5,},\d{2})/i);
   if (!mes || !neto) return null;
   return { mes: Number(mes[1]), anio: Number(mes[2]), neto: num(neto[1]), talon: talon ? num(talon[1]) : 0 };
 }
 
+const qCarpetas = (s) => DRIVE + "?fields=files(id,name)&pageSize=50&q=" + encodeURIComponent(s);
+const CARPETA = "mimeType = 'application/vnd.google-apps.folder' and trashed = false";
+// La carpeta de los recibos del año: BNA/RECIBOS/AAAA (o, como antes, BNA/AAAA).
 async function carpetaRecibos() {
-  const q = (s) => DRIVE + "?fields=files(id,name)&pageSize=20&q=" + encodeURIComponent(s);
-  const bna = (await api(q("name = 'BNA' and mimeType = 'application/vnd.google-apps.folder' and trashed = false"))).files || [];
   const anio = String(new Date().getFullYear());
-  for (const b of bna) {
-    const hijos = (await api(q(`'${b.id}' in parents and name = '${anio}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`))).files || [];
+  for (const r of await carpetasRecibos()) {
+    const hijos = (await api(qCarpetas(`'${r}' in parents and name = '${anio}' and ${CARPETA}`))).files || [];
     if (hijos[0]) return hijos[0].id;
   }
   return null;
+}
+// Dónde pueden estar las carpetas de años: BNA/RECIBOS y BNA.
+async function carpetasRecibos() {
+  const bna = (await api(qCarpetas(`name = 'BNA' and ${CARPETA}`))).files || [];
+  const out = [];
+  for (const b of bna) {
+    const rec = (await api(qCarpetas(`'${b.id}' in parents and name = 'RECIBOS' and ${CARPETA}`))).files || [];
+    rec.forEach((x) => out.push(x.id));
+    out.push(b.id);
+  }
+  return out;
 }
 
 // Lee los recibos nuevos y completa la hoja MES. Devuelve cuántos meses agregó.
 export async function leerRecibos() {
   if (!permisos().drive) return 0;
   const ya = leer("recibosLeidos", {});
-  const carpeta = leer("carpetaRecibos") || await carpetaRecibos();
+  // La carpeta del año se vuelve a buscar cuando cambia el año (en enero arranca la carpeta nueva).
+  const anioHoy = new Date().getFullYear();
+  const carpeta = (leer("carpetaRecibosAnio") === anioHoy && leer("carpetaRecibos")) || await carpetaRecibos();
   if (!carpeta) return 0;
-  guardar("carpetaRecibos", carpeta, true);
+  guardar("carpetaRecibos", carpeta, true); guardar("carpetaRecibosAnio", anioHoy, true);
   const todos = (await api(DRIVE + "?fields=files(id,name,modifiedTime)&pageSize=50&orderBy=name desc&q=" +
     encodeURIComponent(`'${carpeta}' in parents and mimeType = 'application/pdf' and trashed = false`))).files || [];
   const [filas] = await leerRangos(["MES!A2:C"]);
@@ -119,4 +134,42 @@ async function leerBonos(carpeta, ya) {
   guardar("bonos", bonos, true);
   guardar("recibosLeidos", ya, true);
   return nuevos;
+}
+
+// ---------- Todos tus recibos, de 2020 a hoy (para compararlos en dólares) ----------
+// Lee las carpetas de años de BNA/RECIBOS. Solo los recibos de sueldo («MM/AA»): los «DB …» y otros sueltos no entran.
+// Guarda por mes del recibo solo el neto (y el nombre del archivo) en «sueldosHist», que viaja a tu planilla.
+export const datosSueldosHist = () => leer("sueldosHist", {});
+const ES_SUELDO = /^\s*(\d{1,2})\s*[\/_.-]\s*(\d{2}|\d{4})\s*(\.pdf)?\s*$/i;
+export async function leerRecibosViejos(maximo = 12, alAvanzar) {
+  if (!permisos().drive) return { leidos: 0, faltan: 0 };
+  const h = { ...datosSueldosHist() };
+  const vistos = { ...(h._l || {}) };
+  const q = (s) => DRIVE + "?fields=files(id,name,modifiedTime)&pageSize=200&q=" + encodeURIComponent(s);
+  const anios = [];
+  for (const r of await carpetasRecibos()) {
+    ((await api(qCarpetas(`'${r}' in parents and ${CARPETA}`))).files || []).filter((c) => /^\d{4}$/.test(c.name.trim())).forEach((c) => anios.push(c));
+  }
+  let pdfs = [];
+  const yaCarpeta = new Set();
+  for (const c of anios) {
+    if (yaCarpeta.has(c.id)) continue; yaCarpeta.add(c.id);
+    pdfs = pdfs.concat(((await api(q(`'${c.id}' in parents and mimeType = 'application/pdf' and trashed = false`))).files || []).filter((f) => ES_SUELDO.test(f.name)));
+  }
+  const faltan = pdfs.filter((f) => !vistos[f.id + f.modifiedTime]);
+  let leidos = 0;
+  for (const f of faltan.slice(0, maximo)) {
+    try {
+      const t = await (await fetch(DRIVE + "/" + f.id + "?alt=media", { headers: { Authorization: "Bearer " + await pedirPase() } })).arrayBuffer();
+      const r = leerRecibo(await textoPdf(t));
+      const k = r ? r.anio + "-" + String(r.mes).padStart(2, "0") : null;
+      vistos[f.id + f.modifiedTime] = k || "ilegible";
+      if (k && r.neto > 0) h[k] = { neto: Math.round(r.neto * 100) / 100, archivo: f.name };
+      leidos++;
+      alAvanzar?.(leidos, Math.min(maximo, faltan.length));
+    } catch (e) { /* ese queda para la próxima */ }
+  }
+  h._l = vistos;
+  guardar("sueldosHist", h);
+  return { leidos, faltan: Math.max(0, faltan.length - leidos), total: pdfs.length };
 }

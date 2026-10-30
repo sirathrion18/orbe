@@ -3,6 +3,7 @@
 //   #/d/plata          Plata a fondo: cómo se arma el diario, paso por paso.
 //   #/d/productividad  Tu productividad mes a mes (solo tu fila).
 //   #/d/escalafon      Escalafón y aumentos: conformados, tu cargo y el Día del Bancario.
+//   #/d/dolares        Tu sueldo en dólares: cada recibo desde 2020, a dólares de su mes y a pesos de hoy.
 // Nada se inventa: si falta un dato, se dice cuál y cómo cargarlo.
 import { leer } from "./almacen.js";
 import { ICONOS } from "./iconos.js";
@@ -18,9 +19,10 @@ import { datosProd, historial, mesesConDatos, isoHoy } from "./productividad.js"
 import { datosEsc, conformadoDe, cargoEn, tuCargo, proximoCargo, grillaVsRecibo, estimadoNeto } from "./escalafon.js";
 import { permisos } from "./google.js";
 import { activa as sincroActiva } from "./sincro.js";
+import { renderDolares } from "./sueldousd.js";
 
 // A qué universo pertenece cada detalle (para el PIN o la huella).
-export const DETALLE_UNI = { sueldo: "bna", productividad: "bna", escalafon: "bna", plata: "finanzas" };
+export const DETALLE_UNI = { dolares: "bna", sueldo: "bna", productividad: "bna", escalafon: "bna", plata: "finanzas" };
 
 const may = (t) => t.charAt(0).toUpperCase() + t.slice(1);
 const pct1 = (x) => (Math.round(x * 10) / 10).toLocaleString("es-AR", { maximumFractionDigits: 1 });
@@ -38,7 +40,7 @@ function pesos() {
 }
 
 export function renderDetalle(id, datos, ctx) {
-  const f = { sueldo, plata, productividad, escalafon }[id];
+  const f = { sueldo, plata, productividad, escalafon, dolares: renderDolares }[id];
   if (!f) return `<div class="pagina"><a class="volver" href="#/">${ICONOS.volver} Inicio</a><h1>No existe</h1><p class="bajada">Ese detalle no existe.</p></div>`;
   return `<div class="pagina detalle">${f(datos, ctx)}</div>`;
 }
@@ -116,7 +118,7 @@ function sueldo() {
   return `${cab}<section class="bloque dt-hero">${hero}${barras}</section>
     <section class="bloque dt-lista-meses">${lista}</section>
     <p class="fuente-dato">Orbe lee los PDF de tu carpeta BNA en Drive (y los bonos de sus subcarpetas) y los anota en las hojas MES y BONOS de tu planilla. Solo tus números.</p>
-    <div class="chips" style="margin-top:12px"><a class="chip" href="#/d/escalafon">Escalafón y aumentos ›</a>${linkHoja() ? `<a class="chip" href="${esc(linkHoja())}" target="_blank" rel="noopener">Abrir la planilla</a>` : ""}</div>`;
+    <div class="chips" style="margin-top:12px"><a class="chip" href="#/d/dolares">En dólares, desde 2020 ›</a><a class="chip" href="#/d/escalafon">Escalafón y aumentos ›</a>${linkHoja() ? `<a class="chip" href="${esc(linkHoja())}" target="_blank" rel="noopener">Abrir la planilla</a>` : ""}</div>`;
 }
 
 // ---------- Plata a fondo ----------

@@ -1,5 +1,16 @@
 # Novedades de Orbe
 
+## v0.45.0 · 30/10/2026
+
+Tu sueldo en dólares.
+
+- BNA › Tu sueldo › «En dólares, desde 2020»: Orbe lee todos tus recibos de BNA › RECIBOS (una carpeta por año) y pasa cada neto a dólares blue del mes en que lo cobraste.
+- Para cada recibo: cuánto cobraste, cuántos dólares eran y cuánto sería hoy a dólar de hoy. Arriba, tu primer recibo contra el último, con cuánto subió o bajó medido en dólares.
+- Gráfico de US$ por mes, promedio por año, mejor y peor mes, y la lista mes por mes. Con una tecla, lo ves con el dólar oficial.
+- Los recibos de 2020 a 2025 (los que dicen «Líquido a cobrar») ahora también se entienden. Los «DB» y los bonos aparte no entran.
+- La cuenta se hace en tu celu: el servidor solo da el dólar de cada mes (dato público) y nunca ve tu sueldo.
+- Arreglo: en enero, Orbe va a buscar sola la carpeta del año nuevo de recibos.
+
 ## v0.44.0 · 30/10/2026
 
 Llegaron los tableros.

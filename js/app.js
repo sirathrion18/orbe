@@ -16,7 +16,8 @@ import { HOJAS_PROD, leerProd, datosProd, compararOficial, mandar as mandarProd,
 import { HOJAS_LISTAS, leerListas, datosListas, traerGithub, sumarSemanalAProyectos, agregarAgus, tildarAgus, anotarPartido, guardarProximos } from "./listas.js";
 import { sincronizar, activa as sincroActiva } from "./sincro.js";
 import { leerPlanilla, traerMails, corregir, datosFinanzas, pendientesDeTarjetas, guardarTope } from "./finanzas.js";
-import { leerRecibos } from "./recibos.js";
+import { leerRecibos, leerRecibosViejos, datosSueldosHist } from "./recibos.js";
+import { traerDolarMeses, datosDolarMeses, leerTodos as leerTodosRecibos } from "./sueldousd.js";
 import { datosFacu, traerCampus, leerFacu, tildarTp, nuevoTp, guardarMateria, asignarTp, pendientesDeTps, HOJAS_FACU } from "./facu.js";
 import { datosCampus, leerCampus, tildarCampus, pendientesDeCampus, HOJAS_CAMPUS } from "./campus.js";
 import { datosSatelite, retirarSatelite, codigoSatelite, anularSatelite } from "./satelite.js";
@@ -165,6 +166,8 @@ function pintar(refresco = false) {
   riverEnNegrita(app);
   if (esInicio) { despuesInicio(app, !refresco); conectarBuscador(); }
   montarCosmos(r);
+  // Tu sueldo en dólares: el dólar de cada mes se baja recién cuando abrís la página.
+  if (r === "/d/dolares" && !datosDolarMeses()) traerDolarMeses().then((d) => { if (d && ruta() === "/d/dolares") pintar(true); });
   const lector = app.querySelector(".lector-ed");
   if (lector) {
     // srcdoc en vez de una dirección: la edición viene de lo guardado, así abre sin señal. Sin scripts, con los links afuera.
@@ -181,7 +184,6 @@ function pintar(refresco = false) {
 // y deja de dibujar apenas salís.
 let cosmos = null;
 let abriendoEd = null;
-// Cambiar un logo desde el cosmos: la lista de abajo se repinta (sin tocar el cosmos, que ya lo cambió).
 function montarCosmos(r) {
   const caja = r === "/u/proyectos" ? document.getElementById("cosmos") : null;
   if (!caja) { cosmos?.parar(); return; }
@@ -541,6 +543,9 @@ document.addEventListener("click", (e) => {
   else if (a === "medita-parar") { clearInterval(timerMedita); meditar(0); const r = document.getElementById("medita-reloj"); if (r) r.textContent = "05:00"; }
   else if (a === "google-conectar") conectarGoogle(false);
   else if (a === "google-actualizar" || a === "actualizar-todo") actualizarTodo(true);
+  else if (a === "hist-leer") leerTodosRecibos(leerRecibosViejos, () => { if (ruta() === "/d/dolares") pintar(true); }, avisar);
+  else if (a === "usd-casa") { sesion("usdCasa", el.dataset.c === "oficial" ? "oficial" : null); pintar(true); }
+  else if (a === "dolar-meses") traerDolarMeses(true).then(() => pintar(true));
   else if (a === "google-salir") { G.desconectar().then(recargarDatos); avisar("Google desconectado"); }
   else if (a === "google-reconectar") G.conectar();
   else if (a === "activar-todo") G.conectar(true);
@@ -1070,6 +1075,8 @@ async function refrescarTodo(forzar = false) {
   }
   // Recibos (Drive): no dependen de lo demás, así un tropiezo de Gmail no los frena. Cada media hora.
   if (G.permisos().drive && (forzar || Date.now() - (leer("recibosCuando") || 0) > 30 * 60000)) {
+    // Si ya leíste los recibos viejos, los nuevos de RECIBOS/AAAA también entran solos a «En dólares».
+    if (Object.keys(datosSueldosHist()).length) leerRecibosViejos(4).catch(() => {});
     try { const n = await leerRecibos(); guardar("recibosCuando", Date.now(), true); estadoParte("recibos"); if (n) { await leerPlanilla(); avisar("Leí tu recibo nuevo: Finanzas y BNA ya lo usan"); } }
     catch (e) { estadoParte("recibos", e.message); }
   }
