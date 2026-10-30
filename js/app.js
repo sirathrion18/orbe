@@ -2,11 +2,11 @@
 import { cargarDatos, cargarClima, mezclar } from "./fuente.js";
 import * as G from "./google.js";
 import { construirContexto } from "./contexto.js";
-import { renderInicio, despuesInicio, esc, colorUniverso, regresiva } from "./inicio.js";
+import { renderInicio, despuesInicio, esc, colorUniverso, regresiva, renderAvisos } from "./inicio.js";
 import { ICONOS } from "./iconos.js";
 import { renderDetalle, DETALLE_UNI } from "./detalles.js";
 import { hojaArchivosProd } from "./paginas.js";
-import { renderRiver, renderUniverso, renderBloqueo, renderAgenda, renderRespiro, renderDatos, renderAjustes, renderNovedades, renderNoEncontrado, renderSemanal, renderUrgente, hojaMovimiento, hojaTp, hojaMateria, hojaAsignar, hojaAgus, hojaPartido, hojaPasos, hojaPesos, hojaGasto } from "./paginas.js";
+import { renderRiver, renderUniverso, renderBloqueo, renderAgenda, renderRespiro, renderDatos, renderAjustes, renderNovedades, renderNoEncontrado, renderSemanal, renderPedirDiario, renderUrgente, hojaMovimiento, hojaTp, hojaMateria, hojaAsignar, hojaAgus, hojaPartido, hojaPasos, hojaPesos, hojaGasto } from "./paginas.js";
 import { HOJAS_PRESU, leerConfigPresu, cruzar, responder as responderPresu, confirmarIngreso } from "./presupuesto.js";
 import { agregarManual } from "./finanzas.js";
 import { HOJAS_ESC, leerEscalafon, cargarConformado, datosEsc } from "./escalafon.js";
@@ -29,7 +29,8 @@ import { responder } from "./preguntas.js";
 import { fijarEconomia, leerEconomia, datosEconomia, idEconomia } from "./economia.js";
 import { huellaActiva, huellaDisponible, registrarHuella, verificarHuella, sacarHuella } from "./huella.js";
 import { UNIVERSOS, SECCIONES } from "./config.js";
-import { actualizarSemanal, htmlEdicion, marcarLeida, pendientesDeSemanal } from "./semanal.js";
+import { actualizarSemanal, htmlEdicion, marcarLeida, pendientesDeSemanal, ultimaEdicion, edicionAbierta, abrirEdicion, conArchivo } from "./semanal.js";
+import { enApp } from "./rastreador.js";
 import { escribirResumen } from "./resumen.js";
 import { leer, guardar, borrar, todo, borrarTodo, sesion } from "./almacen.js";
 import { sol } from "./sol.js";
@@ -127,9 +128,13 @@ function pintar(refresco = false) {
   }
   else if (r === "/semanal") {
     const bloqueado = (leer("pin") || huellaActiva()) && !sesion("abierto-semanal");
-    html = bloqueado ? renderBloqueo("semanal", huellaActiva(), !!leer("pin")) : renderSemanal();
+    const ed = new URLSearchParams(location.hash.split("?")[1] || "").get("ed");
+    html = bloqueado ? renderBloqueo("semanal", huellaActiva(), !!leer("pin")) : renderSemanal(ed);
+    if (!bloqueado && ed && ed !== ultimaEdicion()?.id && edicionAbierta()?.e.id !== ed && abriendoEd !== ed) { abriendoEd = ed; abrirEdicion(ed).then(() => pintar(true)).catch(() => avisar("No pude bajar esa edición: probá con señal")).finally(() => { abriendoEd = null; }); }
   }
   else if (r === "/urgente") html = renderUrgente(estado.datos, estado.ctx);
+  else if (r === "/pedir-diario") html = renderPedirDiario();
+  else if (r === "/avisos") html = renderAvisos(estado.datos, estado.ctx);
   else if (r === "/checklists") { usarColores((u) => colorUniverso(estado.datos, u, tema)); html = renderChecklists(); }
   else if (r === "/ideas") html = renderIdeas(estado.datos);
   else if (r.startsWith("/p/")) html = renderFicha(decodeURIComponent(r.slice(3)), estado.datos);
@@ -161,8 +166,11 @@ function pintar(refresco = false) {
   const lector = app.querySelector(".lector-ed");
   if (lector) {
     // srcdoc en vez de una dirección: la edición viene de lo guardado, así abre sin señal. Sin scripts, con los links afuera.
-    if (lector.srcdoc !== htmlEdicion()) lector.srcdoc = htmlEdicion();
-    marcarLeida();
+    const id = app.querySelector(".lector")?.dataset.ed;
+    const esUltima = id === ultimaEdicion()?.id;
+    const h = conArchivo(esUltima ? htmlEdicion() : edicionAbierta()?.html || "", id);
+    if (lector.srcdoc !== h) lector.srcdoc = h;
+    if (esUltima) marcarLeida();
   }
   document.title = esInicio ? "Orbe" : "Orbe · " + (app.querySelector("h1")?.textContent.trim() || "");
 }
@@ -170,6 +178,7 @@ function pintar(refresco = false) {
 // Proyectos: el cosmos en 3D se carga recién cuando abrís el universo (así no pesa en el resto de Orbe)
 // y deja de dibujar apenas salís.
 let cosmos = null;
+let abriendoEd = null;
 function montarCosmos(r) {
   const caja = r === "/u/proyectos" ? document.getElementById("cosmos") : null;
   if (!caja) { cosmos?.parar(); return; }
@@ -659,6 +668,13 @@ document.addEventListener("click", (e) => {
     rec.start();
   }
   else if (a === "idea-tag") { sesion("tagIdea", el.dataset.tag || null); pintar(true); }
+  else if (a === "pedir-diario") {
+    try { navigator.clipboard?.writeText("/diario").catch(() => {}); } catch (e) { /* nada */ }
+    avisar("Copiado: /diario. Pegalo en Claude");
+    const url = "https://claude.ai/new";
+    if (/Android/i.test(navigator.userAgent)) location.href = enApp(url); else window.open(url, "_blank", "noopener");
+  }
+  else if (a === "avisos-ir") document.getElementById(el.dataset.id)?.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
   else if (a === "idea-dest") { sesion("destIdea", el.dataset.dest || null); pintar(true); }
   else if (a === "ficha-tab") { sesion("fichaTab", el.dataset.tab); pintar(true); }
   else if (a === "prop-resp") { responderPropuesta(el.dataset.id, el.dataset.r || null); if (el.dataset.r) avisar({ dale: "Anotado: va a la Bandeja", despues: "Queda para más adelante", no: "Descartada" }[el.dataset.r]); pintar(true); }

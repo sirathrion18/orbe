@@ -105,19 +105,17 @@ function paraLeer(html) {
   return /<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>/i, (m) => m + base) : base + html;
 }
 
-// Busca la última edición (El Semanal o El Diario, la más nueva de las dos) y la baja si cambió.
+// Busca la última edición de El Semanal y la baja si cambió. La tapa de Inicio abre siempre el Semanal;
+// los Diarios (que pedís con /diario) viven en el Archivo, al final de cada edición.
 export async function actualizarSemanal(forzar = false) {
   const previa = ultimaEdicion();
   if (!forzar && Date.now() - (leer("semanalCuando") || 0) < 30 * 60000) return false;
-  const [sem, dia] = await Promise.all([
-    buscar("name contains 'El Semanal' and mimeType = 'text/html' and trashed = false"),
-    buscar("name contains 'El Diario' and mimeType = 'application/vnd.google-apps.document' and trashed = false").catch(() => ({ files: [] }))
-  ]);
+  const sem = await buscar("name contains 'El Semanal' and mimeType = 'text/html' and trashed = false");
   guardar("semanalCuando", Date.now(), true);
-  const s = (sem.files || []).find((f) => /N\.?\s*º/.test(f.name)), d = (dia.files || [])[0];
-  const elegido = s && d ? (d.createdTime > s.createdTime ? ["diario", d] : ["semanal", s]) : s ? ["semanal", s] : d ? ["diario", d] : null;
-  if (!elegido) { guardar("semanalError", "sin-ediciones", true); return false; }
-  const [tipo, archivo] = elegido;
+  leerArchivo().catch(() => {});
+  const s = (sem.files || []).find((f) => /N\.?\s*º/.test(f.name));
+  if (!s) { guardar("semanalError", "sin-ediciones", true); return false; }
+  const [tipo, archivo] = ["semanal", s];
   guardar("semanalError", null, true);
   if (previa && previa.id === archivo.id && leer("semanalHtml")) return false;
   const html = tipo === "diario"
@@ -135,6 +133,71 @@ export async function actualizarSemanal(forzar = false) {
 }
 
 export const htmlEdicion = () => leer("semanalHtml");
+
+// ---------- El Archivo: todas las ediciones ----------
+// La lista vive en este dispositivo (título, número y fecha de cada una); el contenido se baja cuando la abrís.
+const buscarTodas = (q) => drive(DRIVE + "?" + new URLSearchParams({ q, orderBy: "createdTime desc", pageSize: "30", fields: "files(id,name,createdTime)" }));
+export const datosArchivo = () => leer("semanalArchivo") || { lista: [] };
+export async function leerArchivo(forzar = false) {
+  const a = datosArchivo();
+  if (!forzar && a.cuando && Date.now() - a.cuando < 30 * 60000) return false;
+  const [sem, dia] = await Promise.all([
+    buscarTodas("name contains 'El Semanal' and mimeType = 'text/html' and trashed = false"),
+    buscarTodas("name contains 'El Diario' and mimeType = 'application/vnd.google-apps.document' and trashed = false").catch(() => ({ files: [] }))
+  ]);
+  const vistos = new Map((a.lista || []).map((x) => [x.id, x]));
+  const archivos = [...(sem.files || []).filter((f) => /N\.?\s*º/.test(f.name)).map((f) => ["semanal", f]), ...(dia.files || []).map((f) => ["diario", f])];
+  const lista = [];
+  let bajadas = 0;
+  for (const [tipo, f] of archivos) {
+    let e = vistos.get(f.id);
+    if (!e && bajadas < 6) {
+      // Solo la primera vez: se baja la edición para sacar su titular (después queda guardado).
+      try { bajadas++; e = resumen(leerEdicion(await bajar(tipo, f.id), f, tipo)); } catch (err) { e = null; }
+    }
+    lista.push(e || { id: f.id, tipo, nombre: tipo === "diario" ? "El Diario" : "El Semanal", numero: ((f.name.match(/N\.?\s*º\s*(\d+)/) || [])[1]) || "", fecha: fechaDeNombre(f.name) || f.createdTime.slice(0, 10), titular: "", pendiente: true });
+  }
+  guardar("semanalArchivo", { cuando: Date.now(), lista: lista.sort((x, y) => (y.fecha || "").localeCompare(x.fecha || "")) }, true);
+  return true;
+}
+const resumen = (e) => ({ id: e.id, tipo: e.tipo, nombre: e.nombre, numero: e.numero, fecha: e.fecha, titular: e.titular, desde: e.desde, hasta: e.hasta });
+const bajar = (tipo, id) => tipo === "diario" ? drive(DRIVE + "/" + id + "/export?mimeType=text%2Fhtml", true) : drive(DRIVE + "/" + id + "?alt=media", true);
+
+// Abrir una edición vieja: se baja y queda guardada (solo la última que abriste, para no llenar el celu).
+export const edicionAbierta = () => leer("semanalOtra");
+export async function abrirEdicion(id) {
+  const x = datosArchivo().lista.find((e) => e.id === id);
+  if (!x) throw new Error("no-esta");
+  const html = await bajar(x.tipo, id);
+  const e = leerEdicion(html, { id, name: (x.nombre || "") + (x.numero ? " N.º " + x.numero : ""), createdTime: (x.fecha || "") + "T12:00:00Z" }, x.tipo);
+  if (x.tipo === "diario") e.doc = id;
+  if (!guardar("semanalOtra", { e, html: paraLeer(html) }, true)) guardar("semanalOtra", null, true);
+  return e;
+}
+
+// La edición que se lee, con el Archivo pegado al final (recién aparece cuando terminás de leer).
+// Los links del Archivo abren dentro de Orbe (#/semanal?ed=…) con un toque.
+const escA = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+export function conArchivo(html, actual) {
+  const o = location.origin;
+  const dmA = (iso) => iso ? Number(iso.slice(8, 10)) + "/" + Number(iso.slice(5, 7)) : "";
+  const fila = (x) => `<a class="oa-ed${x.id === actual ? " oa-on" : ""}" target="_top" href="${o}/#/semanal?ed=${encodeURIComponent(x.id)}"><span class="oa-tp${x.tipo === "diario" ? " oa-di" : ""}">${x.tipo === "diario" ? dmA(x.fecha) : "N.º " + escA(x.numero)}</span><span class="oa-tx"><b>${escA(x.titular || (x.tipo === "diario" ? "El Diario" : "El Semanal N.º " + x.numero))}</b><small>${x.tipo === "diario" ? "El Diario · " + dmA(x.fecha) : (x.desde ? dmA(x.desde) + " al " + dmA(x.hasta) : dmA(x.fecha))}${x.id === actual ? " · estás leyendo esta" : ""}</small></span></a>`;
+  const l = datosArchivo().lista || [];
+  const sem = l.filter((x) => x.tipo !== "diario"), dia = l.filter((x) => x.tipo === "diario");
+  const bloque = `<style>.oa{all:initial;display:block;margin:28px 0 0;background:#111;color:#f2f2f0;padding:22px 18px 30px;font-family:Inter,system-ui,sans-serif}.oa *{box-sizing:border-box}
+.oa h3{margin:0;font:400 30px/1 'Instrument Serif',Georgia,serif;color:#f2f2f0}.oa p{margin:6px 0 0;font-size:13px;color:#a1a1a6;line-height:1.45}
+.oa-pedir{display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding:14px 15px;border-radius:16px;background:#c8102e;color:#fff;font-weight:600;font-size:15px;text-decoration:none}
+.oa-pedir small{display:block;font-weight:400;font-size:12px;opacity:.85;margin-top:2px}.oa-g{margin:18px 0 0;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#a1a1a6}
+.oa-ed{display:flex;gap:12px;align-items:center;padding:11px 0;border-top:1px solid #2a2a2e;color:#f2f2f0;text-decoration:none}.oa-ed:first-of-type{border-top:0}
+.oa-tp{flex:none;width:46px;height:58px;border-radius:6px;background:#f6f4ef;color:#c8102e;display:flex;align-items:center;justify-content:center;font:400 14px Georgia,serif;text-align:center}
+.oa-tp.oa-di{background:#2a2a2e;color:#f2f2f0}.oa-tx b{display:block;font:400 18px/1.15 'Instrument Serif',Georgia,serif}.oa-tx small{display:block;font-size:12px;color:#a1a1a6;margin-top:3px}
+.oa-on .oa-tx b{color:#f87171}</style>
+<section class="oa" aria-label="Archivo de ediciones"><h3>Archivo</h3><p>Todo lo que se generó, desde tu Drive. Tocá una edición y se abre acá.</p>
+<a class="oa-pedir" target="_top" href="${o}/#/pedir-diario"><span>Pedir un Diario<small>Copia /diario y abre Claude: llega en unos minutos.</small></span><span>›</span></a>
+${sem.length ? `<div class="oa-g">El Semanal</div>${sem.map(fila).join("")}` : ""}${dia.length ? `<div class="oa-g">El Diario</div>${dia.map(fila).join("")}` : ""}
+${!l.length ? "<p>Todavía no leí el archivo de tu Drive. Se trae solo con señal.</p>" : ""}</section>`;
+  return /<\/body>/i.test(html) ? html.replace(/<\/body>(?![\s\S]*<\/body>)/i, bloque + "</body>") : html + bloque;
+}
 
 // Próxima edición: el domingo siguiente a las 20:00.
 export function proximaSemanal(hoy = new Date()) {

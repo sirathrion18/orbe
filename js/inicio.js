@@ -227,7 +227,11 @@ function tiraAlarmas(ctx) {
   return `<div class="tira tira-alarmas" data-desliza="${clave}"><div style="flex:1;min-width:0"><div class="k">Recordatorio</div><div class="t">${esc(m)}</div></div><span class="desliza-pista" aria-hidden="true">›</span></div>`;
 }
 
-function tira(ctx, datos) {
+// Inicio ya no muestra estas tiras: viven en Avisos (todas las que correspondan, no solo la primera).
+function tira(ctx, datos) { return tiras(ctx, datos)[0] || ""; }
+function tiras(ctx, datos) {
+  const out = [];
+  const R = (h) => { if (h) out.push(h); };
   // BNA: media hora antes de entrar, acordarte de fichar en Teams (hasta que lo marques o pasen 15 min de la entrada).
   const bna = ctx.demo ? null : ctx.hoy.find((b) => b.tipo === "bna");
   const hoyIso = ctx.fecha.getFullYear() + "-" + String(ctx.fecha.getMonth() + 1).padStart(2, "0") + "-" + String(ctx.fecha.getDate()).padStart(2, "0");
@@ -235,67 +239,67 @@ function tira(ctx, datos) {
   const oc = (k) => tiraOculta(k, hoyIso);
   const alarmas = tiraAlarmas(ctx);
   // La de la alarma se recuerda por la noche entera (no vuelve a aparecer pasada la medianoche).
-  if (alarmas && !oc(alarmas.match(/data-desliza="([^"]+)"/)[1])) return alarmas;
+  if (alarmas && !oc(alarmas.match(/data-desliza="([^"]+)"/)[1])) R(alarmas);
   if (bna && ctx.min >= bna.ini - 30 && ctx.min < bna.ini + 15 && leer("fichado") !== hoyIso && !oc("fichar")) {
-    return `<div class="tira tira-bna" data-desliza="fichar"><div><div class="k">BNA · entrás a las ${bna.inicio}</div><div class="t">Acordate de fichar en Teams</div></div>
-      <button class="btn" style="height:40px;padding:0 14px" data-accion="fichado" data-dia="${hoyIso}">Listo</button></div>`;
+    R(`<div class="tira tira-bna" data-desliza="fichar"><div><div class="k">BNA · entrás a las ${bna.inicio}</div><div class="t">Acordate de fichar en Teams</div></div>
+      <button class="btn" style="height:40px;padding:0 14px" data-accion="fichado" data-dia="${hoyIso}">Listo</button></div>`);
   }
   if (ctx.cumpleManana && ctx.cumpleManana.length && ctx.modo !== "river" && !oc("cumple")) {
-    return `<div class="tira" data-desliza="cumple"><div><div class="k">Mañana cumple</div><div class="t">${esc(unir(ctx.cumpleManana))}</div></div><div class="n">mañana</div></div>`;
+    R(`<div class="tira" data-desliza="cumple"><div><div class="k">Mañana cumple</div><div class="t">${esc(unir(ctx.cumpleManana))}</div></div><div class="n">mañana</div></div>`);
   }
   // Te pasaste del diario: cuánto, y cómo quedan los próximos días.
   const pr = ctx.demo ? null : presupuesto(ctx.fecha);
   if (pr && pr.pasado && pr.diarioManana != null && !leer("plataOculta", false) && !oc("diario")) {
-    return `<a class="tira" data-desliza="diario" href="#/u/finanzas" style="text-decoration:none;border-color:var(--accent)"><div><div class="k">Te pasaste ${pesos(-pr.quedaHoy)} hoy</div>
-      <div class="t">Los próximos días tenés ${pesos(Math.max(0, pr.diarioManana))} por día</div></div></a>`;
+    R(`<a class="tira" data-desliza="diario" href="#/u/finanzas" style="text-decoration:none;border-color:var(--accent)"><div><div class="k">Te pasaste ${pesos(-pr.quedaHoy)} hoy</div>
+      <div class="t">Los próximos días tenés ${pesos(Math.max(0, pr.diarioManana))} por día</div></div></a>`);
   }
   // Racha: 3 días seguidos arriba del diario.
   const nr = ctx.demo || leer("plataOculta", false) ? 0 : racha(ctx.fecha);
   if (nr >= 3 && !oc("racha")) {
-    return `<a class="tira" data-desliza="racha" href="#/u/finanzas" style="text-decoration:none;border-color:var(--accent)"><div><div class="k">Vas ${nr} días arriba del diario</div>
-      <div class="t">Mirá en qué se fue en Finanzas</div></div></a>`;
+    R(`<a class="tira" data-desliza="racha" href="#/u/finanzas" style="text-decoration:none;border-color:var(--accent)"><div><div class="k">Vas ${nr} días arriba del diario</div>
+      <div class="t">Mirá en qué se fue en Finanzas</div></div></a>`);
   }
   // Problemas en la línea E (la tuya, Emilio Mitre): alerta con alternativa, los días que vas al BNA.
   const tr = leer("transporte");
   if (bna && tr?.lineas?.E && !tr.lineas.E.ok && ctx.min < bna.fin && Date.now() - tr.cuando < 30 * 60000 && !oc("linea")) {
-    return `<div class="tira" data-desliza="linea" style="border-color:var(--accent)"><div><div class="k">Línea E con problemas</div>
-      <div class="t">${esc(tr.lineas.E.texto || "Servicio interrumpido o demorado")}</div><div class="sub" style="font-size:13px;color:var(--muted);margin-top:3px">Alternativa: colectivo 42, 26 o 135. Salí con margen.</div></div></div>`;
+    R(`<div class="tira" data-desliza="linea" style="border-color:var(--accent)"><div><div class="k">Línea E con problemas</div>
+      <div class="t">${esc(tr.lineas.E.texto || "Servicio interrumpido o demorado")}</div><div class="sub" style="font-size:13px;color:var(--muted);margin-top:3px">Alternativa: colectivo 42, 26 o 135. Salí con margen.</div></div></div>`);
   }
   // Aniversario o cumple de Agus: aviso desde 3 días antes.
   const fa = (leer("listas")?.agus || []).filter((x) => x.tipo === "fecha" && x.fecha && /anual/i.test(x.nota))
     .map((x) => ({ ...x, ...proximaAnual(x.fecha, ctx.fecha) })).filter((x) => x.dias <= 3).sort((a, b) => a.dias - b.dias)[0];
   if (fa && ctx.modo !== "river" && !oc("agus")) {
-    return `<a class="tira" data-desliza="agus" href="#/u/agus" style="text-decoration:none"><div><div class="k">Se viene</div><div class="t">${esc(fa.titulo)}</div></div><div class="n">${cuandoTexto(fa.dias)}</div></a>`;
+    R(`<a class="tira" data-desliza="agus" href="#/u/agus" style="text-decoration:none"><div><div class="k">Se viene</div><div class="t">${esc(fa.titulo)}</div></div><div class="n">${cuandoTexto(fa.dias)}</div></a>`);
   }
   if (ctx.modo === "river" && ctx.partido && !oc("river")) {
     const p = ctx.partido;
     const fin = ctx.min >= p.fin;
-    return `<div class="tira" data-desliza="river"><div><div class="k">${fin ? "Resultado" : "Formación probable"}</div>
+    R(`<div class="tira" data-desliza="river"><div><div class="k">${fin ? "Resultado" : "Formación probable"}</div>
       <div class="t">${esc(fin ? p.titulo : (p.detalle?.formacion || "—"))}</div></div>
-      <div class="n">${fin ? esc(p.detalle?.resultado || "—") : p.inicio}</div></div>`;
+      <div class="n">${fin ? esc(p.detalle?.resultado || "—") : p.inicio}</div></div>`);
   }
   if (ctx.modo === "marvel" && !oc("marvel")) {
     const e = ctx.estreno;
     if (e && (e.dias <= 14 || !ctx.viaje || ctx.fecha.getDate() === 7))
-      return `<div class="tira" data-desliza="marvel"><div><div class="k">Se viene</div><div class="t">${esc(e.titulo)}</div></div><div class="n">${cuandoTexto(e.dias)}</div></div>`;
-    if (ctx.viaje)
-      return `<div class="tira" data-desliza="marvel"><div><div class="k">Cuenta regresiva</div><div class="t">${esc(ctx.viaje.titulo)}</div></div><div class="n">${cuandoTexto(ctx.viaje.dias)}</div></div>`;
+      R(`<div class="tira" data-desliza="marvel"><div><div class="k">Se viene</div><div class="t">${esc(e.titulo)}</div></div><div class="n">${cuandoTexto(e.dias)}</div></div>`);
+    else if (ctx.viaje)
+      R(`<div class="tira" data-desliza="marvel"><div><div class="k">Cuenta regresiva</div><div class="t">${esc(ctx.viaje.titulo)}</div></div><div class="n">${cuandoTexto(ctx.viaje.dias)}</div></div>`);
   }
   // Un rato libre hoy y una entrega cerca: sugerencia para estudiar (sin tocar el calendario, salvo que lo pidas).
   const est = ratoDeEstudio(ctx, datos);
   if (est && !oc("estudio")) {
     const puede = permisosG().calendario;
-    return `<div class="tira" data-desliza="estudio" style="flex-wrap:wrap"><div style="flex:1;min-width:170px"><div class="k">Rato para estudiar</div>
+    R(`<div class="tira" data-desliza="estudio" style="flex-wrap:wrap"><div style="flex:1;min-width:170px"><div class="k">Rato para estudiar</div>
       <div class="t">${hhmm(est.ini)}–${hhmm(est.fin)} · ${esc(est.tp.titulo)} (${cuandoTexto(est.tp.dias)})</div></div>
-      ${puede ? `<button class="btn" style="height:40px;padding:0 14px" data-accion="agendar-estudio" data-titulo="${esc(est.tp.titulo)}" data-ini="${est.desde}" data-fin="${est.hasta}">Agendar</button>` : ""}</div>`;
+      ${puede ? `<button class="btn" style="height:40px;padding:0 14px" data-accion="agendar-estudio" data-titulo="${esc(est.tp.titulo)}" data-ini="${est.desde}" data-fin="${est.hasta}">Agendar</button>` : ""}</div>`);
   }
   // El dólar, solo si se movió fuerte.
   const dm = movimientoDolar();
   if (dm && Math.abs(dm.pct) >= 2 && !oc("dolar")) {
-    return `<a class="tira" data-desliza="dolar" href="#/u/finanzas" style="text-decoration:none"><div><div class="k">Dólar MEP</div><div class="t">${dm.pct > 0 ? "Subió" : "Bajó"} ${Math.abs(dm.pct).toFixed(1).replace(".", ",")}% desde ayer</div></div>
-      <div class="n">$ ${Math.round(dm.mep).toLocaleString("es-AR")}</div></a>`;
+    R(`<a class="tira" data-desliza="dolar" href="#/u/finanzas" style="text-decoration:none"><div><div class="k">Dólar MEP</div><div class="t">${dm.pct > 0 ? "Subió" : "Bajó"} ${Math.abs(dm.pct).toFixed(1).replace(".", ",")}% desde ayer</div></div>
+      <div class="n">$ ${Math.round(dm.mep).toLocaleString("es-AR")}</div></a>`);
   }
-  return "";
+  return out;
 }
 
 function ratoDeEstudio(ctx, datos) {
@@ -594,7 +598,7 @@ export function renderInicio(datos, ctx, climaDatos, tema) {
       <div class="top"><span class="fecha-hora">${fechaTxt} <span class="hora">· <span id="hora-top">${hhmm(ctx.min)}</span><span class="seg" id="seg-top">:${seg}</span></span>${ctx.demo ? ' <a class="ejemplo" href="#/ajustes" style="text-decoration:none">Prueba</a>' : ""}</span>
         <span class="der">
           <button class="icon-btn" data-accion="buscar" aria-label="Buscar o escribir un comando">${ICONOS.buscar}</button>
-          <button class="icon-btn" data-accion="actualizar-todo" aria-label="Actualizar todo">${ICONOS.recargar}</button>
+          ${(() => { const n = cuentaAvisos(datos, ctx); return `<a class="icon-btn campana" href="#/avisos" aria-label="Avisos${n ? ": " + n + " para mirar" : ""}">${ICONOS.campana}${n ? `<span class="badge">${n > 9 ? "9+" : n}</span>` : ""}</a>`; })()}
           <button class="icon-btn" data-accion="tema" aria-label="Pasar a modo ${tema === "oscuro" ? "claro" : "oscuro"}">${temaIcono}</button>
           <a class="icon-btn" href="#/ajustes" aria-label="Ajustes">${ICONOS.ajustes}</a></span></div>
       <div class="buscador flotante" role="search" hidden>
@@ -605,16 +609,53 @@ export function renderInicio(datos, ctx, climaDatos, tema) {
       ${compacto ? `<div class="cab">${anillo(datos, ctx, tema)}${saludo}</div>` : `${saludo}${reloj}${ctx.guino === "tva" ? lineaTva(urgentesTodos(datos, ctx).length) : leyenda(datos, ctx, tema)}`}
     </div>
     <div class="col-b">
-      ${tira(ctx, datos)}
-      <div class="widgets">${ctx.fechaGuino?.tarjeta || ""}${lineaGuino(ctx.guino, ctx)}${wUrgente(datos, ctx)}${ver("chk", wChecklists())}${cuadros}${ver("plata", wPlata(datos, ctx))}</div>
-      ${ver("preguntas", avisoPreguntas())}
-      ${ver("bnahoy", wBnaHoy(ctx))}
+      ${chipAvisos(datos, ctx)}
+      <div class="widgets">${ctx.fechaGuino?.tarjeta || ""}${lineaGuino(ctx.guino, ctx)}${ver("plata", wPlata(datos, ctx))}${cuadros}</div>
       ${ver("semanal", wSemanal())}
-      ${ver("transporte", wTransporte())}
       <p class="pie">${MARCA}<br>${pieAgenda(datos)} · <a href="#/novedades">novedades</a> · <a href="privacidad.html">privacidad</a></p>
     </div>
   </div>
   <button class="fab" data-accion="idea" aria-label="Anotar una idea o armar un checklist">${ICONOS.mas}</button>`;
+}
+
+// ---------- Avisos ----------
+// Todo lo que te pide algo vive en Avisos (la campanita de Inicio): lo urgente, lo de hoy, las preguntas de plata,
+// los checklists, el transporte cuando hay problemas y lo que va a llegarte al celu. Inicio queda liviano.
+function transporteMal() { const t = leer("transporte"); return !!(t?.lineas && LINEAS.some(([l]) => t.lineas[l] && !t.lineas[l].ok)); }
+export function cuentaAvisos(datos, ctx) {
+  try { return urgentesTodos(datos, ctx).length + tiras(ctx, datos).length + (preguntas().length ? 1 : 0) + (transporteMal() ? 1 : 0); } catch (e) { return 0; }
+}
+function chipAvisos(datos, ctx) {
+  const u = urgentesTodos(datos, ctx), n = cuentaAvisos(datos, ctx), resto = n - u.length;
+  if (!n) return "";
+  const vencidos = u.filter((p) => p.dias < 0).length;
+  const txt = u.length ? `<b>${u.length} ${u.length === 1 ? "cosa urgente" : "cosas urgentes"}</b>${vencidos ? ` (${vencidos} ${vencidos === 1 ? "vencida" : "vencidas"})` : ""}${resto ? ` y ${resto} más` : ""}`
+    : `<b>${n} ${n === 1 ? "aviso" : "avisos"}</b> para mirar`;
+  return `<a class="chip-avisos ${u.length ? "urg" : ""}" href="#/avisos"><span class="pt" aria-hidden="true"></span><span>${txt} en Avisos</span><span class="fl" aria-hidden="true">›</span></a>`;
+}
+export function renderAvisos(datos, ctx) {
+  const u = urgentesTodos(datos, ctx);
+  const item = (p) => `<div class="av-it"><button class="tilde" data-accion="hecho" data-clave="${esc(p.clave)}" aria-label="Marcar ${esc(p.titulo)} como hecho">${ICONOS.check}</button>
+    <a class="av-txt" href="${esc(p.link || p.ruta || "#/u/" + (p.universo || "finanzas"))}"${p.link ? ' target="_blank" rel="noopener"' : ""}><b>${esc(p.titulo)}${p.monto ? " · " + esc(p.monto) : ""}</b><small>${esc(p.fuente || (UNIVERSOS.find((x) => x.id === p.universo)?.nombre) || "")}</small></a>
+    <span class="av-cuando ${p.dias <= 1 ? "rojo" : ""}">${cuandoTexto(p.dias)}</span></div>`;
+  const sec = (id, titulo, html) => html ? `<section class="av-sec" id="av-${id}"><h2 class="av-h">${titulo}</h2>${html}</section>` : "";
+  const hoy = tiras(ctx, datos).join("") + (wBnaHoy(ctx) || "");
+  const plata = preguntas().length ? `<div class="widgets">${wPregunta()}</div>${avisoPreguntas()}` : "";
+  const chk = wChecklists(8, 4);
+  const trans = transporteMal() ? wTransporte() : "";
+  const env = leer("avisosEnvio");
+  const celu = env?.proximos?.length ? `<ul class="av-celu">${env.proximos.map((x) => `<li><b>${esc(x.titulo)}</b><small>${new Date(x.ts).toLocaleString("es-AR", { weekday: "short", hour: "2-digit", minute: "2-digit" })}${x.texto ? " · " + esc(x.texto) : ""}</small></li>`).join("")}</ul><a class="dt-ir" href="#/ajustes">Qué te avisa y cuándo <span aria-hidden="true">›</span></a>` : "";
+  const partes = [
+    ["urgente", "Urgente", u.length ? u.slice(0, 6).map(item).join("") + (u.length > 6 ? `<a class="dt-ir" href="#/urgente">Ver los ${u.length} <span aria-hidden="true">›</span></a>` : "") : ""],
+    ["hoy", "Para hoy", hoy], ["plata", "Plata", plata], ["chk", "Checklists", chk], ["trans", "Transporte", trans], ["celu", "Lo que te va a llegar al celu", celu]
+  ];
+  const hay = partes.filter(([, , h]) => h);
+  const chips = hay.length > 1 ? `<div class="chips av-chips">${hay.map(([id, t]) => `<button class="chip" data-accion="avisos-ir" data-id="av-${id}">${t.replace("Lo que te va a llegar al celu", "Celu")}${id === "urgente" ? " " + u.length : ""}</button>`).join("")}</div>` : "";
+  const total = cuentaAvisos(datos, ctx);
+  return `<div class="pagina avisos"><a class="volver" href="#/">${ICONOS.volver} Inicio</a><h1>Avisos</h1>
+    <p class="bajada">${total ? "Todo lo que te pide algo, en un solo lugar. Lo tildás acá mismo." : "Nada pendiente. Todo en orden por ahora."}</p>
+    ${chips}${hay.map(([id, t, h]) => sec(id, t, h)).join("")}
+    ${!hay.length ? `<p class="vacio">Cuando algo venza, haya que contestar o llegue al celu, aparece acá.</p>` : ""}</div>`;
 }
 
 // ---------- El Semanal ----------

@@ -1412,3 +1412,30 @@ a.dt-fuente:hover { color: var(--text); }
 .tinta-venom { position: fixed; inset: 0; pointer-events: none; z-index: 1; box-shadow: inset 0 0 70px 10px rgba(0,0,0,.55); opacity: 0; animation: tinta 7s ease-in-out 1 forwards; }
 @keyframes tinta { 0% { opacity: 0; } 25%, 70% { opacity: 1; } 100% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .tinta-venom { display: none; } }
+
+/* ---------- Avisos (la campanita) ---------- */
+.icon-btn.campana { position: relative; text-decoration: none; }
+.icon-btn .badge { position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: var(--accent); color: var(--bg);
+  font: 700 10.5px/18px var(--sans); text-align: center; letter-spacing: 0; }
+.chip-avisos { position: relative; display: flex; align-items: center; gap: 12px; margin-top: 18px; padding: 13px 15px; border-radius: 16px; border: 1px solid var(--line); text-decoration: none; font-size: 14px; }
+.chip-avisos.urg { border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+.chip-avisos .pt { width: 8px; height: 8px; border-radius: 4px; background: var(--muted); flex: none; }
+.chip-avisos.urg .pt { background: var(--accent); }
+.chip-avisos .fl { margin-left: auto; color: var(--muted); font-size: 18px; }
+.avisos .av-chips { margin: 4px 0 6px; }
+.av-sec { margin-top: 22px; }
+.av-h { margin: 0 0 8px; font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.av-sec .widgets { margin-top: 0; }
+.av-sec .tira { margin-top: 8px; }
+.av-it { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border-radius: 16px; background: var(--tile); margin-top: 6px; }
+.av-it .tilde { flex: none; width: 26px; height: 26px; border-radius: 13px; border: 1.5px solid var(--line); background: transparent; padding: 4px; color: var(--muted); }
+.av-txt { flex: 1; min-width: 0; text-decoration: none; }
+.av-txt b { display: block; font-size: 14.5px; font-weight: 600; line-height: 1.3; }
+.av-txt small { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
+.av-cuando { flex: none; font-size: 12px; color: var(--muted); white-space: nowrap; }
+.av-cuando.rojo { color: var(--accent); }
+.av-celu { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.av-celu li { padding: 12px 14px; border-radius: 16px; background: var(--tile); }
+.av-celu b { display: block; font-size: 14px; }
+.av-celu small { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
+.lector-ultima { margin-left: 8px; flex: none; font-size: 11px; font-weight: 600; padding: 4px 9px; border-radius: 999px; background: var(--text); color: var(--bg); text-decoration: none; white-space: nowrap; }

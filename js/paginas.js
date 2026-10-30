@@ -20,7 +20,7 @@ import { datosCampus } from "./campus.js";
 import { paginaCampus } from "./campusui.js";
 import { bloqueSatelite } from "./sateliteui.js";
 import { datosEconomia, linkEconomia, idEconomia } from "./economia.js";
-import { ultimaEdicion, htmlEdicion } from "./semanal.js";
+import { ultimaEdicion, htmlEdicion, edicionAbierta, datosArchivo } from "./semanal.js";
 import { GUINOS, GUINOS_FECHA, guinosPrendidos, resumenGuinos, NIVELES, nivelGuinos } from "./guinos.js";
 import { bloqueSuscripciones } from "./suscripciones.js";
 import { heroHoy, avisoRacha, graficoDias, tarjetaAgus, heroMes, analisisGastos, bloqueMesReal, bloqueGastosHoy, bloqueGastosMes, bloqueSaldo, recordarSaldo } from "./finanzasui.js";
@@ -467,8 +467,17 @@ export function renderUrgente(datos, ctx) {
 
 // ---------- El Semanal ----------
 // El lector: la edición tal cual salió (la que está guardada en este dispositivo, así se lee sin señal).
-export function renderSemanal() {
-  const e = ultimaEdicion(), html = htmlEdicion();
+export function renderSemanal(ed) {
+  const ultima = ultimaEdicion();
+  // Una edición del Archivo: si ya está bajada se lee; si no, se avisa y se baja.
+  if (ed && ed !== ultima?.id) {
+    const o = edicionAbierta();
+    const x = datosArchivo().lista.find((y) => y.id === ed);
+    if (!o || o.e.id !== ed) return `<div class="lector"><div class="lector-bar"><a class="lector-volver" href="#/semanal" aria-label="Volver a la última edición">${ICONOS.volver}</a>
+      <span class="lector-tit">${logoSemanal(x?.nombre || "El Semanal", "chico")}</span></div><p class="vacio" style="padding:24px">${x ? "Bajando la edición de tu Drive…" : "No encontré esa edición en el Archivo."}</p></div>`;
+    return lectorDe(o.e, true);
+  }
+  const e = ultima, html = htmlEdicion();
   if (!e || !html) {
     const err = leer("semanalError") || "";
     const motivo = !permisosG().drive ? "Orbe todavía no tiene permiso para leer tu Drive. Conectalo en Ajustes y volvé."
@@ -479,12 +488,23 @@ export function renderSemanal() {
       <div class="chips" style="margin-top:12px">${/api-apagada:drive/.test(err) ? '<a class="chip" target="_blank" rel="noopener" href="https://console.cloud.google.com/apis/library/drive.googleapis.com?project=orbe-512903">Prender Drive</a>' : ""}
       <a class="chip" target="_blank" rel="noopener" href="https://drive.google.com/drive/search?q=%22El%20Semanal%22">Buscarla en Drive</a></div></div>`;
   }
+  return lectorDe(e, false);
+}
+function lectorDe(e, vieja) {
   const f = new Date(e.fecha + "T12:00:00");
   const meta = (e.numero ? "N.º " + esc(e.numero) + " · " : "") + DIAS[f.getDay()].slice(0, 3) + " " + f.getDate() + "/" + (f.getMonth() + 1);
   const drive = e.doc ? `<a class="lector-drive" target="_blank" rel="noopener" href="https://docs.google.com/document/d/${encodeURIComponent(e.doc)}/edit">Drive</a>` : "";
-  return `<div class="lector"><div class="lector-bar"><a class="lector-volver" href="#/" aria-label="Volver a Inicio">${ICONOS.volver}</a>
-    <span class="lector-tit">${logoSemanal(e.nombre, "chico")}<span class="lector-meta">${meta}</span></span>${drive}</div>
-    <iframe class="lector-ed" title="${esc(e.nombre)}${e.numero ? " N.º " + esc(e.numero) : ""}" sandbox="allow-popups allow-popups-to-escape-sandbox"></iframe></div>`;
+  return `<div class="lector" data-ed="${esc(e.id)}"><div class="lector-bar"><a class="lector-volver" href="#/" aria-label="Volver a Inicio">${ICONOS.volver}</a>
+    <span class="lector-tit">${logoSemanal(e.nombre, "chico")}<span class="lector-meta">${meta}</span>${vieja ? '<a class="lector-ultima" href="#/semanal">Ir a la última</a>' : ""}</span>${drive}</div>
+    <iframe class="lector-ed" title="${esc(e.nombre)}${e.numero ? " N.º " + esc(e.numero) : ""}" sandbox="allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"></iframe></div>`;
+}
+
+// Pedir un Diario: se copia /diario y se abre Claude para pegarlo.
+export function renderPedirDiario() {
+  return `<div class="pagina"><a class="volver" href="#/semanal">${ICONOS.volver} El Semanal</a><h1>Pedir un Diario</h1>
+    <p class="bajada">El Diario es la edición larga, para leer en el subte, que sale cuando la pedís. Copiá el pedido, pegalo en Claude y en unos minutos aparece en el Archivo, al final del Semanal.</p>
+    <button class="btn ancho-completo" data-accion="pedir-diario" style="height:54px;font-size:16px">Copiar /diario y abrir Claude</button>
+    <p class="fuente-dato">Se guarda en tu Drive como siempre. Orbe lo encuentra solo.</p></div>`;
 }
 
 // ---------- Secciones ----------

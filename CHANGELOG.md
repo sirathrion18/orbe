@@ -1,5 +1,17 @@
 # Novedades de Orbe
 
+## v0.41.0 · 30/10/2026
+
+Más liviano.
+
+- Inicio más liviano: queda lo del momento (el anillo, la plata del día, River, el clima y El Semanal). Todo lo que te pide algo pasó a Avisos.
+- Avisos, con la campanita de Inicio y su número: lo urgente (se tilda ahí mismo), lo de hoy (alarmas, fichar, Línea E, cumpleaños), las preguntas de plata, los checklists, el transporte cuando hay problemas y lo que te va a llegar al celu.
+- El Semanal: la tapa abre siempre el último Semanal. Al terminar de leerlo aparece el Archivo con todos los Semanales y Diarios de tu Drive; tocás uno y se abre ahí, con «Ir a la última» arriba.
+- «Pedir un Diario», al final del Semanal: copia /diario y abre Claude.
+- Proyectos: pellizcá para alejar o acercar (o la ruedita en la compu) y «Ver todo». El anillo de Orbe brilla menos.
+- Productividad: busca en toda tu carpeta PRODUCTIVIDAD (sin los «~$» de Excel), dice con qué planilla comparó y hasta qué día llega tu fila, y podés elegirla con «Elegir archivo».
+- Guiños: pocos por defecto (las fechas y el día de River), elegibles en Ajustes. Venom sin mancha: la frase en plural y un borde de tinta que se va.
+
 ## v0.40.0 · 30/10/2026
 
 El cosmos.
