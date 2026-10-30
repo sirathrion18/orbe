@@ -15,6 +15,7 @@ import { ultimaEdicion, esNueva, proximaSemanal } from "./semanal.js";
 import { wChecklists, usarColores } from "./checklists.js";
 import { decoracion, hudSobre, decreto, lineaTva, lineaGuino } from "./guinos.js";
 import { wBnaHoy } from "./bnahoy.js";
+import { huevo, huevosDespues } from "./huevos.js";
 import { racha, motivoSinDiario, resumenGastosHoy } from "./finanzasui.js";
 
 export const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -177,7 +178,7 @@ function anillo(datos, ctx, tema) {
       ${marcaAlarma}
       ${punto}
     </svg>
-    <span class="centro"><span class="lbl">${lbl}</span><span class="big"${!ctx.demo && big === hhmm(ctx.min) ? ' id="hora-anillo"' : ""}>${big}</span><span class="sub">${sub}</span></span>
+    <span class="centro"><span class="lbl">${lbl}</span><span class="big"${!ctx.demo && big === hhmm(ctx.min) ? ' id="hora-anillo"' : ""}>${big}</span><span class="sub">${sub}</span>${huevo("reloj", { fecha: ctx.fecha, min: ctx.min, partido: ctx.partido })}</span>
   </a>`;
 }
 
@@ -580,7 +581,8 @@ export function renderInicio(datos, ctx, climaDatos, tema) {
   const compacto = !!leer("inicioCompacto");
   const ahora = new Date();
   const seg = String(ahora.getSeconds()).padStart(2, "0");
-  const saludo = `<div class="saludo"><h1>${elegirSaludo(datos, ctx, climaDatos)}</h1></div>`;
+  const hctx = { fecha: ctx.fecha, min: ctx.min, partido: ctx.partido };
+  const saludo = `<div class="saludo"><h1>${elegirSaludo(datos, ctx, climaDatos)}</h1>${huevo("saludo", hctx)}</div>`;
   // Lo que elegiste no ver en Ajustes › Diseño (Urgente siempre está).
   const oculto = new Set(leer("inicioOcultos", []));
   const ver = (k, html) => (oculto.has(k) ? "" : html);
@@ -595,7 +597,7 @@ export function renderInicio(datos, ctx, climaDatos, tema) {
   <div class="inicio ${compacto ? "compacto" : ""} ${ctx.guino ? "guino-" + ctx.guino : ""} ${ctx.fechaGuino ? ctx.fechaGuino.clase : ""}">
     ${decoracion(ctx.guino)}${ctx.fechaGuino?.deco || ""}
     <div class="col-a">
-      <div class="top"><span class="fecha-hora">${fechaTxt} <span class="hora">· <span id="hora-top">${hhmm(ctx.min)}</span><span class="seg" id="seg-top">:${seg}</span></span>${ctx.demo ? ' <a class="ejemplo" href="#/ajustes" style="text-decoration:none">Prueba</a>' : ""}</span>
+      <div class="top"><span class="fecha-hora">${fechaTxt} <span class="hora">· <span id="hora-top">${hhmm(ctx.min)}</span><span class="seg" id="seg-top">:${seg}</span></span>${huevo("fecha", hctx)}${ctx.demo ? ' <a class="ejemplo" href="#/ajustes" style="text-decoration:none">Prueba</a>' : ""}</span>
         <span class="der">
           <button class="icon-btn" data-accion="buscar" aria-label="Buscar o escribir un comando">${ICONOS.buscar}</button>
           ${(() => { const n = cuentaAvisos(datos, ctx); return `<a class="icon-btn campana" href="#/avisos" aria-label="Avisos${n ? ": " + n + " para mirar" : ""}">${ICONOS.campana}${n ? `<span class="badge">${n > 9 ? "9+" : n}</span>` : ""}</a>`; })()}
@@ -612,7 +614,7 @@ export function renderInicio(datos, ctx, climaDatos, tema) {
       ${chipAvisos(datos, ctx)}
       <div class="widgets">${ctx.fechaGuino?.tarjeta || ""}${lineaGuino(ctx.guino, ctx)}${ver("plata", wPlata(datos, ctx))}${cuadros}</div>
       ${ver("semanal", wSemanal())}
-      <p class="pie">${MARCA}<br>${pieAgenda(datos)} · <a href="#/novedades">novedades</a> · <a href="privacidad.html">privacidad</a></p>
+      <p class="pie">${MARCA}${((h) => h ? "<br>" + h : "")(huevo("pie", hctx))}<br>${pieAgenda(datos)} · <a href="#/novedades">novedades</a> · <a href="privacidad.html">privacidad</a></p>
     </div>
   </div>
   <button class="fab" data-accion="idea" aria-label="Anotar una idea o armar un checklist">${ICONOS.mas}</button>`;
@@ -653,7 +655,7 @@ export function renderAvisos(datos, ctx) {
   const chips = hay.length > 1 ? `<div class="chips av-chips">${hay.map(([id, t]) => `<button class="chip" data-accion="avisos-ir" data-id="av-${id}">${t.replace("Lo que te va a llegar al celu", "Celu")}${id === "urgente" ? " " + u.length : ""}</button>`).join("")}</div>` : "";
   const total = cuentaAvisos(datos, ctx);
   return `<div class="pagina avisos"><a class="volver" href="#/">${ICONOS.volver} Inicio</a><h1>Avisos</h1>
-    <p class="bajada">${total ? "Todo lo que te pide algo, en un solo lugar. Lo tildás acá mismo." : "Nada pendiente. Todo en orden por ahora."}</p>
+    <p class="bajada">${total ? "Todo lo que te pide algo, en un solo lugar. Lo tildás acá mismo." : (huevo("vacio", { fecha: ctx.fecha, min: ctx.min }) || "Nada pendiente. Todo en orden por ahora.")}</p>
     ${chips}${hay.map(([id, t, h]) => sec(id, t, h)).join("")}
     ${!hay.length ? `<p class="vacio">Cuando algo venza, haya que contestar o llegue al celu, aparece acá.</p>` : ""}</div>`;
 }
@@ -694,6 +696,7 @@ export function wSemanal() {
 
 // Después de pintar: animar el anillo y ubicar la banda de River en el centro del círculo.
 export function despuesInicio(app, animar = true) {
+  try { huevosDespues(app); } catch (e) { /* un huevito nunca rompe Inicio */ }
   // El saludo nunca se corta: si un renglón no entra, se achica la letra hasta que entre.
   const h1 = app.querySelector(".saludo h1");
   if (h1) {

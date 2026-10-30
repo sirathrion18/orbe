@@ -5,7 +5,7 @@ import { construirContexto } from "./contexto.js";
 import { renderInicio, despuesInicio, esc, colorUniverso, regresiva, renderAvisos } from "./inicio.js";
 import { ICONOS } from "./iconos.js";
 import { renderDetalle, DETALLE_UNI } from "./detalles.js";
-import { hojaArchivosProd } from "./paginas.js";
+import { hojaArchivosProd, renderAjustesGuinos } from "./paginas.js";
 import { renderRiver, renderUniverso, renderBloqueo, renderAgenda, renderRespiro, renderDatos, renderAjustes, renderNovedades, renderNoEncontrado, renderSemanal, renderPedirDiario, renderUrgente, hojaMovimiento, hojaTp, hojaMateria, hojaAsignar, hojaAgus, hojaPartido, hojaPasos, hojaPesos, hojaGasto } from "./paginas.js";
 import { HOJAS_PRESU, leerConfigPresu, cruzar, responder as responderPresu, confirmarIngreso } from "./presupuesto.js";
 import { agregarManual } from "./finanzas.js";
@@ -133,6 +133,7 @@ function pintar(refresco = false) {
     if (!bloqueado && ed && ed !== ultimaEdicion()?.id && edicionAbierta()?.e.id !== ed && abriendoEd !== ed) { abriendoEd = ed; abrirEdicion(ed).then(() => pintar(true)).catch(() => avisar("No pude bajar esa edición: probá con señal")).finally(() => { abriendoEd = null; }); }
   }
   else if (r === "/urgente") html = renderUrgente(estado.datos, estado.ctx);
+  else if (r === "/ajustes/guinos") html = renderAjustesGuinos();
   else if (r === "/pedir-diario") html = renderPedirDiario();
   else if (r === "/avisos") html = renderAvisos(estado.datos, estado.ctx);
   else if (r === "/checklists") { usarColores((u) => colorUniverso(estado.datos, u, tema)); html = renderChecklists(); }
@@ -674,6 +675,7 @@ document.addEventListener("click", (e) => {
     const url = "https://claude.ai/new";
     if (/Android/i.test(navigator.userAgent)) location.href = enApp(url); else window.open(url, "_blank", "noopener");
   }
+  else if (a === "demo-huevo") { sesion("demoHuevo", el.dataset.h || null); pintar(true); }
   else if (a === "avisos-ir") document.getElementById(el.dataset.id)?.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
   else if (a === "idea-dest") { sesion("destIdea", el.dataset.dest || null); pintar(true); }
   else if (a === "ficha-tab") { sesion("fichaTab", el.dataset.tab); pintar(true); }
