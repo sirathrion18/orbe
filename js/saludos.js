@@ -220,5 +220,25 @@ export const SALUDOS = {
     "¡Feliz cumpleaños, {n}!", "Feliz cumple, {f}.",
     // v0.33: más saludos
     "¡Feliz cumple, {n}! Hoy, todo tuyo.", "¡Feliz vuelta al sol, {n}!"
+  ],
+  // v0.40: guiños especiales (frases propias)
+  venom: [
+    "Buenas noches, {n}. Nosotros también.", "Acá estamos, {n}. Los dos.", "Nosotros nos quedamos despiertos, {n}.",
+    "Somos dos esta noche, {n}.", "Llegamos, {n}. Juntos.", "Nosotros te cuidamos la agenda, {n}."
+  ],
+  millo: [
+    "Banda roja puesta, {n}.", "El Millo te saluda, {n}.", "Corazón millonario, {n}.", "Hoy se piensa en rojo y blanco, {n}."
+  ],
+  ninja: [
+    "Sin ruido y a fondo, {n}.", "Paso rápido, {n}. Nadie te ve venir.", "Entrenamiento del día, {n}.", "Hoy se avanza en silencio, {n}."
+  ],
+  diez: [
+    "Hoy jugás de 10, {n}.", "Cabeza levantada, {n}.", "La diez es tuya hoy, {n}.", "Pase corto y adelante, {n}."
+  ],
+  cazador: [
+    "Respirá hondo, {n}.", "Filo y calma, {n}.", "Un corte limpio a la vez, {n}.", "Hoy se respira en cuatro tiempos, {n}."
+  ],
+  maldicion: [
+    "Tu círculo, tus reglas, {n}.", "Adentro del círculo mandás vos, {n}.", "Hoy nada pesado entra, {n}.", "Espacio propio abierto, {n}."
   ]
 };

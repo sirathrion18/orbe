@@ -1,28 +1,43 @@
 // Guiños: si el switch de Ajustes › Diseño está prendido, tres veces por día (uno a la mañana, uno a la tarde
-// y uno a la noche, en un momento al azar), Inicio se viste de Arácnido, Laboratorio, Decreto o TVA durante
-// 20 minutos desde que lo ves. Tocando tres veces el saludo sale uno al toque.
-// Son guiños con dibujos genéricos y textos: ningún personaje dibujado.
+// y uno a la noche, en un momento al azar), Inicio se viste un rato: 20 minutos desde que lo ves.
+// Dos de los tres son «clásicos» (Laboratorio, Decreto, TVA) y uno es el «especial» del día, que rota en un
+// ciclo de 7 (Arácnido, Millo, Ninja, Venom, Diez, Cazador, Maldición): ninguno se repite en una semana.
+// Venom siempre cae a la noche. Tocando tres veces el saludo sale uno al toque.
+// Además hay guiños de fecha (todo el día): Diego y Messi (30/10, 22/6, 18/12, 24/6), Madrid (9/12) y la
+// previa del día de River (desde 5 horas antes del partido).
+// Son guiños con formas, colores y frases propias: ningún personaje dibujado, ningún logo, ninguna cita.
 import { leer, guardar, sesion } from "./almacen.js";
 
-export const GUINOS = [["arana", "Arácnido"], ["lab", "Laboratorio"], ["decreto", "Decreto"], ["tva", "TVA"]];
+const CLASICOS = [["lab", "Laboratorio"], ["decreto", "Decreto"], ["tva", "TVA"]];
+const ESPECIALES = [["arana", "Arácnido"], ["millo", "Millo"], ["ninja", "Ninja"], ["venom", "Venom"], ["diez", "Diez"], ["cazador", "Cazador"], ["maldicion", "Maldición"]];
+export const GUINOS = [...ESPECIALES.slice(0, 1), ...CLASICOS, ...ESPECIALES.slice(1)];
+// Los de fecha, para probarlos desde Ajustes (se fuerzan con «f:<id>»).
+export const GUINOS_FECHA = [["diego", "30/10"], ["gol", "22/6"], ["tercera", "18/12"], ["messi", "24/6"], ["madrid", "9/12"], ["previa", "Previa"]];
 const DURA = 20 * 60000;
 const FRANJAS = [[9, 13, "a la mañana"], [13, 18, "a la tarde"], [18, 23, "a la noche"]];
 export const guinosPrendidos = () => leer("guinos", true) !== false;
+const escH = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 function azar(semilla) {
   let s = semilla >>> 0;
   return () => { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; };
 }
+// Número de día local (el mismo en el celu y en la compu): el especial rota de a uno por día, ciclo de 7.
+const nroDia = (f) => Math.floor(Date.UTC(f.getFullYear(), f.getMonth(), f.getDate()) / 86400000);
+export const especialDelDia = (f) => ESPECIALES[((nroDia(f) % 7) + 7) % 7][0];
 
 // El plan del día sale de la fecha: los mismos momentos en el celu y en la compu.
 function plan(f) {
   const dia = f.getFullYear() + "-" + (f.getMonth() + 1) + "-" + f.getDate();
   let p = leer("guinoPlan");
-  if (!p || p.dia !== dia || p.v !== 2) {
+  if (!p || p.dia !== dia || p.v !== 3) {
     const r = azar(f.getFullYear() * 10007 + (f.getMonth() + 1) * 389 + f.getDate() * 31);
-    const tipos = GUINOS.map(([k]) => k).sort(() => r() - .5);
-    const momentos = FRANJAS.map(([a, b], i) => ({ min: Math.floor(a * 60 + r() * (b - a) * 60), tipo: tipos[i], visto: 0 }));
-    p = { v: 2, dia, momentos };
+    const esp = especialDelDia(f);
+    const franjaEsp = esp === "venom" ? 2 : Math.floor(r() * 3);
+    const clasicos = CLASICOS.map(([k]) => k).sort(() => r() - .5);
+    let c = 0;
+    const momentos = FRANJAS.map(([a, b], i) => ({ min: Math.floor(a * 60 + r() * (b - a) * 60), tipo: i === franjaEsp ? esp : clasicos[c++], visto: 0 }));
+    p = { v: 3, dia, momentos };
     guardar("guinoPlan", p, true);
   }
   return p;
@@ -36,19 +51,21 @@ export function resumenGuinos(f) {
   return quedan.length ? `Hoy te quedan ${quedan.length}: ${quedan.join(", ")}.` : "Por hoy ya pasaron los tres. Mañana hay más.";
 }
 
-// Uno al toque (tres toques en el saludo): dura 20 minutos o hasta cerrar Orbe.
-export function guinoYa() {
+// Uno al toque (tres toques en el saludo): dura 20 minutos o hasta cerrar Orbe. Venom solo de noche.
+export function guinoYa(f = new Date()) {
   const actual = sesion("guinoYa")?.tipo;
-  const opciones = GUINOS.map(([k]) => k).filter((k) => k !== actual);
+  const noche = f.getHours() >= 18 || f.getHours() < 5;
+  const opciones = GUINOS.map(([k]) => k).filter((k) => k !== actual && (k !== "venom" || noche));
   const tipo = opciones[Math.floor(Math.random() * opciones.length)];
   sesion("guinoYa", { tipo, hasta: Date.now() + DURA });
+  sesion("gotaEscondida", null);
   return tipo;
 }
 
 // El guiño de ahora (o null). Se cuenta desde la primera vez que ves Inicio (con la pantalla prendida)
 // después del momento sorteado, así no se pierde si justo no estabas mirando.
 export function guinoActivo(f, demo) {
-  if (demo) return demo;
+  if (demo) return String(demo).startsWith("f:") ? null : demo;
   if (!guinosPrendidos()) return null;
   const ya = sesion("guinoYa");
   if (ya && Date.now() < ya.hasta) return ya.tipo;
@@ -64,6 +81,107 @@ export function guinoActivo(f, demo) {
     if (ahora - m.visto < DURA) return m.tipo;
   }
   return null;
+}
+
+// ---------- Guiños de fecha (todo el día) ----------
+// Cada uno: día y mes, clase de Inicio y el texto (los años se calculan, nunca fijos).
+const FECHAS = {
+  diego: { d: 30, m: 10, clase: "fg-diez", k: "30 de octubre", t: (y) => `El Diez cumpliría ${y - 1960}.`,
+    x: "Hoy el anillo lleva un 10 de luz. Por el que nos enseñó a soñar con una pelota." },
+  gol: { d: 22, m: 6, clase: "fg-diez", k: "22 de junio", t: (y) => `${y - 1986} años del gol.`,
+    x: "Una tarde en México, media cancha y un país entero corriendo detrás. El 10 se prende." },
+  tercera: { d: 18, m: 12, clase: "fg-diez", k: "18 de diciembre", t: (y) => `${y - 2022} ${y - 2022 === 1 ? "año" : "años"} de la tercera.`,
+    x: "Hay noches que no terminan nunca. El 10 queda prendido todo el día." },
+  messi: { d: 24, m: 6, clase: "fg-diez", k: "24 de junio", t: (y) => `El otro 10 cumple ${y - 1987}.`,
+    x: "Rosario, una zurda y la paciencia de esperar la que faltaba." },
+  madrid: { d: 9, m: 12, clase: "fg-madrid", k: "9 de diciembre", t: (y) => `${y - 2018} años de Madrid.`,
+    x: "La final más larga terminó lejos de casa, con la banda roja bien arriba. Hay fechas que no se discuten." }
+};
+const FRASES_PREVIA = ["Camiseta lista, agenda despejada.", "Hoy todo lo demás es previa.", "Cábala en su lugar. Lo demás, a un costado.",
+  "Mate, radio y paciencia hasta que ruede.", "Llegá temprano a todo lo que importa. Y esto importa."];
+
+// La previa: el día de partido, desde 5 horas antes hasta que empieza.
+function previa(f, ctx, forzar) {
+  let inicio = null, rival = "";
+  if (forzar) inicio = f.getTime() + (2 * 60 + 10) * 60000;
+  else {
+    const p = leer("river")?.proximo;
+    const mismoDia = (d) => d.getFullYear() === f.getFullYear() && d.getMonth() === f.getMonth() && d.getDate() === f.getDate();
+    if (p?.fecha && mismoDia(new Date(p.fecha))) { inicio = new Date(p.fecha).getTime(); rival = String(p.rival || "").replace(/ Juniors$| Club$/, ""); }
+    else if (ctx?.partido) { const d = new Date(f); d.setHours(0, 0, 0, 0); inicio = d.getTime() + ctx.partido.ini * 60000; }
+  }
+  if (!inicio) return null;
+  const falta = inicio - f.getTime();
+  if (falta <= 0 || falta > 5 * 3600000) return null;
+  const h = Math.floor(falta / 3600000), m = Math.floor(falta % 3600000 / 60000);
+  const hora = new Date(inicio);
+  const hh = String(hora.getHours()).padStart(2, "0") + ":" + String(hora.getMinutes()).padStart(2, "0");
+  const frase = FRASES_PREVIA[(f.getDate() + f.getHours()) % FRASES_PREVIA.length];
+  return { id: "previa", clase: "fg-previa", deco: '<div class="banda banda-guino" aria-hidden="true"></div>',
+    tarjeta: `<a class="w ancho fecha-guino previa" href="#/river" aria-label="Previa de River: abrir todo lo del club"><span class="fk">Previa · River${rival ? " vs " + escH(rival) : ""} a las ${hh}</span><span class="ft">Faltan ${h ? h + " h " : ""}${m} min.</span><span class="fx">${frase}</span><span class="franja" aria-hidden="true"></span></a>` };
+}
+
+// El guiño de fecha de hoy (o null). La previa le gana a la fecha si coinciden.
+export function fechaGuino(f, ctx, demo) {
+  const forzado = demo && String(demo).startsWith("f:") ? String(demo).slice(2) : null;
+  if (!forzado && !guinosPrendidos()) return null;
+  const pv = previa(f, ctx, forzado === "previa");
+  if (pv) return pv;
+  const id = forzado || Object.keys(FECHAS).find((k) => FECHAS[k].d === f.getDate() && FECHAS[k].m === f.getMonth() + 1);
+  const g = FECHAS[id];
+  if (!g) return null;
+  return { id, clase: g.clase, deco: id === "madrid" ? '<div class="banda banda-guino" aria-hidden="true"></div>' : "",
+    tarjeta: `<div class="w ancho fecha-guino ${id === "madrid" ? "madrid" : "diez"}"><span class="fk">${g.k}</span><span class="ft">${g.t(f.getFullYear())}</span><span class="fx">${g.x}</span></div>` };
+}
+
+// Las fechas de guiño de los próximos días (para los avisos): [{ fecha: "AAAA-MM-DD", id, titulo, texto }].
+export function guinosProximos(desde = new Date(), dias = 7) {
+  const out = [];
+  for (let i = 0; i < dias; i++) {
+    const f = new Date(desde.getFullYear(), desde.getMonth(), desde.getDate() + i, 12);
+    const id = Object.keys(FECHAS).find((k) => FECHAS[k].d === f.getDate() && FECHAS[k].m === f.getMonth() + 1);
+    if (!id) continue;
+    const g = FECHAS[id];
+    out.push({ fecha: f.getFullYear() + "-" + String(f.getMonth() + 1).padStart(2, "0") + "-" + String(f.getDate()).padStart(2, "0"), id, titulo: g.t(f.getFullYear()), texto: g.x });
+  }
+  return out;
+}
+
+// La gota de Venom se esconde al tocarla (y no vuelve hasta el próximo guiño).
+if (typeof document !== "undefined") {
+  document.addEventListener("click", (e) => {
+    const g = e.target.closest?.(".gota-venom");
+    if (!g) return;
+    g.classList.add("se-va");
+    g.setAttribute("aria-hidden", "true");
+    sesion("gotaEscondida", true);
+  });
+}
+
+// ---------- Especiales: una línea propia en Inicio ----------
+// Frases propias (nada textual de ninguna obra). Elige una por día y franja, así no cambia a cada repintada.
+const FRASES = {
+  arana: ["Barrio tranquilo. Por ahora.", "Un gran día empieza por una lista corta.", "Colgado de un hilo no: con todo atado."],
+  millo: ["Banda roja puesta, cabeza fría.", "Se juega como se vive: de memoria y para adelante.", "Hoy se banca todo. Mañana, también."],
+  ninja: ["Si hoy sale mal, mañana se entrena el doble.", "Dos de vos no alcanzan: arrancá por lo primero de la lista.", "Paso corto, paso rápido, sin ruido."],
+  venom: ["Nosotros nos encargamos del resto.", "Hoy la agenda la llevamos entre los dos.", "Tranquilo: no estamos solos en esto."],
+  diez: ["Hoy jugá de 10: que lo de al lado también brille.", "Pase corto, cabeza levantada.", "La pelota no se mancha. La agenda, tampoco."],
+  cazador: ["Respirá hondo, cuatro tiempos. Lo pesado se corta de a una cosa.", "Concentración total un rato, y después, té.", "Un corte limpio vale más que diez a medias."],
+  maldicion: ["Este rato es tuyo: lo que no es urgente queda afuera del círculo.", "Lo que pesa se exorciza tachándolo.", "Adentro del círculo mandás vos."]
+};
+const RUBRO = { arana: "Sentido arácnido", millo: "Millo", ninja: "Modo ninja", venom: "Nosotros", diez: "El 10", cazador: "Respiración", maldicion: "Dominio propio" };
+
+export function lineaGuino(tipo, ctx) {
+  const lista = FRASES[tipo];
+  if (!lista) return "";
+  const f = ctx?.fecha || new Date();
+  let texto = lista[(f.getDate() + Math.floor((ctx?.min ?? 0) / 240)) % lista.length];
+  // Arácnido: el sentido avisa lo próximo de tu agenda, con su hora real.
+  if (tipo === "arana") {
+    const sigue = (ctx?.hoy || []).find((b) => b.ini > ctx.min);
+    if (sigue) { const falta = sigue.ini - ctx.min; texto = `${sigue.titulo} en ${falta >= 60 ? Math.floor(falta / 60) + " h " + (falta % 60 ? (falta % 60) + " min" : "") : falta + " min"}. ${texto}`; }
+  }
+  return `<div class="w ancho guino-linea g-${tipo}">${tipo === "cazador" ? OLA : ""}<span class="fk">${RUBRO[tipo]}</span><span class="fx">${escH(texto)}</span></div>`;
 }
 
 // ---------- Dibujos (genéricos) ----------
@@ -83,8 +201,20 @@ const TELA2 = `<svg class="tela tela-izq" viewBox="0 0 120 120" fill="none" stro
 <path d="M0 0L120 0M0 0L110 70M0 0L50 120M0 0L0 120"/><path d="M30 0Q26 18 0 24"/><path d="M62 0Q56 30 24 44Q12 50 0 50"/><path d="M95 0Q88 45 50 66Q24 80 0 80"/></svg>`;
 
 // Lo que se suma arriba de Inicio según el guiño.
+// Venom: una gota negra que asoma desde el borde derecho (forma propia, sin cara).
+const GOTA = `<svg viewBox="0 0 90 240" aria-hidden="true"><path d="M90 0v150c-6 16-18 22-23 10-5-12 5-21 1-35-3-12-17-11-19-26-2-16 14-21 12-39-2-16-18-15-20-31C39 15 52 5 64 0z"/>
+  <circle cx="64" cy="176" r="5"/><circle cx="56" cy="198" r="3"/><path class="brillo" d="M70 30c-6 10-4 22 2 30" fill="none"/></svg>`;
+// Ninja: una nube de humo que aparece y se disipa (sale una sola vez).
+const HUMO = `<svg class="humo" viewBox="0 0 120 70" aria-hidden="true"><g fill="currentColor"><circle cx="30" cy="42" r="18"/><circle cx="55" cy="30" r="22"/><circle cx="82" cy="40" r="19"/><circle cx="62" cy="50" r="16"/><circle cx="98" cy="50" r="11"/><circle cx="16" cy="54" r="9"/></g></svg>`;
+// Cazador: la ola de una respiración, que se dibuja una vez.
+const OLA = `<svg class="ola" viewBox="0 0 240 30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path pathLength="1" d="M2 18c18 0 18-12 36-12s18 18 36 18 18-18 36-18 18 18 36 18 18-12 36-12 18 10 36 10"/></svg>`;
+
 export function decoracion(tipo) {
   if (tipo === "arana") return `${TELA2}<button class="arana" data-accion="arana" aria-label="Una arañita. Tocala y sube."><span class="hilo"></span>${ARANA}</button>`;
+  if (tipo === "venom") return sesion("gotaEscondida") ? "" : `<button class="gota-venom" aria-label="Una gota negra que asoma. Tocala y se esconde.">${GOTA}</button>`;
+  if (tipo === "ninja") return HUMO;
+  if (tipo === "cazador") return '<div class="cuadros" aria-hidden="true"></div>';
+  if (tipo === "millo") return '<div class="banda banda-guino" aria-hidden="true"></div>';
   return "";
 }
 

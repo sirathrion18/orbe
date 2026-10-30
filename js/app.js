@@ -29,7 +29,7 @@ import { actualizarSemanal, htmlEdicion, marcarLeida, pendientesDeSemanal } from
 import { escribirResumen } from "./resumen.js";
 import { leer, guardar, borrar, todo, borrarTodo, sesion } from "./almacen.js";
 import { sol } from "./sol.js";
-import { guinoActivo, guinoYa, guinosPrendidos } from "./guinos.js";
+import { guinoActivo, guinoYa, guinosPrendidos, fechaGuino } from "./guinos.js";
 import { marcarAgus, hojaAgus2, hojaPagado, hojaColchon, hojaSaldo } from "./finanzasui.js";
 import { anotarSaldo, resolverDiferencia, discrepancia } from "./saldo.js";
 import { marcarPagado, usarColchon, fijarColchonPct, mesReal } from "./mesreal.js";
@@ -97,6 +97,7 @@ function pintar(refresco = false) {
   let html;
   const esInicio = r === "/" || r === "";
   estado.ctx.guino = esInicio ? guinoActivo(estado.ctx.fecha, sesion("demoGuino")) : null;
+  estado.ctx.fechaGuino = esInicio ? fechaGuino(estado.ctx.fecha, estado.ctx, sesion("demoGuino")) : null;
   if (esInicio) html = renderInicio(estado.datos, estado.ctx, estado.clima, tema);
   else if (r.startsWith("/u/")) {
     const id = r.slice(3);
