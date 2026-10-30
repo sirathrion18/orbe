@@ -5,6 +5,7 @@ import { GLTFLoader } from '../vendor/three/GLTFLoader.js';
 
 export const MODELO = '/taller/pedri.glb?v=2';
 
+
 const ease = (x) => x < 0 ? 0 : x > 1 ? 1 : (1 - Math.cos(x * Math.PI)) / 2;
 const EJE_X = new THREE.Vector3(1, 0, 0);
 
@@ -96,7 +97,8 @@ export async function cargarPedri() {
     const destino = cadW0.clone().add(new THREE.Vector3(0, P.cad[1], P.cad[0]));
     cadera.position.copy(cadera.parent.worldToLocal(destino)); raiz.updateMatrixWorld(true);
     aMundo(espalda, new THREE.Quaternion().setFromAxisAngle(EJE_X, P.incl).multiply(qW.get(espalda)));
-    aMundo(cuello, new THREE.Quaternion().setFromAxisAngle(EJE_X, -P.incl * 0.35).multiply(cuello.getWorldQuaternion(new THREE.Quaternion())));
+    aMundo(cuello, new THREE.Quaternion().setFromAxisAngle(EJE_X, -P.incl * 0.5).multiply(cuello.getWorldQuaternion(new THREE.Quaternion())));
+    const cab = hueso('Head'); aMundo(cab, new THREE.Quaternion().setFromAxisAngle(EJE_X, -P.incl * 0.35).multiply(cab.getWorldQuaternion(new THREE.Quaternion())));
     PIERNAS.forEach((L, i) => {
       const [dz, dy, giro] = P.pies[i]; const hip = L.up.getWorldPosition(new THREE.Vector3());
       const T = new THREE.Vector3(L.tobillo.x, L.tobillo.y + dy, L.tobillo.z + dz);

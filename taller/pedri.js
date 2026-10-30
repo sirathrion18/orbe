@@ -50,7 +50,7 @@ const lanzar = () => conf.forEach((o) => { o.c.visible = true; o.c.position.set(
 
 // ---------- estado ----------
 let modo = 'posar', cara = 'neutra', vel = 1, tc = 0, reps = 0, ci = 0, camDest = null, accion = null;
-const VISTAS = { tres: [1.9, 0.2, 2.6], frente: [0.001, 0.15, 3.6], perfil: [3.6, 0.15, 0.001], espalda: [0.001, 0.15, -3.6], cara: [0.12, 0.02, 0.62] };
+const VISTAS = { tres: [2.4, 0.15, 3.3], frente: [0.001, 0.1, 4.3], perfil: [4.3, 0.1, 0.001], espalda: [0.001, 0.1, -4.3], cara: [0.12, 0.02, 0.62] };
 function irVista(v) { const [x, y, z] = VISTAS[v]; const ty = v === 'cara' ? P.wpos('Head').y + 0.06 : 0.9; ctl.target.set(0, ty, 0); camDest = new THREE.Vector3(x, ty + y, z); }
 function marcar(g, v) { document.querySelectorAll(`[data-grupo="${g}"] button`).forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === v))); }
 function clip(nombre) {
@@ -72,7 +72,7 @@ function elegir(m) {
 document.querySelectorAll('.seg').forEach((seg) => seg.addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; const g = seg.dataset.grupo, v = b.dataset.v; marcar(g, v);
   if (g === 'modo') elegir(v); else if (g === 'vista') irVista(v); else if (g === 'ropa') P.ropa(v); else if (g === 'vel') vel = Number(v); else if (g === 'cara') cara = v; }));
 ctl.addEventListener('start', () => { camDest = null; });
-cam.position.set(1.9, 1.1, 2.6); ctl.target.set(0, 0.9, 0); ctl.update();
+cam.position.set(2.4, 1.05, 3.3); ctl.target.set(0, 0.9, 0); ctl.update();
 elegir('posar');
 { const q = new URLSearchParams(location.search); ['ropa', 'cara', 'modo', 'vista'].forEach((g) => { const v = q.get(g); const b = v && document.querySelector(`[data-grupo="${g}"] [data-v="${v}"]`); if (b) b.click(); });
   if (camDest) { cam.position.copy(camDest); camDest = null; ctl.update(); }
