@@ -74,6 +74,8 @@ public class Principal extends Activity {
                 runOnUiThread(this::pintar);
             }).start();
             Satelite.programar(this);
+            // Si Android borró las alarmas (forzar detención, ahorro de batería), se vuelven a poner.
+            new Thread(() -> { try { Avisos.programar(getApplicationContext()); } catch (Exception e) { /* nada */ } }).start();
         }
     }
 
@@ -246,6 +248,7 @@ public class Principal extends Activity {
                 a.guardar("llave", null);
                 Satelite.limpiarIlegibles(a);
                 a.texto("nombre", null);
+                Avisos.olvidar(getApplicationContext());
                 aviso("Desvinculado. Para anularlo del todo, tocá «Anular» en Orbe › Ajustes › Satélite.");
                 pintar();
             });

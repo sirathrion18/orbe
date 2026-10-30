@@ -9,7 +9,10 @@ public class Envio extends JobService {
     public boolean onStartJob(final JobParameters p) {
         new Thread(() -> {
             Satelite.reenganchar(getApplicationContext());
-            Satelite.enviar(getApplicationContext(), false);
+            try {
+                Satelite.enviar(getApplicationContext(), false);
+                if (Satelite.vinculado(getApplicationContext())) Avisos.programar(getApplicationContext());
+            } catch (Exception e) { /* se reintenta en la próxima vuelta */ }
             jobFinished(p, false);
         }, "satelite-envio").start();
         return true;

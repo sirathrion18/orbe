@@ -236,7 +236,14 @@ final class Satelite {
      * (salvo un aviso de «sigo vivo» cada 6 horas). Devuelve un texto corto para la pantalla.
      */
     static String enviar(Context c, boolean forzar) {
-        synchronized (CANDADO) { return enviar0(c, forzar); }
+        String r;
+        synchronized (CANDADO) { r = enviar0(c, forzar); }
+        // La agenda de avisos se pregunta afuera del candado: con mala señal no frena al Lector.
+        try {
+            String llave = new Almacen(c).leer("llave");
+            if (llave != null) Avisos.actualizar(c, llave, forzar && !"Sin conexión".equals(r) && !"No se pudo".equals(r));
+        } catch (Exception e) { /* sin llave legible: nada */ }
+        return r;
     }
 
     private static String enviar0(Context c, boolean forzar) {
@@ -252,14 +259,14 @@ final class Satelite {
             if (a.leerSeguro("llave") == null) a.guardar("llave", null);
             limpiarIlegibles(a);
             a.texto("error", "El celu perdió la llave guardada. Volvé a vincular con un código nuevo.");
+            Avisos.olvidar(c);
             return "Error de llave";
         }
         long alarma = proximaAlarma(c);
         long ahora = System.currentTimeMillis();
         boolean cambioAlarma = alarma != a.num("alarmaMandada");
         if (!forzar && pend.length() == 0 && !cambioAlarma && ahora - a.num("ultimoEnvio") < PING) {
-            // Nada para mandar: igual, una vez por hora se pregunta si Orbe armó avisos nuevos (es un pedido chiquito).
-            Avisos.actualizar(c, llave, false);
+            // Nada para mandar (la agenda de avisos se pregunta afuera del candado, una vez por hora).
             return "Nada nuevo";
         }
         try {
@@ -313,7 +320,6 @@ final class Satelite {
             a.num("alarmaMandada", alarma);
             a.num("mandados", a.num("mandados") + ids.size());
             a.texto("error", null);
-            Avisos.actualizar(c, llave, forzar);
             return ids.isEmpty() ? "Al día" : (ids.size() == 1 ? "Mandé 1 aviso" : "Mandé " + ids.size() + " avisos");
         } catch (Exception e) {
             a.texto("error", "Sin conexión con Orbe");

@@ -11,11 +11,13 @@ import android.content.Intent;
 public class Arranque extends BroadcastReceiver {
     @Override
     public void onReceive(Context c, Intent i) {
+        String ac = i == null ? null : i.getAction();
+        if (!Intent.ACTION_BOOT_COMPLETED.equals(ac) && !Intent.ACTION_MY_PACKAGE_REPLACED.equals(ac)) return;
         if (!Satelite.vinculado(c)) return;
         Satelite.programar(c);
         final PendingResult pr = goAsync();
         new Thread(() -> {
-            try { Avisos.programar(c.getApplicationContext()); } finally { pr.finish(); }
+            try { Avisos.programar(c.getApplicationContext()); } catch (Exception e) { /* nada */ } finally { pr.finish(); }
         }, "satelite-arranque").start();
     }
 }

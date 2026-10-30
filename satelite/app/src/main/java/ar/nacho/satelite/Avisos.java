@@ -77,7 +77,8 @@ final class Avisos {
         try {
             JSONObject cuerpo = new JSONObject();
             String v = a.texto("agendaV");
-            cuerpo.put("v", v == null ? "" : v);
+            // Si la agenda guardada se perdió, se pide de nuevo entera.
+            cuerpo.put("v", v == null || agenda(a) == null ? "" : v);
             Satelite.Respuesta r = Satelite.post(Satelite.SERVIDOR + "/api/satelite/agenda", cuerpo.toString(), llave);
             if (r.codigo != 200) return;
             a.num("agendaCuando", ahora);
@@ -146,6 +147,7 @@ final class Avisos {
         a.guardar("agenda", null);
         a.texto("agendaV", null);
         a.num("agendaCuando", 0);
+        a.guardar("pagosHoy", null);
         programar(c);
     }
 
@@ -163,6 +165,7 @@ final class Avisos {
 
     /** La alarma de un aviso sonó: se busca su texto (cifrado en el celu) y se publica una sola vez. */
     static void mostrar(Context c, String id) {
+        if (!Satelite.vinculado(c)) return;
         Almacen a = new Almacen(c);
         JSONObject ag = agenda(a);
         if (ag == null || id == null) return;
@@ -214,26 +217,37 @@ final class Avisos {
 
     /** Lector leyó un pago: con la cuenta del día que mandó Orbe, «Gastaste $X en Y. Hoy te quedan $Z.» */
     static void pago(Context c, Lector.Aviso av) {
-        if (av == null || !"pago".equals(av.sentido) || !"ARS".equals(av.moneda)) return;
+        if (av == null || !("pago".equals(av.sentido) || "tarjeta".equals(av.sentido)) || !"ARS".equals(av.moneda)) return;
+        if (!Satelite.vinculado(c)) return;
         Almacen a = new Almacen(c);
         JSONObject ag = agenda(a);
         if (ag == null) return;
         JSONObject cfg = ag.optJSONObject("cfg");
         JSONObject d = ag.optJSONObject("diario");
         if (d == null || (cfg != null && !cfg.optBoolean("plata", true))) return;
-        long base = d.optLong("ts");
+        // «visto»: hasta qué hora Orbe ya contó los pagos del celu en su cuenta. Se suman los de hoy posteriores.
+        long visto = d.optLong("visto", d.optLong("ts"));
         Calendar k = Calendar.getInstance();
         String hoy = String.format(Locale.ROOT, "%04d-%02d-%02d", k.get(Calendar.YEAR), k.get(Calendar.MONTH) + 1, k.get(Calendar.DAY_OF_MONTH));
-        if (!hoy.equals(d.optString("fecha")) || av.ts <= base) return;
-        // Lo gastado desde la cuenta de Orbe (si Orbe mandó una cuenta nueva, se empieza de cero).
+        if (!hoy.equals(d.optString("fecha")) || av.ts <= visto) return;
         double suma = 0;
+        JSONArray nuevos = new JSONArray();
         try {
-            String g = a.leer("gastoDiario");
+            String g = a.leer("pagosHoy");
             JSONObject o = g == null ? null : new JSONObject(g);
-            if (o != null && o.optLong("base") == base) suma = o.optDouble("suma", 0);
-        } catch (Exception e) { suma = 0; }
+            JSONArray l = o != null && hoy.equals(o.optString("fecha")) ? o.optJSONArray("l") : null;
+            for (int i = 0; l != null && i < l.length() && i < 80; i++) {
+                JSONObject p = l.optJSONObject(i);
+                if (p == null || av.id.equals(p.optString("id"))) continue;
+                nuevos.put(p);
+                if (p.optLong("ts") > visto) suma += p.optDouble("m", 0);
+            }
+        } catch (Exception e) { /* se arranca de cero */ }
         suma += av.monto;
-        try { a.guardar("gastoDiario", new JSONObject().put("base", base).put("suma", suma).toString()); } catch (Exception e) { /* nada */ }
+        try {
+            nuevos.put(new JSONObject().put("id", av.id).put("ts", av.ts).put("m", av.monto));
+            a.guardar("pagosHoy", new JSONObject().put("fecha", hoy).put("l", nuevos).toString());
+        } catch (Exception e) { /* nada */ }
         if (enSilencio(cfg, System.currentTimeMillis())) return;
         double queda = d.optDouble("queda", 0) - suma;
         String titulo = "Gastaste " + pesos(av.monto) + (av.comercio.isEmpty() ? "" : " en " + av.comercio);

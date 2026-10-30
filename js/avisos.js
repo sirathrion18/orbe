@@ -5,6 +5,7 @@
 import { leer, guardar } from "./almacen.js";
 import { pendientesCon, bloquesFecha, isoDe } from "./contexto.js";
 import * as GUINOS from "./guinos.js";
+import { datosFinanzas } from "./finanzas.js";
 
 export const CATEGORIAS = [
   ["plata", "Plata", "Vencimientos de tarjetas y pagos, y el aviso al toque después de cada gasto."],
@@ -56,9 +57,13 @@ export function armarAgenda(f) {
   const hoy0 = new Date(ahora); hoy0.setHours(0, 0, 0, 0);
   const dias = [0, 1].map((k) => { const d = new Date(hoy0); d.setDate(d.getDate() + k); return d; });
   const out = [];
-  const sumar = (cat, ts, titulo, texto) => {
+  const vistos = new Set();
+  const sumar = (cat, ts, titulo, texto, clave = "") => {
     if (!(ts > ahora && ts <= ahora + VENTANA)) return;
-    out.push({ id: idDe(cat, ts, titulo), ts, cat, titulo: corto(titulo, 60), texto: corto(texto, 160) });
+    const id = idDe(cat, ts, titulo, clave);
+    if (vistos.has(id)) return; // el mismo aviso por dos caminos (calendario y campus): va una vez
+    vistos.add(id);
+    out.push({ id, ts, cat, titulo: corto(titulo, 60), texto: corto(texto, 160) });
   };
   const pend = (f.pendientes || []).filter((p) => p.fecha && /^\d{4}-\d{2}-\d{2}/.test(p.fecha));
 
@@ -72,10 +77,12 @@ export function armarAgenda(f) {
     if (esPlata && !c.plata) continue;
     if ((esFacu || esBna) && !c.facu) continue;
     const vispera = new Date(dia); vispera.setDate(vispera.getDate() - 1);
-    const detalle = [p.nota, p.monto].filter(Boolean).join(" · ");
-    if (esPlata) sumar("plata", a(vispera, 20), "Mañana vence " + p.titulo, (detalle ? detalle + ". " : "") + "Si ya lo pagaste, tildalo en Orbe y no te lo recuerdo más.");
-    else sumar(esBna ? "bna" : "facu", a(vispera, 19), "Mañana vence " + p.titulo, (detalle ? detalle + ". " : "") + "¿Le metemos hoy?");
-    sumar("urgente", a(dia, 10), "Hoy vence " + p.titulo, detalle || (esPlata ? "Que no se te pase." : "Último día."));
+    const monto = typeof p.monto === "number" || /^\d+(\.\d+)?$/.test(String(p.monto || "")) ? pesos(Number(p.monto)) : p.monto;
+    const detalle = [p.nota, monto].filter(Boolean).join(" · ");
+    const clave = p.clave || [p.nota, p.universo, p.tipo].join("|");
+    if (esPlata) sumar("plata", a(vispera, 20), "Mañana vence " + p.titulo, (detalle ? detalle + ". " : "") + "Si ya lo pagaste, tildalo en Orbe y no te lo recuerdo más.", clave);
+    else sumar(esBna ? "bna" : "facu", a(vispera, 19), "Mañana vence " + p.titulo, (detalle ? detalle + ". " : "") + "¿Le metemos hoy?", clave);
+    sumar("urgente", a(dia, 10), "Hoy vence " + p.titulo, detalle || (esPlata ? "Que no se te pase." : "Último día."), clave);
   }
 
   // River: una hora antes del partido (solo con la hora confirmada).
@@ -108,6 +115,14 @@ export function armarAgenda(f) {
   }
 
   // Silencio, y como mucho «max» por día: se queda lo más importante.
+  // Lo urgente y el resumen no se pierden: si caen en silencio, salen apenas termina (si sigue siendo ese día).
+  const finSilencio = (ts) => { const d = new Date(ts); d.setHours(Number(c.hasta) || 0, 0, 0, 0); if (d.getTime() < ts) d.setDate(d.getDate() + 1); return d.getTime(); };
+  out.forEach((x) => {
+    if ((x.cat === "urgente" || x.cat === "manana") && enSilencio(x.ts, c)) {
+      const nuevo = finSilencio(x.ts);
+      if (isoDe(new Date(nuevo)) === isoDe(new Date(x.ts)) && nuevo <= ahora + VENTANA) x.ts = nuevo;
+    }
+  });
   const vivos = out.filter((x) => !enSilencio(x.ts, c));
   const porDia = {};
   vivos.sort((x, y) => PRIORIDAD[x.cat] - PRIORIDAD[y.cat] || x.ts - y.ts).forEach((x) => {
@@ -119,7 +134,7 @@ export function armarAgenda(f) {
   // Lo que te queda hoy, para el aviso al toque de Satélite.
   const bh = c.plata && f.presupuesto ? f.presupuesto(new Date(ahora)) : null;
   const diario = bh && bh.base != null && bh.quedaHoy != null && !bh.sinDiario && !bh.sinMargen
-    ? { fecha: isoDe(new Date(ahora)), queda: Math.round(bh.quedaHoy), ts: ahora } : null;
+    ? { fecha: isoDe(new Date(ahora)), queda: Math.round(bh.quedaHoy), ts: ahora, visto: Math.min(ahora, Math.max(0, Number(f.vistoCelu) || 0)) } : null;
   return { avisos, diario, cfg: { desde: c.desde, hasta: c.hasta, plata: !!c.plata } };
 }
 
@@ -133,12 +148,14 @@ export async function agendaDeOrbe(datos, ahora = Date.now()) {
     river: leer("river"),
     bloques: (d) => bloquesFecha(datos, d),
     presupuesto: (d) => { try { return presupuesto(d); } catch (e) { return null; } },
+    // Hasta qué hora ya están contados en «te queda» los pagos que vio el celu: el celu suma solo los posteriores.
+    vistoCelu: (datosFinanzas()?.movs || []).filter((m) => /^celu/i.test(m.fuente || "")).reduce((x, m) => Math.max(x, Number(m.ts) || 0), 0),
     guinos: (d) => GUINOS.guinosPrendidos() ? GUINOS.guinosProximos(d, 1) : []
   });
 }
 
 // La huella de lo que importa (sin la hora en que se armó): si no cambió, no se manda.
-const huella = (ag) => JSON.stringify([ag.avisos.map((x) => [x.id, x.texto]), ag.diario?.fecha, ag.diario?.queda, ag.cfg]);
+const huella = (ag) => JSON.stringify([ag.avisos.map((x) => [x.id, x.texto]), ag.diario?.fecha, ag.diario?.queda, ag.diario?.visto, ag.cfg]);
 
 /** Manda la agenda al buzón si hay un celu vinculado, si cambió y si pasaron 10 minutos desde la última vez. */
 export async function mandarAgenda(datos, forzar = false) {

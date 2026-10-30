@@ -15,7 +15,7 @@ public class Alarma extends BroadcastReceiver {
         if (id == null || !id.matches("[A-Za-z0-9_-]{1,24}")) return;
         final PendingResult pr = goAsync();
         new Thread(() -> {
-            try { Avisos.mostrar(c.getApplicationContext(), id); } finally { pr.finish(); }
+            try { Avisos.mostrar(c.getApplicationContext(), id); } catch (Exception e) { /* nada */ } finally { pr.finish(); }
         }, "satelite-aviso").start();
     }
 }
