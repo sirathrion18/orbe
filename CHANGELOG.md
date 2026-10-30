@@ -1,5 +1,14 @@
 # Novedades de Orbe
 
+## v0.42.0 · 30/10/2026
+
+Huevitos.
+
+- Huevitos: 201 detalles chiquitos y escondidos de lo que te gusta (una copita, tres estrellitas, un 10 celeste, una palabra en ruso, horas con guiño). Aparecen en su momento y nunca más de dos a la vez.
+- Algunos se buscan: palabras secretas en el buscador, toques escondidos. Si tocás uno, te dice qué es.
+- 40 saludos nuevos con guiños, escritos con palabras propias, mezclados entre los de siempre.
+- Ajustes › Diseño › Guiños: pantalla propia con el nivel (Huevitos, Todos o Ninguno), cuántos encontraste y, plegado, para probarlos. Los guiños grandes quedan solo en «Todos».
+
 ## v0.41.0 · 30/10/2026
 
 Más liviano.
