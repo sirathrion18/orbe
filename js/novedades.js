@@ -1,6 +1,15 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.45.1",
+    fecha: "30/10/2026",
+    titulo: "Checklists editables.",
+    cambios: [
+      "Checklists: cada uno tiene un botón «Editar». Podés cambiarle el nombre, corregir el texto de los ítems, ordenarlos con ↑ ↓, sacar o sumar ítems y moverlo a otro universo. Se guarda con «Listo».",
+      "Lo que ya tildaste sigue tildado después de editar.",
+    ],
+  },
+  {
     version: "0.45.0",
     fecha: "30/10/2026",
     titulo: "Tu sueldo en dólares.",

@@ -1563,3 +1563,20 @@ a.dt-fuente:hover { color: var(--text); }
 .usd-anual small:empty { display: none; }
 .usd-lista .der { text-align: right; font-variant-numeric: tabular-nums; }
 .usd-sub { margin: -4px 0 10px; font-size: 13px; color: var(--muted); }
+
+/* ---------- v0.45.1 · Editar checklists ---------- */
+.chk-ed-lbl { display: block; margin: 12px 0 6px; font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.chk-ed-lbl:first-child { margin-top: 0; }
+.chk-ed-tit { font-family: var(--serif); font-size: 22px; }
+.chk-ed-lista { list-style: none; margin: 0 0 10px; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.chk-ed-item { display: flex; align-items: center; gap: 6px; }
+.chk-ed-item input { flex: 1; min-width: 0; height: 42px; }
+.chk-ed-flechas { display: flex; flex: none; }
+.chk-ed-flechas button { width: 30px; height: 38px; border: 0; background: none; color: var(--muted); font-size: 16px; cursor: pointer; border-radius: 8px; }
+.chk-ed-flechas button:active { background: var(--tile); color: var(--text); }
+.chk-ed-item:first-child [data-d="-1"], .chk-ed-item:last-child [data-d="1"] { opacity: .25; }
+.chk-ed-item[data-ok="1"] input { color: var(--muted); text-decoration: line-through; }
+.chk-ed-botones { display: flex; gap: 10px; margin-top: 16px; }
+.chk-ed-botones .btn { flex: 1; }
+.chk-ed-botones .btn:last-child { flex: 2; }
+.chk-ed-item input { font: 400 16px var(--sans); padding: 0 12px; }

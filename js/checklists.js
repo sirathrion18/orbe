@@ -1,6 +1,6 @@
 // Checklists que armás vos: se crean desde el «+», viven en Inicio hasta que tildás todo
 // y después quedan en la página Checklists, listos para volver a usar.
-import { leer, guardar } from "./almacen.js";
+import { leer, guardar, sesion } from "./almacen.js";
 import { UNIVERSOS } from "./config.js";
 import { ICONOS } from "./iconos.js";
 
@@ -49,6 +49,16 @@ export const sumarItem = (id, texto) => cambiar(id, (c) => { itemsDeTexto(texto)
 export const sacarItem = (id, i) => cambiar(id, (c) => { c.items.splice(i, 1); });
 export const usarDeNuevo = (id) => cambiar(id, (c) => { c.items.forEach((i) => { i.ok = false; }); });
 export const borrarChecklist = (id) => guardarTodos(todos().filter((c) => c.id !== id));
+// Editar todo junto: nombre, universo y los ítems (texto y orden). Los tildes se respetan.
+export function editar(id, { titulo, u, items }) {
+  const limpios = (items || []).map((i) => ({ t: String(i.t || "").trim(), ok: !!i.ok })).filter((i) => i.t);
+  if (!limpios.length) return null;
+  return cambiar(id, (c) => {
+    c.titulo = String(titulo || "").trim() || c.titulo;
+    c.u = UNIVERSOS.some((x) => x.nombre === u) ? u : "";
+    c.items = limpios;
+  });
+}
 
 // El color de la barra es el del universo (lo resuelve quien pinta, porque depende del tema).
 let colorU = () => null;
@@ -81,7 +91,27 @@ export function wChecklists(maxTarjetas = 3, maxItems = 4) {
 }
 
 // ---------- Página ----------
+// Modo edición: nombre, universo, y cada ítem como un campo con ↑ ↓ y ✕.
+export const filaEdicion = (t = "", ok = false) => `<li class="chk-ed-item" data-ok="${ok ? 1 : 0}">
+    <span class="chk-ed-flechas"><button type="button" data-accion="chk-ed-mover" data-d="-1" aria-label="Subir">↑</button><button type="button" data-accion="chk-ed-mover" data-d="1" aria-label="Bajar">↓</button></span>
+    <input class="campo-linea" value="${esc(t)}" aria-label="Ítem" autocomplete="off" placeholder="Ítem">
+    <button type="button" class="chk-sacar" data-accion="chk-ed-sacar" aria-label="Sacar este ítem">${ICONOS.cruz}</button></li>`;
+function edicion(c0) {
+  const b = sesion("chkBorrador");
+  const c = b && b.id === c0.id ? { ...c0, titulo: b.titulo, u: b.u, items: b.items } : c0;
+  return `<section class="bloque chk-bloque editando" id="chk-${esc(c.id)}">
+    <form data-form="chk-editar" data-id="${esc(c.id)}">
+      <label class="chk-ed-lbl" for="chk-ed-t-${esc(c.id)}">Nombre</label>
+      <input id="chk-ed-t-${esc(c.id)}" name="titulo" class="campo-linea chk-ed-tit" value="${esc(c.titulo)}" autocomplete="off">
+      <span class="chk-ed-lbl">Ítems</span>
+      <ul class="chk-ed-lista">${c.items.map((i) => filaEdicion(i.t, i.ok)).join("")}</ul>
+      <button type="button" class="chip" data-accion="chk-ed-sumar">+ Sumar un ítem</button>
+      <div class="grupo"><span class="chk-ed-lbl">Universo</span><div class="chips"><label class="chip ${!c.u ? "on" : ""}"><input type="radio" name="u" value="" class="sr" ${!c.u ? "checked" : ""}>Ninguno</label>${UNIVERSOS.map((u) => `<label class="chip ${c.u === u.nombre ? "on" : ""}"><input type="radio" name="u" value="${esc(u.nombre)}" class="sr" ${c.u === u.nombre ? "checked" : ""}>${esc(u.nombre)}</label>`).join("")}</div></div>
+      <div class="chk-ed-botones"><button type="button" class="btn sec" data-accion="chk-ed-cancelar">Cancelar</button><button class="btn">Listo</button></div>
+    </form></section>`;
+}
 function bloque(c, abierto) {
+  if (sesion("chkEditando") === c.id) return edicion(c);
   const items = c.items.map((it, i) => `<li class="${it.ok ? "ok" : ""}">
       <button class="chk-item" data-accion="chk-tildar" data-id="${esc(c.id)}" data-i="${i}" aria-pressed="${it.ok}"><span class="caja">${ICONOS.check}</span><span class="txt">${esc(it.t)}</span></button>
       <button class="chk-sacar" data-accion="chk-sacar" data-id="${esc(c.id)}" data-i="${i}" aria-label="Sacar «${esc(it.t)}»">${ICONOS.cruz}</button></li>`).join("");
@@ -92,7 +122,7 @@ function bloque(c, abierto) {
     ${barra(c)}
     <ul class="chk-items todos">${items}</ul>
     ${abierto ? `<form class="form chk-sumar" data-form="chk-sumar" data-id="${esc(c.id)}"><input name="t" placeholder="Sumar un ítem" aria-label="Sumar un ítem a ${esc(c.titulo)}" autocomplete="off" required><button class="btn sec">Sumar</button></form>` : ""}
-    <div class="chips chk-acciones">${abierto ? "" : `<button class="chip" data-accion="chk-de-nuevo" data-id="${esc(c.id)}">Usar de nuevo</button>`}
+    <div class="chips chk-acciones"><button class="chip" data-accion="chk-editar" data-id="${esc(c.id)}">Editar</button>${abierto ? "" : `<button class="chip" data-accion="chk-de-nuevo" data-id="${esc(c.id)}">Usar de nuevo</button>`}
       <button class="chip chk-borrar" data-accion="chk-borrar" data-id="${esc(c.id)}">Borrar checklist</button></div></section>`;
 }
 

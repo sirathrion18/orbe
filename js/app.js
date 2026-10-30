@@ -45,7 +45,7 @@ import { anotarCobros, escribirEnEconomia } from "./suscripciones.js";
 import { mesActual, claveMes, mesViejo } from "./agendames.js";
 import { pendientesDeSuscripciones, hojaSuscripcion, guardarSuscripcion, borrarSuscripcion } from "./suscripciones.js";
 import { renderRastreador, formPrecio, mandarPedido } from "./rastreador.js";
-import { renderChecklists, formChecklist, crear as crearChecklist, tildar as tildarChk, sumarItem, sacarItem, usarDeNuevo, borrarChecklist, itemsDeTexto, usarColores } from "./checklists.js";
+import { renderChecklists, formChecklist, crear as crearChecklist, tildar as tildarChk, sumarItem, sacarItem, usarDeNuevo, borrarChecklist, itemsDeTexto, usarColores, editar as editarChk, filaEdicion } from "./checklists.js";
 
 import { renderIdeas, renderFicha, renderPropuestas, proyectos as listaProyectos, paraCosmos, destinosIdea, textosIdeas } from "./proyectosui.js";
 import { leerCentral, leerPropuestas, responderPropuesta } from "./central.js";
@@ -97,6 +97,10 @@ const AVISOS_GOOGLE = {
 };
 
 function pintar(refresco = false) {
+  // Si se repinta mientras editás un checklist, lo que escribiste y moviste no se pierde.
+  const edChk = document.querySelector('form[data-form="chk-editar"]');
+  if (edChk && sesion("chkEditando") === edChk.dataset.id) sesion("chkBorrador", { id: edChk.dataset.id, titulo: edChk.titulo.value, u: new FormData(edChk).get("u") || "",
+    items: [...edChk.querySelectorAll(".chk-ed-item")].map((li) => ({ t: li.querySelector("input").value, ok: li.dataset.ok === "1" })) });
   const tema = aplicarTema();
   const demo = sesion("demo");
   // Lo que se deriva de Finanzas (pagar las tarjetas) se suma a los pendientes del calendario.
@@ -460,6 +464,16 @@ document.addEventListener("click", (e) => {
     }, ruta() === "/checklists" ? 0 : 380);
   }
   else if (a === "chk-sacar") { sacarItem(el.dataset.id, Number(el.dataset.i)); pintar(true); }
+  else if (a === "chk-editar") { sesion("chkBorrador", null); sesion("chkEditando", el.dataset.id); pintar(true); document.getElementById("chk-" + el.dataset.id)?.scrollIntoView({ block: "start" }); }
+  else if (a === "chk-ed-cancelar") { sesion("chkEditando", null); sesion("chkBorrador", null); pintar(true); }
+  // En edición, mover, sacar y sumar ítems se hace en la pantalla (sin perder lo que ya escribiste); se guarda con «Listo».
+  else if (a === "chk-ed-mover") {
+    const li = el.closest("li"), d = Number(el.dataset.d);
+    const otro = d < 0 ? li.previousElementSibling : li.nextElementSibling;
+    if (otro) { d < 0 ? otro.before(li) : otro.after(li); el.focus(); vibrar(); }
+  }
+  else if (a === "chk-ed-sacar") { const ul = el.closest("ul"); if (ul.children.length > 1) el.closest("li").remove(); else avisar("Dejá al menos un ítem (o borrá el checklist)"); }
+  else if (a === "chk-ed-sumar") { const ul = el.closest("form").querySelector(".chk-ed-lista"); ul.insertAdjacentHTML("beforeend", filaEdicion()); ul.lastElementChild.querySelector("input").focus(); }
   else if (a === "chk-de-nuevo") { usarDeNuevo(el.dataset.id); avisar("Listo: otra vez en Inicio"); pintar(true); }
   else if (a === "chk-borrar") {
     // Dos toques para borrar, sin ventanitas de confirmación.
@@ -772,6 +786,12 @@ document.addEventListener("submit", async (e) => {
     const c = crearChecklist(d.titulo, d.items, d.u || "");
     if (!c) { avisar("Sumá al menos un ítem"); return; }
     cerrarHoja(); avisar(`«${c.titulo}» está en Inicio`); pintar(true);
+  }
+  else if (tipo === "chk-editar") {
+    const items = [...f.querySelectorAll(".chk-ed-item")].map((li) => ({ t: li.querySelector("input").value, ok: li.dataset.ok === "1" }));
+    const c = editarChk(f.dataset.id, { titulo: d.titulo, u: d.u || "", items });
+    if (!c) { avisar("Dejá al menos un ítem"); return; }
+    sesion("chkEditando", null); sesion("chkBorrador", null); avisar("Guardado"); pintar(true);
   }
   else if (tipo === "chk-sumar") { sumarItem(f.dataset.id, d.t); pintar(true); document.querySelector(`[data-form="chk-sumar"][data-id="${f.dataset.id}"] input`)?.focus(); }
   else if (tipo === "precio") { if (!mandarPedido(d)) { avisar("Decime qué querés comprar"); return; } cerrarHoja(); avisar("Pedido al Rastreador"); if (ruta() === "/rastreador") pintar(true); }

@@ -1,5 +1,12 @@
 # Novedades de Orbe
 
+## v0.45.1 · 30/10/2026
+
+Checklists editables.
+
+- Checklists: cada uno tiene un botón «Editar». Podés cambiarle el nombre, corregir el texto de los ítems, ordenarlos con ↑ ↓, sacar o sumar ítems y moverlo a otro universo. Se guarda con «Listo».
+- Lo que ya tildaste sigue tildado después de editar.
+
 ## v0.45.0 · 30/10/2026
 
 Tu sueldo en dólares.
