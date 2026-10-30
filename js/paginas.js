@@ -21,7 +21,7 @@ import { paginaCampus } from "./campusui.js";
 import { bloqueSatelite } from "./sateliteui.js";
 import { datosEconomia, linkEconomia, idEconomia } from "./economia.js";
 import { ultimaEdicion, htmlEdicion } from "./semanal.js";
-import { GUINOS, guinosPrendidos, resumenGuinos } from "./guinos.js";
+import { GUINOS, GUINOS_FECHA, guinosPrendidos, resumenGuinos } from "./guinos.js";
 import { bloqueSuscripciones } from "./suscripciones.js";
 import { heroHoy, avisoRacha, graficoDias, tarjetaAgus, heroMes, analisisGastos, bloqueMesReal, bloqueGastosHoy, bloqueGastosMes, bloqueSaldo, recordarSaldo } from "./finanzasui.js";
 import { renderMes } from "./agendames.js";
@@ -578,9 +578,10 @@ function bloqueDiseno(tema, f, muestra, demo) {
     <div class="chips">${[["auto", "Automático"], ["claro", "Claro"], ["oscuro", "Oscuro"]].map(([k, n]) => `<button class="chip ${tema === k ? "on" : ""}" data-accion="tema-fijo" data-tema="${k}">${n}</button>`).join("")}</div>
     <p class="fuente-dato">Automático: claro de día y oscuro desde la puesta del sol en Buenos Aires. El botón de Inicio lo cambia hasta la próxima salida o puesta.</p>
     <h3 class="sub-aj">Guiños</h3>
-    <ul class="interruptores"><li><button class="interruptor" role="switch" aria-checked="${guinosPrendidos()}" data-accion="guinos"><span><b>Prendidos</b><small>${guinosPrendidos() ? "Tres por día (mañana, tarde y noche), en un momento al azar: Inicio se viste de Arácnido, Laboratorio, Decreto o TVA por 20 minutos. " + resumenGuinos(new Date()) + " Tocando tres veces el saludo sale uno al toque." : "Apagado: Orbe sobria y seria, sin guiños ni días especiales."}</small></span><i aria-hidden="true"></i></button></li></ul>
+    <ul class="interruptores"><li><button class="interruptor" role="switch" aria-checked="${guinosPrendidos()}" data-accion="guinos"><span><b>Prendidos</b><small>${guinosPrendidos() ? "Tres por día (mañana, tarde y noche), en un momento al azar, por 20 minutos: dos clásicos (Laboratorio, Decreto, TVA) y el especial del día, que rota sin repetirse en la semana (Arácnido, Millo, Ninja, Venom de noche, Diez, Cazador, Maldición). Más los días de fecha: Diego y Messi, Madrid y la previa de River. " + resumenGuinos(new Date()) + " Tocando tres veces el saludo sale uno al toque." : "Apagado: Orbe sobria y seria, sin guiños ni días especiales."}</small></span><i aria-hidden="true"></i></button></li></ul>
     <p class="fuente-dato" style="margin:10px 0 8px">Probar un guiño ahora (se apaga al cerrar Orbe):</p>
     <div class="chips"><button class="chip ${!sesionLeer("demoGuino") ? "on" : ""}" data-accion="demo-guino" data-g="">Real</button>${GUINOS.map(([k, n]) => `<button class="chip ${sesionLeer("demoGuino") === k ? "on" : ""}" data-accion="demo-guino" data-g="${k}">${n}</button>`).join("")}</div>
+    <div class="chips" style="margin-top:8px">${GUINOS_FECHA.map(([k, n]) => `<button class="chip ${sesionLeer("demoGuino") === "f:" + k ? "on" : ""}" data-accion="demo-guino" data-g="f:${k}">${n}</button>`).join("")}</div>
     <h3 class="sub-aj">Probar modos del día</h3>
     <div class="chips"><button class="chip ${!demo ? "on" : ""}" data-accion="demo" data-modo="">Real</button>${MODOS.map((m) => `<button class="chip ${demo === m ? "on" : ""}" data-accion="demo" data-modo="${m}">${m === "normal" ? "Normal" : m === "libre" ? "Día libre" : m === "river" ? "River" : m === "marvel" ? "Guiño Marvel" : "Noche"}</button>`).join("")}</div>
     <p class="fuente-dato">Simula el día y la hora de cada modo. Se apaga al cerrar Orbe.</p>

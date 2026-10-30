@@ -1245,3 +1245,82 @@ details.bloque.plegable[open] > summary { margin-bottom: 10px; }
 .idea-t { font-size: 15px; line-height: 1.4; }
 .idea-m { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-size: 11.5px; color: var(--muted); }
 .idea-e.ok { color: var(--text); }
+/* ---------- v0.40 · Guiños nuevos (formas, colores y frases propias; nada se repite en bucle) ---------- */
+/* Línea del especial y tarjetas de fecha */
+.w.guino-linea, .w.fecha-guino { position: relative; overflow: hidden; gap: 4px; text-decoration: none; color: var(--text); }
+.guino-linea .fk, .fecha-guino .fk { position: relative; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+.guino-linea .fx, .fecha-guino .fx { position: relative; font-size: 14px; line-height: 1.4; color: var(--text); }
+.fecha-guino .ft { position: relative; font-family: var(--serif); font-size: 26px; line-height: 1.12; }
+.fecha-guino .fx { color: var(--muted); font-size: 13.5px; }
+.guino-linea, .fecha-guino { animation: g-entra .5s cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes g-entra { from { opacity: 0; transform: translateY(8px); } }
+/* El 10 de luz en el anillo: celeste y blanco, se prende una vez y queda quieto */
+.fg-diez, .guino-diez { --diez: #2F78B8; }
+:root[data-theme="oscuro"] .fg-diez, :root[data-theme="oscuro"] .guino-diez { --diez: #8CC4EE; }
+.fg-diez .anillo::after, .guino-diez .anillo::after { content: "10"; position: absolute; left: 50%; top: calc(11.5% - 17px); transform: translateX(-50%);
+  padding: 0 7px; background: var(--bg); font: 600 26px/1 var(--serif); color: var(--diez); pointer-events: none;
+  text-shadow: 0 0 10px color-mix(in srgb, var(--diez) 70%, transparent), 0 0 22px color-mix(in srgb, var(--diez) 40%, transparent);
+  animation: diez-prende 1.8s ease-out .4s both; }
+@keyframes diez-prende { 0% { opacity: 0; filter: blur(6px); } 40% { opacity: 1; filter: blur(0); text-shadow: 0 0 26px var(--diez), 0 0 48px var(--diez); } }
+.fecha-guino.diez { background: linear-gradient(135deg, color-mix(in srgb, #75AADB 24%, var(--tile)), var(--tile) 62%); }
+.fecha-guino.diez .fk { color: var(--diez); }
+/* Madrid y la previa: la banda roja cruza una vez y se queda */
+.fecha-guino.madrid, .fecha-guino.previa { padding-right: 56px; }
+.fecha-guino.madrid::after { content: ""; position: absolute; right: -14px; top: -12px; width: 40px; height: 150%; background: #E2001A; transform: rotate(14deg); }
+.fecha-guino.madrid .fk, .fecha-guino.previa .fk { color: #C8102E; }
+:root[data-theme="oscuro"] .fecha-guino.madrid .fk, :root[data-theme="oscuro"] .fecha-guino.previa .fk { color: #FF5A6A; }
+.fecha-guino.previa .franja { position: absolute; right: -14px; top: -12px; width: 40px; height: 150%; background: #E2001A; transform: rotate(14deg); }
+.inicio.fg-madrid, .inicio.fg-previa, .inicio.guino-millo, .inicio.guino-maldicion { isolation: isolate; }
+.banda.banda-guino { z-index: -1; top: 250px; opacity: .9; animation: banda-cruza 1.3s cubic-bezier(.2, .8, .2, 1) .2s both; }
+@keyframes banda-cruza { from { transform: translateX(-120%) rotate(-32deg); opacity: 0; } to { transform: rotate(-32deg); opacity: .9; } }
+.inicio.guino-millo { --accent: #C8102E; }
+:root[data-theme="oscuro"] .inicio.guino-millo { --accent: #FF5A6A; }
+/* Arácnido renovado: rojo, y la telaraña se teje una vez */
+.inicio.guino-arana { --accent: #C8102E; }
+:root[data-theme="oscuro"] .inicio.guino-arana { --accent: #FF5A6A; }
+.guino-arana .tela path { stroke-dasharray: 260; stroke-dashoffset: 260; animation: tejer 1.6s ease-out .2s forwards; }
+@keyframes tejer { to { stroke-dashoffset: 0; } }
+/* Venom: la gota asoma desde el borde, late dos veces y se queda quieta. Tocándola se esconde. */
+.inicio.guino-venom { --accent: #D93A40; }
+:root[data-theme="oscuro"] .inicio.guino-venom { --accent: #FF6B6F; }
+.gota-venom { position: absolute; z-index: 6; right: 0; top: 118px; width: 62px; height: 166px; padding: 0; border: 0; background: none; cursor: pointer;
+  transform-origin: 100% 30%; animation: gota-asoma 1.6s cubic-bezier(.2, .9, .3, 1) .3s both, gota-late .9s ease-in-out 2.1s 2; }
+.gota-venom svg { width: 100%; height: 100%; display: block; fill: #050505; }
+.gota-venom .brillo { stroke: rgba(255, 255, 255, .3); stroke-width: 3; stroke-linecap: round; }
+:root[data-theme="oscuro"] .gota-venom svg { fill: #000; filter: drop-shadow(-1px 0 0 rgba(255, 255, 255, .28)) drop-shadow(0 0 10px rgba(229, 72, 77, .25)); }
+.gota-venom.se-va { animation: gota-se-va .6s cubic-bezier(.6, 0, .8, .4) forwards; pointer-events: none; }
+@keyframes gota-asoma { from { transform: translateX(105%); } }
+@keyframes gota-late { 50% { transform: scaleX(1.08) scaleY(.97); } }
+@keyframes gota-se-va { to { transform: translateX(110%); } }
+.guino-venom .saludo h1 .ls + .ls { color: var(--muted); }
+/* Ninja: naranja y negro; una nube de humo aparece y se disipa */
+.inicio.guino-ninja { --accent: #D5590F; }
+:root[data-theme="oscuro"] .inicio.guino-ninja { --accent: #FF8A3D; }
+.humo { position: absolute; z-index: 4; left: 50%; top: 150px; width: 170px; margin-left: -85px; color: var(--muted); opacity: 0; pointer-events: none;
+  animation: humo 1.4s ease-out .3s 1 both; }
+@keyframes humo { 0% { opacity: 0; transform: scale(.4); } 25% { opacity: .55; transform: scale(1); } 100% { opacity: 0; transform: scale(1.5) translateY(-14px); } }
+.guino-ninja .guino-linea { background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 16%, var(--tile)), var(--tile) 70%); }
+/* Cazador: verde con cuadros, y la ola de la respiración que se dibuja una vez */
+.inicio.guino-cazador { --accent: #1F7F54; }
+:root[data-theme="oscuro"] .inicio.guino-cazador { --accent: #4CC38A; }
+.cuadros { position: absolute; z-index: 2; left: 0; right: 0; top: 0; height: 8px; pointer-events: none;
+  background: repeating-conic-gradient(#1F8A5B 0 25%, #0B0B0C 0 50%) 0 0 / 16px 16px; transform-origin: 0 50%; animation: cuadros-entra .9s ease-out .2s both; }
+@keyframes cuadros-entra { from { transform: scaleX(0); } }
+.guino-linea .ola { position: absolute; right: -8px; bottom: -6px; width: 170px; color: var(--accent); opacity: .35; pointer-events: none; }
+.ola path { stroke-dasharray: 1; stroke-dashoffset: 1; animation: tejer 2.4s ease-in-out .3s forwards; }
+/* Maldición: violeta oscuro; el círculo se expande una vez alrededor del anillo y queda tenue */
+.inicio.guino-maldicion { --accent: #6C3FD0; }
+:root[data-theme="oscuro"] .inicio.guino-maldicion { --accent: #A98BFF; }
+.guino-maldicion .anillo::before { content: ""; position: absolute; z-index: -1; inset: -24%; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle closest-side, transparent 64%, color-mix(in srgb, var(--accent) 30%, transparent) 74%, transparent 98%);
+  animation: dominio 1.6s cubic-bezier(.2, .8, .2, 1) .2s both; }
+@keyframes dominio { from { transform: scale(.4); opacity: 0; } 60% { opacity: 1; } to { transform: scale(1); opacity: .75; } }
+@media (min-width: 920px) {
+  .humo { left: 220px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .guino-linea, .fecha-guino, .fg-diez .anillo::after, .guino-diez .anillo::after, .banda.banda-guino, .guino-arana .tela path,
+  .gota-venom, .gota-venom.se-va, .humo, .cuadros, .ola path, .guino-maldicion .anillo::before { animation: none; }
+  .guino-arana .tela path, .ola path { stroke-dashoffset: 0; }
+  .humo, .gota-venom.se-va { display: none; }
+}

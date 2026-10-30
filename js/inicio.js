@@ -13,7 +13,7 @@ import { movimientoDolar } from "./extras.js";
 import { presupuesto, preguntas } from "./presupuesto.js";
 import { ultimaEdicion, esNueva, proximaSemanal } from "./semanal.js";
 import { wChecklists, usarColores } from "./checklists.js";
-import { decoracion, hudSobre, decreto, lineaTva } from "./guinos.js";
+import { decoracion, hudSobre, decreto, lineaTva, lineaGuino } from "./guinos.js";
 import { wBnaHoy } from "./bnahoy.js";
 import { racha, motivoSinDiario, resumenGastosHoy } from "./finanzasui.js";
 
@@ -587,8 +587,8 @@ export function renderInicio(datos, ctx, climaDatos, tema) {
   return `
   ${ctx.modo === "river" ? '<div class="banda" aria-hidden="true"></div>' : ""}
   ${ctx.modo === "marvel" || ctx.guino === "arana" ? TELA : ""}
-  <div class="inicio ${compacto ? "compacto" : ""} ${ctx.guino ? "guino-" + ctx.guino : ""}">
-    ${decoracion(ctx.guino)}
+  <div class="inicio ${compacto ? "compacto" : ""} ${ctx.guino ? "guino-" + ctx.guino : ""} ${ctx.fechaGuino ? ctx.fechaGuino.clase : ""}">
+    ${decoracion(ctx.guino)}${ctx.fechaGuino?.deco || ""}
     <div class="col-a">
       <div class="top"><span class="fecha-hora">${fechaTxt} <span class="hora">· <span id="hora-top">${hhmm(ctx.min)}</span><span class="seg" id="seg-top">:${seg}</span></span>${ctx.demo ? ' <a class="ejemplo" href="#/ajustes" style="text-decoration:none">Prueba</a>' : ""}</span>
         <span class="der">
@@ -605,7 +605,7 @@ export function renderInicio(datos, ctx, climaDatos, tema) {
     </div>
     <div class="col-b">
       ${tira(ctx, datos)}
-      <div class="widgets">${wUrgente(datos, ctx)}${ver("chk", wChecklists())}${cuadros}${ver("plata", wPlata(datos, ctx))}</div>
+      <div class="widgets">${ctx.fechaGuino?.tarjeta || ""}${lineaGuino(ctx.guino, ctx)}${wUrgente(datos, ctx)}${ver("chk", wChecklists())}${cuadros}${ver("plata", wPlata(datos, ctx))}</div>
       ${ver("preguntas", avisoPreguntas())}
       ${ver("bnahoy", wBnaHoy(ctx))}
       ${ver("semanal", wSemanal())}
