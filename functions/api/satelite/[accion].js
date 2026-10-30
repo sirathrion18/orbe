@@ -1,9 +1,9 @@
 // Buzón de Satélite. Rutas:
-//   Desde Orbe (con tu sesión):  POST codigo · POST retirar · POST listo · POST anular
-//   Desde el celu (con su llave): POST vincular · POST buzon
+//   Desde Orbe (con tu sesión):  POST codigo · POST retirar · POST listo · POST anular · POST avisos
+//   Desde el celu (con su llave): POST vincular · POST buzon · POST agenda
 // Ver servidor/satelite.js para qué se guarda y cómo.
 import { configurado, descifrar as descifrarSesion, leerCookie, COOKIE, mismoOrigen, json } from "../../../servidor/sesion.js";
-import { cifrar, descifrar, sha256, codigoNuevo, llaveNueva, idNuevo, limpiarItem, DIAS30 } from "../../../servidor/satelite.js";
+import { cifrar, descifrar, sha256, codigoNuevo, llaveNueva, idNuevo, limpiarItem, limpiarAgenda, DIAS30, DIAS3 } from "../../../servidor/satelite.js";
 
 const MAX_ITEMS = 200;
 
@@ -69,6 +69,17 @@ export async function onRequest({ request, env, params }) {
     return json({ ok: true, recibidos: items.length });
   }
 
+  // Los avisos que armó Orbe: el celu manda la versión que tiene y solo baja la agenda si cambió.
+  if (accion === "agenda" && metodo === "POST") {
+    const d = await celu(request, env);
+    if (!d) return json({ error: "llave" }, 401);
+    let c = {}; try { c = await leerCuerpo(request, 2000); } catch (e) { return json({ error: "pedido" }, 400); }
+    const ag = await descifrar(env, await KV.get("avisos:" + d.u) || "");
+    if (!ag) return json({ v: "", agenda: null });
+    if (String(c.v || "") === ag.v) return json({ v: ag.v, igual: true });
+    return json({ v: ag.v, agenda: { avisos: ag.avisos, diario: ag.diario, cfg: ag.cfg } });
+  }
+
   // ---------- Desde Orbe ----------
   const yo = await usuario(request, env);
   if (yo.error) return yo.error;
@@ -105,6 +116,15 @@ export async function onRequest({ request, env, params }) {
     const claves = (Array.isArray(c.claves) ? c.claves : []).filter((k) => typeof k === "string" && k.startsWith("buz:" + yo.u + ":")).slice(0, 100);
     for (const k of claves) await KV.delete(k);
     return json({ ok: true, borrados: claves.length });
+  }
+
+  if (accion === "avisos" && metodo === "POST") {
+    let c; try { c = await leerCuerpo(request, 30000); } catch (e) { return json({ error: "pedido" }, 400); }
+    const ag = limpiarAgenda(c);
+    if (!ag) return json({ error: "agenda" }, 400);
+    const v = (await sha256(JSON.stringify(ag))).slice(0, 16);
+    await KV.put("avisos:" + yo.u, await cifrar(env, { ...ag, v, cuando: Date.now() }), { expirationTtl: DIAS3 });
+    return json({ ok: true, v, avisos: ag.avisos.length });
   }
 
   if (accion === "anular" && metodo === "POST") {

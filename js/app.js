@@ -18,6 +18,7 @@ import { leerRecibos } from "./recibos.js";
 import { datosFacu, traerCampus, leerFacu, tildarTp, nuevoTp, guardarMateria, asignarTp, pendientesDeTps, HOJAS_FACU } from "./facu.js";
 import { datosCampus, leerCampus, tildarCampus, pendientesDeCampus, HOJAS_CAMPUS } from "./campus.js";
 import { datosSatelite, retirarSatelite, codigoSatelite, anularSatelite } from "./satelite.js";
+import { mandarAgenda, guardarAvisos, CATEGORIAS as CATEGORIAS_AVISO } from "./avisos.js";
 import { asegurarHojas, asegurarLeeme, fijarSemillas, escribir as escribirHoja } from "./hoja.js";
 import { fijarHoja, idHoja } from "./hoja.js";
 import { traerDolar, traerRiver, traerTransporte, traerEquipos, equiposSeguidos } from "./extras.js";
@@ -752,6 +753,12 @@ document.addEventListener("submit", async (e) => {
     const t = new Date(); t.setHours(h, m, 0, 0);
     if (t.getTime() <= Date.now()) t.setDate(t.getDate() + 1);
     guardar("alarmaManual", { ts: t.getTime() }); avisar("Alarma anotada"); pintar(true);
+  } else if (tipo === "avisos") {
+    const cfg = { hora: d.hora, desde: d.desde, hasta: d.hasta, max: d.max };
+    CATEGORIAS_AVISO.forEach(([k]) => { cfg[k] = d[k] === "on"; });
+    guardarAvisos(cfg); avisar("Guardado. Mandando al celu…");
+    mandarAgenda(estado.datos, true).then((r) => { avisar(r.estado === "mandada" ? (r.cantidad ? `Listo: ${r.cantidad} avisos programados` : "Listo: por ahora no hay nada para avisar") : "Sin celu vinculado"); pintar(true); })
+      .catch((err) => avisar("No se pudo mandar: " + textoError(err.message)));
   } else if (tipo === "horario") {
     const h = {};
     [1, 2, 3, 4, 5].forEach((dd) => { if (d["i" + dd] && d["f" + dd]) h[dd] = { inicio: d["i" + dd], fin: d["f" + dd] }; });
@@ -1078,6 +1085,8 @@ async function refrescarTodo(forzar = false) {
     try { estado.ctx = construirContexto(estado.datos, sesion("demo")); await escribirResumen(estado.datos, estado.ctx, forzar); estadoParte("resumen"); }
     catch (e) { estadoParte("resumen", e.message); }
   }
+  // Avisos para el celu (por Satélite): si hay celu vinculado y algo cambió; como mucho cada 10 minutos.
+  if (!sesion("demo")) mandarAgenda(estado.datos).catch(() => { /* se reintenta en la próxima vuelta */ });
   pintar(true);
   return { ok: !fallas.length, fallas };
 }

@@ -145,6 +145,36 @@ public class Principal extends Activity {
         t3.addView(boton("Abrir ajustes de Satélite", false, v -> startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + getPackageName())))));
         raiz.addView(t3);
 
+        // 4. Avisos de Orbe en el celu
+        LinearLayout t3b = tarjeta("4 · Avisos de Orbe");
+        boolean puede = Avisos.puede(this);
+        t3b.addView(estado(puede, puede ? "Puede mostrarte avisos" : "Falta el permiso de notificaciones"));
+        t3b.addView(texto("Orbe arma tus avisos (resumen de la mañana, vencimientos, River y lo que te queda después de cada pago) y Satélite los muestra. Qué te avisa y cuándo se elige en Orbe: Ajustes › Satélite › Avisos.", 14, cSuave, false));
+        if (!puede) {
+            t3b.addView(boton("Permitir avisos", true, v -> {
+                if (android.os.Build.VERSION.SDK_INT >= 33 && checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED
+                        && !"no".equals(a.texto("pidioAvisos"))) {
+                    a.texto("pidioAvisos", "no");
+                    requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 7);
+                } else {
+                    // Si ya se negó una vez, Android no vuelve a preguntar: se abre la pantalla de notificaciones de Satélite.
+                    startActivity(new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, getPackageName()));
+                }
+            }));
+        } else {
+            JSONObject ag = null;
+            try { String s = a.leer("agenda"); ag = s == null ? null : new JSONObject(s); } catch (Exception e) { ag = null; }
+            JSONArray l = ag == null ? null : ag.optJSONArray("avisos");
+            int vienen = 0;
+            long prox = 0;
+            for (int i = 0; l != null && i < l.length(); i++) {
+                long ts = l.optJSONObject(i) == null ? 0 : l.optJSONObject(i).optLong("ts");
+                if (ts > System.currentTimeMillis()) { vienen++; if (prox == 0 || ts < prox) prox = ts; }
+            }
+            t3b.addView(par("Programados", vienen == 0 ? "ninguno por ahora" : vienen + (prox > 0 ? " · el próximo " + new SimpleDateFormat("EEE HH:mm", new Locale("es", "AR")).format(new Date(prox)) : "")));
+        }
+        raiz.addView(t3b);
+
         // Qué escucha
         LinearLayout t4 = tarjeta("Qué escucha");
         Set<String> inst = Satelite.instaladas(this);
