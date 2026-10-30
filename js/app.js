@@ -4,7 +4,7 @@ import * as G from "./google.js";
 import { construirContexto } from "./contexto.js";
 import { renderInicio, despuesInicio, esc, colorUniverso, regresiva } from "./inicio.js";
 import { ICONOS } from "./iconos.js";
-import { renderRiver, renderUniverso, renderBloqueo, renderIdeas, renderAgenda, renderRespiro, renderDatos, renderAjustes, renderNovedades, renderNoEncontrado, renderSemanal, renderUrgente, hojaMovimiento, hojaTp, hojaMateria, hojaAsignar, hojaAgus, hojaPartido, hojaPasos, hojaPesos, hojaGasto } from "./paginas.js";
+import { renderRiver, renderUniverso, renderBloqueo, renderAgenda, renderRespiro, renderDatos, renderAjustes, renderNovedades, renderNoEncontrado, renderSemanal, renderUrgente, hojaMovimiento, hojaTp, hojaMateria, hojaAsignar, hojaAgus, hojaPartido, hojaPasos, hojaPesos, hojaGasto } from "./paginas.js";
 import { HOJAS_PRESU, leerConfigPresu, cruzar, responder as responderPresu, confirmarIngreso } from "./presupuesto.js";
 import { agregarManual } from "./finanzas.js";
 import { HOJAS_ESC, leerEscalafon, cargarConformado, datosEsc } from "./escalafon.js";
@@ -40,6 +40,9 @@ import { mesActual, claveMes, mesViejo } from "./agendames.js";
 import { pendientesDeSuscripciones, hojaSuscripcion, guardarSuscripcion, borrarSuscripcion } from "./suscripciones.js";
 import { renderRastreador, formPrecio, mandarPedido } from "./rastreador.js";
 import { renderChecklists, formChecklist, crear as crearChecklist, tildar as tildarChk, sumarItem, sacarItem, usarDeNuevo, borrarChecklist, itemsDeTexto, usarColores } from "./checklists.js";
+
+import { renderIdeas, renderFicha, renderPropuestas, proyectos as listaProyectos, paraCosmos, destinosIdea } from "./proyectosui.js";
+import { leerCentral, leerPropuestas, responderPropuesta } from "./central.js";
 
 const app = document.getElementById("app");
 const estado = { datos: null, clima: null, ctx: null };
@@ -110,7 +113,9 @@ function pintar(refresco = false) {
   }
   else if (r === "/urgente") html = renderUrgente(estado.datos, estado.ctx);
   else if (r === "/checklists") { usarColores((u) => colorUniverso(estado.datos, u, tema)); html = renderChecklists(); }
-  else if (r === "/ideas") html = renderIdeas();
+  else if (r === "/ideas") html = renderIdeas(estado.datos);
+  else if (r.startsWith("/p/")) html = renderFicha(decodeURIComponent(r.slice(3)), estado.datos);
+  else if (r === "/propuestas") html = renderPropuestas(estado.datos);
   else if (r === "/agenda") { html = renderAgenda(estado.datos, estado.ctx, tema); if (sesion("agendaTab") === "mes") setTimeout(traerMes, 0); }
   else if (r === "/respiro") html = renderRespiro();
   else if (r === "/rastreador") html = renderRastreador(`<a class="volver" href="#/">${ICONOS.volver} Inicio</a>`);
@@ -134,6 +139,7 @@ function pintar(refresco = false) {
   document.body.classList.toggle("dock-nombres", !!leer("dockNombres"));
   riverEnNegrita(app);
   if (esInicio) { despuesInicio(app, !refresco); conectarBuscador(); }
+  montarCosmos(r);
   const lector = app.querySelector(".lector-ed");
   if (lector) {
     // srcdoc en vez de una dirección: la edición viene de lo guardado, así abre sin señal. Sin scripts, con los links afuera.
@@ -141,6 +147,19 @@ function pintar(refresco = false) {
     marcarLeida();
   }
   document.title = esInicio ? "Orbe" : "Orbe · " + (app.querySelector("h1")?.textContent.trim() || "");
+}
+
+// Proyectos: el cosmos en 3D se carga recién cuando abrís el universo (así no pesa en el resto de Orbe)
+// y deja de dibujar apenas salís.
+let cosmos = null;
+function montarCosmos(r) {
+  const caja = r === "/u/proyectos" ? document.getElementById("cosmos") : null;
+  if (!caja) { cosmos?.parar(); return; }
+  import("./cosmos.js").then((m) => {
+    cosmos = m;
+    if (!document.body.contains(caja)) return;
+    if (!m.montar(caja, paraCosmos(listaProyectos(estado.datos)))) caja.remove();
+  }).catch(() => caja.remove());
 }
 
 // «River», siempre en negrita, en todo Orbe.
@@ -317,7 +336,7 @@ function formIdea() {
   return `<form data-form="idea-hoja">
     <label class="sr" for="idea-txt">Idea</label><textarea id="idea-txt" name="t" class="campo-texto" placeholder="Lo que se te cruce. Sumá #etiquetas si querés." required></textarea>
     ${("webkitSpeechRecognition" in window || "SpeechRecognition" in window) ? '<button type="button" class="btn sec dictar" data-accion="dictar" style="margin-top:8px;display:inline-flex;gap:8px;align-items:center"><span style="width:18px;height:18px;display:inline-flex">' + ICONOS.mic + '</span>Dictar</button>' : ""}
-    <div class="grupo"><span>Universo (opcional)</span><div class="chips">${UNIVERSOS.map((u) => `<label class="chip"><input type="radio" name="u" value="${u.nombre}" class="sr">${esc(u.nombre)}</label>`).join("")}</div></div>
+    <div class="grupo"><span>Para qué es (opcional)</span><div class="chips">${destinosIdea(estado.datos).map((n) => `<label class="chip"><input type="radio" name="u" value="${esc(n)}" class="sr">${esc(n)}</label>`).join("")}</div></div>
     <div class="grupo" style="display:flex;gap:10px"><button type="button" class="btn sec" data-accion="cerrar-hoja" style="flex:1">Cancelar</button><button class="btn" style="flex:2">Guardar idea</button></div></form>`;
 }
 function pestanaMas(hoja, cual) {
@@ -620,6 +639,9 @@ document.addEventListener("click", (e) => {
     rec.start();
   }
   else if (a === "idea-tag") { sesion("tagIdea", el.dataset.tag || null); pintar(true); }
+  else if (a === "idea-dest") { sesion("destIdea", el.dataset.dest || null); pintar(true); }
+  else if (a === "ficha-tab") { sesion("fichaTab", el.dataset.tab); pintar(true); }
+  else if (a === "prop-resp") { responderPropuesta(el.dataset.id, el.dataset.r || null); if (el.dataset.r) avisar({ dale: "Anotado: va a la Bandeja", despues: "Queda para más adelante", no: "Descartada" }[el.dataset.r]); pintar(true); }
   else if (a === "huella-activar") {
     huellaDisponible().then(async (ok) => {
       if (!ok) { avisar("Este dispositivo no tiene lector de huella disponible"); return; }
@@ -676,6 +698,7 @@ document.addEventListener("submit", async (e) => {
   const tipo = f.dataset.form;
   if (tipo === "super") { const l = leer("super", []); l.push({ t: d.t.trim(), ok: false }); guardar("super", l); vibrar(); pintar(); document.querySelector('[data-form="super"] input')?.focus(); }
   else if (tipo === "idea") { guardarIdea(d.t.trim(), ""); pintar(); }
+  else if (tipo === "idea-dest") { guardarIdea(d.t.trim(), d.u || ""); pintar(); }
   else if (tipo === "sus") {
     const sus = guardarSuscripcion(d, f.dataset.id || "");
     if (!sus) { avisar("Faltan el nombre o la fecha de renovación"); return; }
@@ -982,6 +1005,11 @@ async function refrescarTodo(forzar = false) {
     try { await leerListas(); await sumarSemanalAProyectos().catch(() => {}); estadoParte("listas"); await recargarDatos(); traerGithub().then(() => pintar(true)); }
     catch (e) { estadoParte("listas", e.message); fallas.push(["listas", e.message]); }
   }
+  // La central de proyectos (fichas y Bandeja de Drive) y las propuestas de Claude. Nunca frena el resto.
+  if (G.permisos().drive) {
+    try { const c1 = await leerCentral(forzar); const c2 = await leerPropuestas(forzar); estadoParte("central"); if ((c1 || c2) && /^\/(u\/proyectos|ideas|propuestas|p\/)/.test(ruta())) pintar(true); }
+    catch (e) { estadoParte("central", e.message); }
+  }
   if (!fallas.length && (forzar || !datosFacu() || Date.now() - datosFacu().cuando > 3 * 3600000)) {
     try { await traerCampus(); estadoParte("facu"); }
     catch (e) { estadoParte("facu", e.message); fallas.push(["facu", e.message]); }
@@ -1060,7 +1088,7 @@ const LEEME = [
   "HISTORICO: cada movimiento de tus extractos de la caja de ahorro y de tus resúmenes de tarjeta (fecha, cuenta, concepto, monto, saldo, categoría y de qué archivo salió). Lo arma Orbe leyendo tus PDF de Drive; podés corregir la categoría a mano.",
   "PESOS_PRODUCTIVIDAD: cuánto vale cada tarea (puntos por unidad) y cuántos minutos lleva; grupo carga, control, ms (MS y cambio de cartera), otras o meta. Las filas «meta» dicen desde qué fecha vale cada meta diaria y los minutos efectivos."
 ];
-const NOMBRE_PARTE = { satelite: "Satélite", campus: "la revisión del campus", facu: "el campus de UFASTA", sincro: "la sincronización", mails: "los mails", economia: "ECONOMÍA", agenda: "la agenda", recibos: "los recibos", listas: "Agus, fútbol y proyectos", prod: "la productividad" };
+const NOMBRE_PARTE = { satelite: "Satélite", campus: "la revisión del campus", facu: "el campus de UFASTA", sincro: "la sincronización", mails: "los mails", economia: "ECONOMÍA", agenda: "la agenda", recibos: "los recibos", listas: "Agus, fútbol y proyectos", central: "la central de proyectos", prod: "la productividad" };
 export function textoError(m) {
   m = String(m || "");
   if (m === "reconectar" || m.startsWith("reconectar")) return "hay que volver a conectar con Google";

@@ -1167,3 +1167,81 @@ details.bloque.plegable[open] > summary { margin-bottom: 10px; }
 .sat-devs { margin-top: 16px; }
 .sat-devs li { align-items: flex-start; }
 .sat-devs small { font-size: 12px; }
+
+/* ---------- Proyectos: el cosmos ---------- */
+/* Siempre de noche: es un pedazo de cielo adentro de la página, en los dos temas. */
+.cosmos { position: relative; margin: 6px -20px 0; height: clamp(440px, 66vh, 620px); overflow: hidden; background: #050507; color: #f2f2f0; border-radius: 0; isolation: isolate; }
+.cosmos-lienzo { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: pan-y; cursor: grab; }
+.cz-capa { position: absolute; inset: 0; pointer-events: none; }
+.cz-etq { position: absolute; left: 0; top: 0; text-align: center; white-space: nowrap; transition: opacity .35s; will-change: transform; }
+.cz-etq b { display: block; font-size: 11.5px; font-weight: 600; text-shadow: 0 1px 8px #000, 0 0 2px #000; }
+.cz-etq small { display: block; font-size: 10px; color: #a1a1a6; margin-top: 1px; text-shadow: 0 1px 6px #000; }
+.cosmos.sobrio .cz-etq b { font-size: 12.5px; }
+.cz-ctrl { position: absolute; top: 12px; right: 14px; display: flex; gap: 8px; }
+.cz-chip { pointer-events: auto; height: 34px; padding: 0 13px; border-radius: 999px; border: 1px solid rgba(255,255,255,.16); background: rgba(10,10,14,.6); color: #f2f2f0;
+  font: 600 11px var(--sans); letter-spacing: .06em; text-transform: uppercase; }
+.cz-chip[aria-pressed="true"] { background: #f2f2f0; color: #0b0b0e; }
+.cz-aviso { position: absolute; left: 50%; top: 56px; transform: translate(-50%, -8px); opacity: 0; transition: .3s; background: rgba(14,14,18,.9);
+  border: 1px solid rgba(255,255,255,.14); padding: 9px 15px; border-radius: 999px; font-size: 13px; white-space: nowrap; }
+.cz-aviso.ver { opacity: 1; transform: translate(-50%, 0); }
+.cz-hoja { position: absolute; left: 12px; right: 12px; bottom: 12px; transform: translateY(115%); transition: transform .5s cubic-bezier(.2,.8,.2,1); }
+.cz-hoja.abierta { transform: none; }
+.cz-caja { pointer-events: auto; border-radius: 22px; padding: 16px 16px 14px; background: rgba(14,14,18,.9); border: 1px solid color-mix(in srgb, var(--tono, #fff) 40%, transparent);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+.cz-ceja { font-size: 10.5px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--tono, #f2f2f0); }
+.cz-nombre { margin: 4px 0 0; font: 400 34px/1 var(--serif); }
+.cz-que { margin: 6px 0 0; font-size: 13.5px; color: #b4b4ba; line-height: 1.4; }
+.cz-paso { margin-top: 10px; padding: 10px 12px; border-radius: 14px; background: rgba(255,255,255,.05); }
+.cz-paso span { font-size: 10px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: #a1a1a6; }
+.cz-paso div { font-size: 14px; margin-top: 2px; }
+.cz-acc { display: flex; gap: 8px; margin-top: 12px; align-items: center; }
+.cz-acc .btn { height: 42px; display: inline-flex; align-items: center; text-decoration: none; background: #f2f2f0; color: #0b0b0e; border-radius: 999px; }
+.cz-acc .btn.sec { background: transparent; color: #f2f2f0; border: 1px solid rgba(255,255,255,.2); }
+.cz-acc .cz-fl { width: 42px; padding: 0; justify-content: center; font-size: 18px; }
+.cz-esp { flex: 1; }
+@media (prefers-reduced-motion: reduce) { .cz-hoja, .cz-etq, .cz-aviso { transition: none; } }
+
+.tarjeta-prop { display: flex; align-items: center; gap: 14px; margin-top: 16px; padding: 15px 16px; border-radius: 18px; background: var(--tile); text-decoration: none; }
+.tarjeta-prop > span:first-child { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.tarjeta-prop .k { font-size: 10.5px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.tarjeta-prop .t { font-size: 14px; line-height: 1.4; }
+.tarjeta-prop .n { margin-left: auto; font: 400 30px/1 var(--serif); color: var(--accent); }
+.tarjeta-prop .ir, .proy .ir { margin-left: auto; color: var(--muted); font-size: 18px; }
+
+.insignia { flex: none; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; }
+.insignia svg { width: 62%; height: 62%; }
+.proys { display: flex; flex-direction: column; gap: 8px; }
+.proy { display: flex; align-items: flex-start; gap: 12px; padding: 14px; border-radius: 18px; background: var(--tile); text-decoration: none; }
+.proy-txt { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.proy-txt b { font-size: 16px; }
+.proy-est { font-size: 12px; color: var(--muted); }
+.proy-ult { font-size: 12px; color: var(--muted); line-height: 1.35; }
+.proy-paso { font-size: 13px; line-height: 1.35; }
+.proy .ir { align-self: center; }
+
+.ficha-cab { display: flex; align-items: center; gap: 16px; margin-top: 14px; }
+.ficha-cab h1 { margin: 0 0 4px; }
+.ficha-meta { margin: 0; font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--tono, var(--muted)); }
+.ficha-p .bajada { margin-top: 14px; }
+.ficha-l { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.ficha-l li { position: relative; padding-left: 16px; font-size: 14.5px; line-height: 1.45; }
+.ficha-l li::before { content: ""; position: absolute; left: 0; top: .6em; width: 6px; height: 6px; border-radius: 3px; background: var(--tono, var(--accent)); }
+.ficha-h3 { margin: 18px 0 10px; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.pestanas { overflow-x: auto; scrollbar-width: none; }
+.pestanas .pestana { flex: none; }
+
+.prop-c { margin-top: 12px; padding: 16px; border-radius: 18px; background: var(--tile); }
+.prop-c.resp { opacity: .8; }
+.prop-k { margin: 0; font-size: 10.5px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.prop-c h3 { margin: 6px 0 0; font: 400 24px/1.15 var(--serif); }
+.prop-p { margin: 8px 0 0; font-size: 14px; line-height: 1.45; color: var(--muted); }
+.prop-b { display: flex; gap: 8px; margin-top: 14px; }
+.prop-b .btn { flex: 1; }
+.prop-r { margin: 10px 0 0; font-size: 13px; }
+
+.ideas-l { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.ideas-l li { padding: 13px 14px; border-radius: 16px; background: var(--tile); display: flex; flex-direction: column; gap: 6px; }
+.ideas-l li.vacio { background: transparent; padding: 0; }
+.idea-t { font-size: 15px; line-height: 1.4; }
+.idea-m { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-size: 11.5px; color: var(--muted); }
+.idea-e.ok { color: var(--text); }

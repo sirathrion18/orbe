@@ -27,6 +27,7 @@ import { heroHoy, avisoRacha, graficoDias, tarjetaAgus, heroMes, analisisGastos,
 import { renderMes } from "./agendames.js";
 import { bloqueHoy } from "./bnahoy.js";
 import { equiposSeguidos } from "./extras.js";
+import { cuerpoProyectos } from "./proyectosui.js";
 
 const MESES_LARGOS = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 
@@ -406,27 +407,7 @@ const PAGINAS = {
     return `${pestF}${heroHoy(ctx, $, oculto)}${avisoRacha(ctx, $)}${aviso}${wPregunta() ? `<section class="preg-fin">${wPregunta()}</section>` : ""}${bloqueGastosHoy(ctx, $)}${graficoDias(ctx, $, oculto)}${tarjetaAgus(ctx, $)}${recordarSaldo(ctx)}${cabeza.includes("Activar en Ajustes") ? cabeza : ""}`;
   },
 
-  proyectos(datos) {
-    const l = datosListas();
-    const gh = l?.github || {};
-    const lista = (l?.proyectos?.length ? l.proyectos : (datos.proyectos || []).map((p) => ({ ...p, proximos: p.proximo ? [p.proximo] : [] })))
-      .filter((p) => !/^(ntn|sur)$/i.test(p.id));
-    const hace = (iso) => { const d = Math.round((Date.now() - new Date(iso)) / 86400000); return d <= 0 ? "hoy" : d === 1 ? "ayer" : "hace " + d + " días"; };
-    const repoUrl = (r) => !r ? "" : /^https?:/.test(r) ? r : "https://github.com/" + r;
-    return lista.map((p) => {
-      const g = gh[p.repo];
-      let ultimo = g?.fecha ? `<p class="fuente-dato" style="margin-top:0">Último cambio ${hace(g.fecha)}: ${esc(g.mensaje)}${g.semana ? ` · ${g.semana} ${g.semana === 1 ? "cambio" : "cambios"} esta semana` : ""}</p>` : g?.privado ? '<p class="fuente-dato" style="margin-top:0">Repo privado: sin datos de cambios.</p>' : "";
-      if (p.id === "semanal") {
-        // El Semanal no tiene repo: su seguimiento son las ediciones.
-        const e = ultimaEdicion();
-        ultimo = e ? `<p class="fuente-dato" style="margin-top:0">Última edición: ${esc(e.nombre)}${e.numero ? " N.º " + esc(e.numero) : ""} · ${esc(e.fecha.split("-").reverse().slice(0, 2).join("/"))}${e.titular ? " — «" + esc(e.titular) + "»" : ""}</p>` : '<p class="fuente-dato" style="margin-top:0">Sale los domingos a las 20:00.</p>';
-      }
-      const interno = /^#\//.test(p.url || "");
-      return `<section class="bloque"><h2>${esc(p.nombre)} <span class="tag">${esc(p.estado)}</span></h2>${ultimo}
-      ${p.proximos.length ? `<p class="vacio" style="font-size:12px;margin-top:10px">Próximos pasos</p><ul class="pasos">${p.proximos.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
-      <div class="chips" style="margin-top:12px">${p.url ? `<a class="chip" href="${esc(p.url)}"${interno ? "" : ' target="_blank" rel="noopener"'}>${interno ? "Leer" : "Abrir"}</a>` : ""}${p.repo ? `<a class="chip" href="${esc(repoUrl(p.repo))}" target="_blank" rel="noopener">Repo</a>` : ""}${l?.proyectos?.length ? `<button class="chip" data-accion="proyecto-pasos" data-id="${esc(p.id)}">Editar pasos</button>` : ""}</div></section>`;
-    }).join("") + (l ? "" : '<p class="fuente-dato">Con la sincronización activa, la lista vive en la hoja PROYECTOS de tu planilla y se ve el último cambio de cada repo.</p>');
-  }
+  proyectos(datos) { return cuerpoProyectos(datos); }
 };
 
 export function renderUniverso(id, datos, ctx, tema) {
@@ -507,19 +488,6 @@ export function renderSemanal() {
 }
 
 // ---------- Secciones ----------
-export function renderIdeas() {
-  const ideas = leer("ideas", []);
-  const tags = [...new Set(ideas.flatMap((i) => i.tags || []))].sort();
-  const filtro = sesionLeer("tagIdea");
-  const lista = ideas.slice().reverse().filter((i) => !filtro || (i.tags || []).includes(filtro));
-  const dictar = ("webkitSpeechRecognition" in window || "SpeechRecognition" in window)
-    ? `<button type="button" class="btn sec" data-accion="dictar" aria-label="Dictar una idea" style="display:inline-flex;align-items:center;gap:6px;padding:0 14px"><span style="width:18px;height:18px;display:inline-flex">${ICONOS.mic}</span><span>Dictar</span></button>` : "";
-  return `<div class="pagina">${volver}<h1>Ideas</h1><p class="bajada">Todo lo que se te cruza. Sumá #etiquetas para encontrarlas después.</p>
-    <form class="form" data-form="idea"><input name="t" placeholder="Anotá algo #etiqueta" aria-label="Nueva idea" required>${dictar}<button class="btn">Guardar</button></form>
-    ${tags.length ? `<div class="chips" style="margin-top:14px"><button class="chip ${!filtro ? "on" : ""}" data-accion="idea-tag" data-tag="">Todas</button>${tags.map((t) => `<button class="chip ${filtro === t ? "on" : ""}" data-accion="idea-tag" data-tag="${esc(t)}">#${esc(t)}</button>`).join("")}</div>` : ""}
-    <ul class="lista" style="margin-top:20px">${lista.map((i) => `<li><span>${esc(i.t)}</span><span class="tag">${esc(i.u || i.f)}</span></li>`).join("") || '<li class="vacio">Todavía no hay ideas.</li>'}</ul></div>`;
-}
-
 export function renderAgenda(datos, ctx, tema) {
   const fila = (b) => `<li><span><i class="dot" style="background:${colorTipo(datos, b.tipo, tema)};margin-right:10px"></i>${esc(b.titulo)}${b.fijo ? ' <span class="tag">horario fijo</span>' : ""}</span><span class="der">${b.inicio}–${hhmm(b.fin)}</span></li>`;
   const ag = datos.agenda;
@@ -573,7 +541,7 @@ const FAMILIA = { logo: "var(--sans);font-weight:600;letter-spacing:-.045em", re
   cursiva: "var(--serif);font-style:italic" };
 
 // Qué anda y qué no, parte por parte, con el motivo y el arreglo cuando lo hay.
-const PARTES = [["agenda", "Agenda"], ["sincro", "Celu y compu"], ["economia", "Planilla ECONOMÍA"], ["mails", "Mails del BNA y Mercado Pago"], ["recibos", "Recibos de sueldo (Drive)"], ["campus", "Revisión del campus (Drive)"], ["satelite", "Satélite (tu celu)"], ["facu", "Campus de UFASTA"], ["listas", "Agus, fútbol y proyectos"], ["prod", "Productividad del BNA"], ["semanal", "El Semanal (Drive)"], ["resumen", "Resumen para El Semanal"], ["rivercal", "Calendario «River»"]];
+const PARTES = [["agenda", "Agenda"], ["sincro", "Celu y compu"], ["economia", "Planilla ECONOMÍA"], ["mails", "Mails del BNA y Mercado Pago"], ["recibos", "Recibos de sueldo (Drive)"], ["campus", "Revisión del campus (Drive)"], ["satelite", "Satélite (tu celu)"], ["facu", "Campus de UFASTA"], ["listas", "Agus, fútbol y proyectos"], ["central", "Central de proyectos (Drive)"], ["prod", "Productividad del BNA"], ["semanal", "El Semanal (Drive)"], ["resumen", "Resumen para El Semanal"], ["rivercal", "Calendario «River»"]];
 function estadoPartes(est) {
   const hace = (t) => { const m = Math.round((Date.now() - t) / 60000); return m < 1 ? "recién" : m < 60 ? "hace " + m + " min" : "hace " + Math.round(m / 60) + " h"; };
   const filas = PARTES.filter(([k]) => est[k]).map(([k, n]) => {
