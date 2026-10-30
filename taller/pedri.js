@@ -75,12 +75,14 @@ ctl.addEventListener('start', () => { camDest = null; });
 cam.position.set(1.9, 1.1, 2.6); ctl.target.set(0, 0.9, 0); ctl.update();
 elegir('posar');
 { const q = new URLSearchParams(location.search); ['ropa', 'cara', 'modo', 'vista'].forEach((g) => { const v = q.get(g); const b = v && document.querySelector(`[data-grupo="${g}"] [data-v="${v}"]`); if (b) b.click(); });
-  if (camDest) { cam.position.copy(camDest); camDest = null; ctl.update(); } }
+  if (camDest) { cam.position.copy(camDest); camDest = null; ctl.update(); }
+  // ?t=2.4 congela el ejercicio en ese segundo (para revisar una fase)
+  if (q.get('t')) { tc = Number(q.get('t')); vel = 0; } }
 
 function popXP() { const x = $('xp'); x.style.transition = 'none'; x.style.opacity = '1'; x.style.transform = 'translateY(0)'; void x.offsetWidth; x.style.transition = 'opacity 1s, transform 1s'; x.style.opacity = '0'; x.style.transform = 'translateY(-16px)'; }
 const w1 = new THREE.Vector3(), w2 = new THREE.Vector3(), clk = new THREE.Clock();
 function loop() {
-  const dt = Math.min(0.05, clk.getDelta()), E = EJERCICIOS[modo];
+  const dt = Math.min(0.2, clk.getDelta()), E = EJERCICIOS[modo];
   if (E) {
     tc += dt * vel;
     if (tc >= E.dur) { tc -= E.dur; reps = reps >= 12 ? 1 : reps + 1; $('h-r').textContent = reps + ' / 12'; popXP(); ci = (ci + 1) % E.claves.length; $('h-c').textContent = E.claves[ci]; tn = 0; }
