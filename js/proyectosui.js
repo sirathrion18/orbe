@@ -169,8 +169,8 @@ export function renderIdeas(datos) {
   const chip = (v, t, n) => `<button class="chip ${(filtro || "") === v ? "on" : ""}" data-accion="idea-dest" data-dest="${esc(v)}">${esc(t)}${n != null ? " " + n : ""}</button>`;
   return `<div class="pagina">${volverA("#/u/proyectos", "Proyectos")}<h1>Ideas</h1>
     <p class="bajada">Las que anotás en Orbe y las de la Bandeja de la central, juntas. Cada noche Claude pasa las nuevas a la ficha del proyecto que corresponde.</p>
-    <form class="form" data-form="idea-dest"><input name="t" placeholder="Anotá algo" aria-label="Nueva idea" required>${dictar}<button class="btn">Guardar</button>
-      <label class="sr" for="idea-d">Para qué es</label><select id="idea-d" name="u" class="campo-hora" style="flex-basis:100%;text-align:left"><option value="">Sin ubicar</option>${destinosIdea(datos).map((d) => `<option ${filtro === d ? "selected" : ""}>${esc(d)}</option>`).join("")}</select></form>
+    <form class="form form-idea" data-form="idea-dest"><input name="t" placeholder="Anotá algo" aria-label="Nueva idea" required>${dictar}<button class="btn">Guardar</button>
+      <label class="sr" for="idea-d">Para qué es</label><select id="idea-d" name="u"><option value="">Sin ubicar</option>${destinosIdea(datos).map((d) => `<option ${filtro === d ? "selected" : ""}>${esc(d)}</option>`).join("")}</select></form>
     <div class="chips" style="margin-top:14px">${chip("", "Todas", lista.length)}${lista.some((i) => !i.destino) ? chip("_sin", "Sin ubicar", lista.filter((i) => !i.destino).length) : ""}${destinos.map((d) => chip(d, d, lista.filter((i) => i.destino === d).length)).join("")}</div>
     <ul class="ideas-l" style="margin-top:16px">${ver.map(filaIdea).join("") || '<li class="vacio">No hay ideas acá.</li>'}</ul>
     ${para.length ? `<section class="bloque"><h2>Para hacer (vos)</h2><p class="fuente-dato" style="margin-top:0">La lista de arriba de la Bandeja. Se tilda en el Doc.</p><ul class="lista">${para.map((x) => `<li><span>${x.hecho ? "☑" : "☐"} ${esc(x.t)}</span></li>`).join("")}</ul>

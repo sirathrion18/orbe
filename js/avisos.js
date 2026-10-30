@@ -133,7 +133,7 @@ export async function agendaDeOrbe(datos, ahora = Date.now()) {
     river: leer("river"),
     bloques: (d) => bloquesFecha(datos, d),
     presupuesto: (d) => { try { return presupuesto(d); } catch (e) { return null; } },
-    guinos: typeof GUINOS.fechasGuino === "function" ? GUINOS.fechasGuino : null
+    guinos: (d) => GUINOS.guinosPrendidos() ? GUINOS.guinosProximos(d, 1) : []
   });
 }
 

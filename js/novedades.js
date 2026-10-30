@@ -1,6 +1,23 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.40.0",
+    fecha: "30/10/2026",
+    titulo: "El cosmos.",
+    cambios: [
+      "Proyectos es un cosmos en 3D: Orbe en el centro y cada proyecto como un planeta con su color y su logo (El Semanal incluido). Deslizás para girarlo, tocás un planeta y la cámara vuela hasta él con su ficha corta.",
+      "Orbe alimenta los rayos: junta energía y descarga sobre los planetas, con variaciones (rayo, cadena, triple, bola de energía) para que no aburra. Cada tanto pasan piedras de colores, una asoma al fondo con su halo y, muy de vez en cuando, un agujero negro.",
+      "Cuando un proyecto avanza (su ficha cambia de versión), una piedra viene a festejarlo la próxima vez que abrís Proyectos.",
+      "Modo sobrio: vista desde arriba, sin rayos y girando lento, para mirar todo con calma. Se acuerda de tu elección. Con «reducir movimiento» el cosmos queda quieto.",
+      "Ficha de cada proyecto: estado, versión, próximos pasos, ideas, historia y conexiones, leídos de la central de proyectos de Drive. Si arrancás un proyecto nuevo en otro chat, aparece solo.",
+      "Ideas: un solo lugar con las que anotás en Orbe y las de la Bandeja de la central, con dónde quedó cada una. Al anotar elegís el proyecto o universo. Cada noche viajan solas a la ficha que corresponde.",
+      "Propuestas de Claude: martes y viernes a la noche te llegan de 3 a 5 propuestas (mejoras, áreas para encarar, cosas que no estás viendo). Respondés Dale, Después o No; lo que aceptás pasa a la Bandeja.",
+      "Avisos de Orbe en el celu (con Satélite 1.1): resumen de la mañana, plata, facu y BNA, River y guiños, con silencio de 0 a 8 y un máximo por día. Después de cada pago: «Gastaste $X en Y. Hoy te quedan $Z». Se configura en Ajustes › Satélite.",
+      "Nada muerto: los números de Inicio, BNA y Finanzas llevan a su detalle. Páginas nuevas: tu sueldo mes a mes, plata a fondo (del ingreso al diario, paso por paso), tu productividad y escalafón y aumentos.",
+      "Guiños nuevos: Diego y Messi (30/10, 22/6, 18/12, 24/6), Madrid el 9/12, la previa de River el día de partido, Venom de noche (una gota que habla en plural), y un especial del día que rota sin repetirse en la semana (Arácnido renovado, Millo, Ninja, Cazador, Maldición).",
+    ],
+  },
+  {
     version: "0.35.1",
     fecha: "29/10/2026",
     titulo: "El Rastreador abre en la app de Claude.",

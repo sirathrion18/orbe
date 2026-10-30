@@ -1386,3 +1386,7 @@ a.dt-fuente:hover { color: var(--text); }
 .dt-track i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; }
 .dt-track i.b-n { background: var(--muted); }
 .dt-track em { position: absolute; top: -4px; bottom: -4px; width: 2px; margin-left: -1px; background: var(--text); }
+.form-idea { flex-wrap: wrap; }
+.form-idea input { flex: 1 1 100%; }
+.form-idea select { flex: 1 1 100%; order: 2; }
+.form-idea .btn { flex: 1; }
