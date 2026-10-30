@@ -1,4 +1,4 @@
-// Guiños: si el switch de Ajustes › Diseño está prendido, tres veces por día (uno a la mañana, uno a la tarde
+// Guiños grandes (solo con el nivel «Todos»; por defecto Orbe usa los huevitos de huevos.js): tres veces por día (uno a la mañana, uno a la tarde
 // y uno a la noche, en un momento al azar), Inicio se viste un rato: 20 minutos desde que lo ves.
 // Dos de los tres son «clásicos» (Laboratorio, Decreto, TVA) y uno es el «especial» del día, que rota en un
 // ciclo de 7 (Arácnido, Millo, Ninja, Venom, Diez, Cazador, Maldición): ninguno se repite en una semana.
@@ -15,10 +15,11 @@ export const GUINOS = [...ESPECIALES.slice(0, 1), ...CLASICOS, ...ESPECIALES.sli
 export const GUINOS_FECHA = [["diego", "30/10"], ["gol", "22/6"], ["tercera", "18/12"], ["messi", "24/6"], ["madrid", "9/12"], ["previa", "Previa"]];
 const DURA = 20 * 60000;
 const FRANJAS = [[9, 13, "a la mañana"], [13, 18, "a la tarde"], [18, 23, "a la noche"]];
-// Cuántos guiños: «pocos» (solo fechas y River, por defecto), «semana» (más un especial por semana),
-// «todos» (tres por día) o «ninguno». El viejo interruptor apagado equivale a «ninguno».
-export const NIVELES = [["pocos", "Pocos", "Solo las fechas (Diego, Messi, Madrid) y el día de River."], ["semana", "Uno por semana", "Las fechas, River y un especial distinto cada semana."], ["todos", "Todos", "Tres por día, rotando, más las fechas."], ["ninguno", "Ninguno", "Orbe sobrio todo el tiempo."]];
-export const nivelGuinos = () => leer("guinos", true) === false ? "ninguno" : (NIVELES.some(([k]) => k === leer("guinosNivel")) ? leer("guinosNivel") : "pocos");
+// Cuántos guiños: «huevitos» (por defecto: detalles chiquitos y escondidos, ver huevos.js), «todos» (además
+// los grandes de antes: tres por día, fechas con tarjeta, decoraciones) o «ninguno».
+// El viejo interruptor apagado equivale a «ninguno»; los niveles viejos («pocos», «semana») pasan a huevitos.
+export const NIVELES = [["huevitos", "Huevitos", "Detalles chiquitos y escondidos: una copita, una estrellita, una palabra. Aparecen en su momento y se van."], ["todos", "Todos", "Los huevitos y además los guiños grandes: tres por día, tarjetas de fecha y decoraciones."], ["ninguno", "Ninguno", "Orbe sobrio todo el tiempo."]];
+export const nivelGuinos = () => leer("guinos", true) === false ? "ninguno" : (NIVELES.some(([k]) => k === leer("guinosNivel")) ? leer("guinosNivel") : "huevitos");
 export const guinosPrendidos = () => nivelGuinos() !== "ninguno";
 const escH = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -70,19 +71,11 @@ export function guinoYa(f = new Date()) {
 // después del momento sorteado, así no se pierde si justo no estabas mirando.
 export function guinoActivo(f, demo) {
   if (demo) return String(demo).startsWith("f:") ? null : demo;
-  if (!guinosPrendidos()) return null;
+  if (nivelGuinos() !== "todos") return null; // los grandes, solo para quien los elige
   const ya = sesion("guinoYa");
   if (ya && Date.now() < ya.hasta) return ya.tipo;
-  const nivel = nivelGuinos();
-  if (nivel === "pocos") return null;
   const p = plan(f);
-  // Uno por semana: un solo día de la semana (sorteado por semana), y solo el especial.
-  let momentos = p.momentos;
-  if (nivel === "semana") {
-    const semana = Math.floor((nroDia(f) + 3) / 7), dia = Math.floor(azar(semana * 7919)() * 7);
-    if (((nroDia(f) % 7) + 7) % 7 !== dia) return null;
-    momentos = p.momentos.filter((m) => ESPECIALES.some(([k]) => k === m.tipo));
-  }
+  const momentos = p.momentos;
   const min = f.getHours() * 60 + f.getMinutes(), ahora = f.getTime();
   const visible = typeof document === "undefined" || document.visibilityState !== "hidden";
   for (const m of momentos) {
@@ -137,7 +130,7 @@ function previa(f, ctx, forzar) {
 // El guiño de fecha de hoy (o null). La previa le gana a la fecha si coinciden.
 export function fechaGuino(f, ctx, demo) {
   const forzado = demo && String(demo).startsWith("f:") ? String(demo).slice(2) : null;
-  if (!forzado && !guinosPrendidos()) return null;
+  if (!forzado && nivelGuinos() !== "todos") return null;
   const pv = previa(f, ctx, forzado === "previa");
   if (pv) return pv;
   const id = forzado || Object.keys(FECHAS).find((k) => FECHAS[k].d === f.getDate() && FECHAS[k].m === f.getMonth() + 1);
@@ -184,7 +177,9 @@ const FRASES = {
 };
 const RUBRO = { arana: "Sentido arácnido", millo: "Millo", ninja: "Modo ninja", venom: "Nosotros", diez: "El 10", cazador: "Respiración", maldicion: "Dominio propio" };
 
+const grandes = () => nivelGuinos() === "todos" || !!sesion("demoGuino");
 export function lineaGuino(tipo, ctx) {
+  if (!grandes()) return "";
   const lista = FRASES[tipo];
   if (!lista) return "";
   const f = ctx?.fecha || new Date();
@@ -223,6 +218,7 @@ const HUMO = `<svg class="humo" viewBox="0 0 120 70" aria-hidden="true"><g fill=
 const OLA = `<svg class="ola" viewBox="0 0 240 30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path pathLength="1" d="M2 18c18 0 18-12 36-12s18 18 36 18 18-18 36-18 18 18 36 18 18-12 36-12 18 10 36 10"/></svg>`;
 
 export function decoracion(tipo) {
+  if (!grandes()) return "";
   if (tipo === "arana") return `${TELA2}<button class="arana" data-accion="arana" aria-label="Una arañita. Tocala y sube."><span class="hilo"></span>${ARANA}</button>`;
   if (tipo === "venom") return '<div class="tinta-venom" aria-hidden="true"></div>'; // un borde de tinta que aparece y se va
   if (tipo === "ninja") return HUMO;

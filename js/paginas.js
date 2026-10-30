@@ -22,6 +22,7 @@ import { bloqueSatelite } from "./sateliteui.js";
 import { datosEconomia, linkEconomia, idEconomia } from "./economia.js";
 import { ultimaEdicion, htmlEdicion, edicionAbierta, datosArchivo } from "./semanal.js";
 import { GUINOS, GUINOS_FECHA, guinosPrendidos, resumenGuinos, NIVELES, nivelGuinos } from "./guinos.js";
+import { cuentaHuevos, HUEVOS_PRUEBA } from "./huevos.js";
 import { bloqueSuscripciones } from "./suscripciones.js";
 import { heroHoy, avisoRacha, graficoDias, tarjetaAgus, heroMes, analisisGastos, bloqueMesReal, bloqueGastosHoy, bloqueGastosMes, bloqueSaldo, recordarSaldo } from "./finanzasui.js";
 import { renderMes } from "./agendames.js";
@@ -598,18 +599,32 @@ function bloqueDiseno(tema, f, muestra, demo) {
     <div class="chips">${[["auto", "Automático"], ["claro", "Claro"], ["oscuro", "Oscuro"]].map(([k, n]) => `<button class="chip ${tema === k ? "on" : ""}" data-accion="tema-fijo" data-tema="${k}">${n}</button>`).join("")}</div>
     <p class="fuente-dato">Automático: claro de día y oscuro desde la puesta del sol en Buenos Aires. El botón de Inicio lo cambia hasta la próxima salida o puesta.</p>
     <h3 class="sub-aj">Guiños</h3>
-    <div class="niveles-g">${NIVELES.map(([k, n, d]) => `<button class="nivel-g ${nivelGuinos() === k ? "on" : ""}" data-accion="guinos-nivel" data-n="${k}" aria-pressed="${nivelGuinos() === k}"><b>${n}</b><small>${d}</small></button>`).join("")}</div>
-    <p class="fuente-dato">${nivelGuinos() === "todos" ? resumenGuinos(new Date()) + " " : ""}${guinosPrendidos() ? "Tocando tres veces el saludo sale uno al toque." : ""}</p>
-    <p class="fuente-dato" style="margin:10px 0 8px">Probar un guiño ahora (se apaga al cerrar Orbe):</p>
-    <div class="chips"><button class="chip ${!sesionLeer("demoGuino") ? "on" : ""}" data-accion="demo-guino" data-g="">Real</button>${GUINOS.map(([k, n]) => `<button class="chip ${sesionLeer("demoGuino") === k ? "on" : ""}" data-accion="demo-guino" data-g="${k}">${n}</button>`).join("")}</div>
-    <div class="chips" style="margin-top:8px">${GUINOS_FECHA.map(([k, n]) => `<button class="chip ${sesionLeer("demoGuino") === "f:" + k ? "on" : ""}" data-accion="demo-guino" data-g="f:${k}">${n}</button>`).join("")}</div>
-    <h3 class="sub-aj">Probar modos del día</h3>
-    <div class="chips"><button class="chip ${!demo ? "on" : ""}" data-accion="demo" data-modo="">Real</button>${MODOS.map((m) => `<button class="chip ${demo === m ? "on" : ""}" data-accion="demo" data-modo="${m}">${m === "normal" ? "Normal" : m === "libre" ? "Día libre" : m === "river" ? "River" : m === "marvel" ? "Guiño Marvel" : "Noche"}</button>`).join("")}</div>
-    <p class="fuente-dato">Simula el día y la hora de cada modo. Se apaga al cerrar Orbe.</p>
+    <a class="fila-nav" href="#/ajustes/guinos"><span><b>Guiños</b><small>${esc((NIVELES.find(([k]) => k === nivelGuinos()) || [])[1] || "")}${guinosPrendidos() ? " · " + cuentaHuevos().vistos + " de " + cuentaHuevos().total + " encontrados" : ""}</small></span><span class="ir" aria-hidden="true">›</span></a>
     <h3 class="sub-aj">Tipografía del reloj</h3>
     <div class="muestras">${RELOJES.map((x) => muestra("reloj", x)).join("")}</div>
     <h3 class="sub-aj">Tipografía del saludo</h3>
     <div class="muestras">${SALUDOS_F.map((x) => muestra("saludo", x)).join("")}</div></section>`;
+}
+
+// Ajustes › Guiños: el nivel, cuántos huevitos hay escondidos y, plegado abajo, para probar.
+export function renderAjustesGuinos() {
+  const demo = sesionLeer("demo"), nivel = nivelGuinos(), { total, vistos } = cuentaHuevos();
+  return `<div class="pagina"><a class="volver" href="#/ajustes">${ICONOS.volver} Ajustes</a><h1>Guiños</h1>
+    <p class="bajada">Cosas que te gustan, escondidas en Orbe. Elegís cuántas.</p>
+    <div class="niveles-g">${NIVELES.map(([k, n, d]) => `<button class="nivel-g ${nivel === k ? "on" : ""}" data-accion="guinos-nivel" data-n="${k}" aria-pressed="${nivel === k}"><b>${n}</b><small>${d}</small></button>`).join("")}</div>
+    ${nivel !== "ninguno" ? `<section class="bloque hv-cuenta"><span class="k">Huevitos</span><b>Hay ${total} escondidos. Encontraste ${vistos}.</b>
+      <span class="fuente-dato" style="margin:0">Aparecen en su momento (una hora, una fecha, un día de River) y nunca más de dos a la vez. Algunos se buscan: palabras en el buscador, toques escondidos. Si tocás uno, te dice qué es.</span>
+      <span class="hv-barra" aria-hidden="true"><i style="width:${total ? Math.round(vistos / total * 100) : 0}%"></i></span></section>` : ""}
+    ${nivel === "todos" ? `<p class="fuente-dato">${resumenGuinos(new Date())} Tocando tres veces el saludo sale uno al toque.</p>` : ""}
+    <details class="bloque plegable"><summary>Probar</summary>
+      <p class="fuente-dato" style="margin:6px 0 8px">Un huevito ahora (se apaga al cerrar Orbe):</p>
+      <div class="chips"><button class="chip ${!sesionLeer("demoHuevo") ? "on" : ""}" data-accion="demo-huevo" data-h="">Real</button>${HUEVOS_PRUEBA.map(([k, n]) => `<button class="chip ${sesionLeer("demoHuevo") === k ? "on" : ""}" data-accion="demo-huevo" data-h="${k}">${esc(n)}</button>`).join("")}</div>
+      <p class="fuente-dato" style="margin:14px 0 8px">Un guiño grande (los de «Todos»):</p>
+      <div class="chips"><button class="chip ${!sesionLeer("demoGuino") ? "on" : ""}" data-accion="demo-guino" data-g="">Real</button>${GUINOS.map(([k, n]) => `<button class="chip ${sesionLeer("demoGuino") === k ? "on" : ""}" data-accion="demo-guino" data-g="${k}">${n}</button>`).join("")}</div>
+      <div class="chips" style="margin-top:8px">${GUINOS_FECHA.map(([k, n]) => `<button class="chip ${sesionLeer("demoGuino") === "f:" + k ? "on" : ""}" data-accion="demo-guino" data-g="f:${k}">${n}</button>`).join("")}</div>
+      <p class="fuente-dato" style="margin:14px 0 8px">Modos del día:</p>
+      <div class="chips"><button class="chip ${!demo ? "on" : ""}" data-accion="demo" data-modo="">Real</button>${MODOS.map((m) => `<button class="chip ${demo === m ? "on" : ""}" data-accion="demo" data-modo="${m}">${m === "normal" ? "Normal" : m === "libre" ? "Día libre" : m === "river" ? "River" : m === "marvel" ? "Guiño Marvel" : "Noche"}</button>`).join("")}</div>
+      <p class="fuente-dato">Simula el día y la hora de cada modo. Se apaga al cerrar Orbe.</p></details></div>`;
 }
 
 export function renderAjustes(estadoTema, demo, hayPin, google) {
