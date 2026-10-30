@@ -24,7 +24,7 @@ import { mandarAgenda, guardarAvisos, CATEGORIAS as CATEGORIAS_AVISO } from "./a
 import { asegurarHojas, asegurarLeeme, fijarSemillas, escribir as escribirHoja } from "./hoja.js";
 import { fijarHoja, idHoja } from "./hoja.js";
 import { traerDolar, traerRiver, traerTransporte, traerEquipos, equiposSeguidos } from "./extras.js";
-import { tachar as tacharHoy, contar as contarHoy, fijarCompanero, sumarItem as sumarHoy, sacarItem as sacarHoy, guardarNota } from "./bnahoy.js";
+import { tachar as tacharHoy, contar as contarHoy, fijarCompanero, sumarItem as sumarHoy, sacarItem as sacarHoy, guardarNota, cambiarModo as modoHoy } from "./bnahoy.js";
 import { responder } from "./preguntas.js";
 import { fijarEconomia, leerEconomia, datosEconomia, idEconomia } from "./economia.js";
 import { huellaActiva, huellaDisponible, registrarHuella, verificarHuella, sacarHuella } from "./huella.js";
@@ -718,6 +718,7 @@ document.addEventListener("change", (e) => {
   const el = e.target;
   if (el.type === "radio" && el.closest(".chips")) el.closest(".chips").querySelectorAll(".chip").forEach((c) => c.classList.toggle("on", c.contains(el) && el.checked));
   if (el.dataset.accion === "super-tilde") { const l = leer("super", []); l[Number(el.dataset.i)].ok = el.checked; guardar("super", l); vibrar(); pintar(); }
+  if (el.dataset.accion === "hoy-modo") { modoHoy(el.dataset.f, el.dataset.id, el.value, () => pintar(true)); vibrar(); pintar(true); }
   if (el.dataset.accion === "prod-fecha" && el.value) { sesion("prodFecha", el.value === isoHoy() ? null : el.value); sesion("prodMes", null); pintar(true); }
   if (el.classList.contains("campo-menu")) { const m = leer("menu", {}); m[el.dataset.dia] = el.value.trim(); guardar("menu", m); avisar("Menú guardado"); }
 });

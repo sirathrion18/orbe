@@ -1,6 +1,17 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.44.0",
+    fecha: "30/10/2026",
+    titulo: "Llegaron los tableros.",
+    cambios: [
+      "BNA › Hoy: los tableros nuevos van fijos en la libretita, todos los días: Tablero CAC, Tablero Reclamos, Tablero Productividad y Tablero RRSS (con los mismos nombres que tu archivo de informes).",
+      "Cada informe tiene un desplegable para elegir si hiciste carga o control. Si ya estaba tachado, el punto se pasa solo de uno al otro. Los puntajes de carga y control no cambian.",
+      "Si cambiás a mano carga o control, Orbe lo respeta aunque después toques «¿Está tu compañero?».",
+      "Si hoy ya tenías la libretita abierta, los tableros se suman abajo de Diario NS, sin tocar lo que ya tachaste.",
+    ],
+  },
+  {
     version: "0.43.3",
     fecha: "30/10/2026",
     titulo: "Menos texto, más «?».",

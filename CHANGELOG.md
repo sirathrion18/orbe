@@ -1,5 +1,14 @@
 # Novedades de Orbe
 
+## v0.44.0 · 30/10/2026
+
+Llegaron los tableros.
+
+- BNA › Hoy: los tableros nuevos van fijos en la libretita, todos los días: Tablero CAC, Tablero Reclamos, Tablero Productividad y Tablero RRSS (con los mismos nombres que tu archivo de informes).
+- Cada informe tiene un desplegable para elegir si hiciste carga o control. Si ya estaba tachado, el punto se pasa solo de uno al otro. Los puntajes de carga y control no cambian.
+- Si cambiás a mano carga o control, Orbe lo respeta aunque después toques «¿Está tu compañero?».
+- Si hoy ya tenías la libretita abierta, los tableros se suman abajo de Diario NS, sin tocar lo que ya tachaste.
+
 ## v0.43.3 · 30/10/2026
 
 Menos texto, más «?».
