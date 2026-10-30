@@ -52,3 +52,42 @@ export function limpiarItem(x) {
     sentido: ["pago", "cobro", "transferencia", "tarjeta", "otro"].includes(x.sentido) ? x.sentido : "otro", ts
   };
 }
+
+// ---------- Avisos de Orbe para el celu ----------
+// Orbe arma la agenda (próximas 36 h) y la deja acá, cifrada; el celu la baja cuando cambia y la programa.
+// Validación estricta: categorías fijas, textos cortos, horas razonables, nada de HTML. Si algo no cierra, se rechaza todo.
+export const CATS_AVISO = ["urgente", "plata", "facu", "bna", "river", "manana"];
+export const DIAS3 = 3 * 86400;
+const MAX_AVISOS = 40;
+export function limpiarAgenda(c, ahora = Date.now()) {
+  if (!c || typeof c !== "object") return null;
+  const lista = Array.isArray(c.avisos) ? c.avisos : [];
+  if (lista.length > MAX_AVISOS) return null;
+  const avisos = [];
+  const ids = new Set();
+  for (const x of lista) {
+    if (!x || typeof x !== "object") return null;
+    const ts = Number(x.ts);
+    const id = String(x.id ?? "");
+    if (!/^[A-Za-z0-9_-]{1,24}$/.test(id) || ids.has(id)) return null;
+    if (!CATS_AVISO.includes(x.cat)) return null;
+    if (!(ts > ahora - 3600000 && ts < ahora + DIAS3 * 1000)) return null;
+    const titulo = corto(x.titulo, 60), texto = corto(x.texto, 160);
+    if (!titulo) return null;
+    ids.add(id);
+    avisos.push({ id, ts: Math.round(ts), cat: x.cat, titulo, texto });
+  }
+  avisos.sort((a, b) => a.ts - b.ts);
+  let diario = null;
+  if (c.diario != null) {
+    const d = c.diario;
+    if (typeof d !== "object") return null;
+    const q = Number(d.queda), ts = Number(d.ts);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(d.fecha)) || !Number.isFinite(q) || Math.abs(q) >= 1e10 || !(ts > ahora - 86400000 && ts < ahora + 600000)) return null;
+    diario = { fecha: String(d.fecha), queda: Math.round(q), ts: Math.round(ts) };
+  }
+  const k = c.cfg && typeof c.cfg === "object" ? c.cfg : {};
+  const hora = (h, def) => { const n = Number(h); return Number.isInteger(n) && n >= 0 && n <= 23 ? n : def; };
+  const cfg = { desde: hora(k.desde, 0), hasta: hora(k.hasta, 8), plata: k.plata !== false };
+  return { avisos, diario, cfg };
+}

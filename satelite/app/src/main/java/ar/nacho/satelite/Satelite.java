@@ -107,10 +107,16 @@ final class Satelite {
     private static final Map<String, Long> RECIENTES = new HashMap<>();
 
     static void registrar(Context c, String app, String titulo, String texto, long ts) {
-        synchronized (CANDADO) { registrar0(c, app, titulo, texto, ts); }
+        Lector.Aviso nuevo;
+        synchronized (CANDADO) { nuevo = registrar0(c, app, titulo, texto, ts); }
+        // Fuera del candado: el «Gastaste $X… te quedan $Y» no espera a que termine un envío.
+        if (nuevo != null) {
+            try { Avisos.pago(c, nuevo); } catch (Exception e) { /* nada */ }
+        }
     }
 
-    private static void registrar0(Context c, String app, String titulo, String texto, long ts) {
+    /** Devuelve el aviso si es un pago nuevo (recién guardado para mandar), o null. */
+    private static Lector.Aviso registrar0(Context c, String app, String titulo, String texto, long ts) {
         Almacen a = new Almacen(c);
         a.num("ultimoOido", System.currentTimeMillis());
         Lector.Aviso av = Lector.leer(app, titulo, texto, ts);
@@ -144,13 +150,13 @@ final class Satelite {
             while (nuevo.length() > MAX_EJEMPLOS) nuevo.remove(0);
             a.lista("ejemplos", nuevo);
         } catch (Exception e) { /* nada */ }
-        if (av == null) return;
+        if (av == null) return null;
         try {
             JSONArray pend = listaOVacia(a, "pendientes");
-            for (int i = 0; i < pend.length(); i++) if (av.id.equals(pend.getJSONObject(i).optString("id"))) return;
+            for (int i = 0; i < pend.length(); i++) if (av.id.equals(pend.getJSONObject(i).optString("id"))) return null;
             // Ya mandado antes (la app a veces actualiza la misma notificación): tampoco se repite.
             String vistos = a.leerSeguro("vistos");
-            if (vistos != null && vistos.contains(av.id)) return;
+            if (vistos != null && vistos.contains(av.id)) return null;
             JSONObject o = new JSONObject();
             o.put("id", av.id).put("app", av.app).put("monto", av.monto).put("moneda", av.moneda)
                 .put("comercio", av.comercio).put("sentido", av.sentido).put("ts", av.ts);
@@ -159,7 +165,8 @@ final class Satelite {
             a.lista("pendientes", pend);
             a.num("capturados", a.num("capturados") + 1);
             a.num("cap_" + app, a.num("cap_" + app) + 1);
-        } catch (Exception e) { /* nada */ }
+            return av;
+        } catch (Exception e) { return null; }
     }
 
     /** Si una lista guardada ya no se puede descifrar (el celu perdió la llave), se descarta y se empieza de cero. */
@@ -250,7 +257,11 @@ final class Satelite {
         long alarma = proximaAlarma(c);
         long ahora = System.currentTimeMillis();
         boolean cambioAlarma = alarma != a.num("alarmaMandada");
-        if (!forzar && pend.length() == 0 && !cambioAlarma && ahora - a.num("ultimoEnvio") < PING) return "Nada nuevo";
+        if (!forzar && pend.length() == 0 && !cambioAlarma && ahora - a.num("ultimoEnvio") < PING) {
+            // Nada para mandar: igual, una vez por hora se pregunta si Orbe armó avisos nuevos (es un pedido chiquito).
+            Avisos.actualizar(c, llave, false);
+            return "Nada nuevo";
+        }
         try {
             JSONArray items = new JSONArray();
             Set<String> ids = new HashSet<>();
@@ -272,6 +283,7 @@ final class Satelite {
                     a.texto("error", "Orbe anuló este celu. Volvé a vincularlo.");
                     a.guardar("llave", null);
                     a.num("n401", 0);
+                    Avisos.olvidar(c);
                     return "Desvinculado";
                 }
                 a.texto("error", "Orbe no reconoció la llave (intento " + n + "). Se reintenta solo.");
@@ -301,6 +313,7 @@ final class Satelite {
             a.num("alarmaMandada", alarma);
             a.num("mandados", a.num("mandados") + ids.size());
             a.texto("error", null);
+            Avisos.actualizar(c, llave, forzar);
             return ids.isEmpty() ? "Al día" : (ids.size() == 1 ? "Mandé 1 aviso" : "Mandé " + ids.size() + " avisos");
         } catch (Exception e) {
             a.texto("error", "Sin conexión con Orbe");
@@ -323,6 +336,7 @@ final class Satelite {
                 a.texto("nombre", j.optString("nombre", "Celu"));
                 a.texto("error", null);
                 a.num("alarmaMandada", -1);
+                Avisos.olvidar(c); // la agenda de antes (si había) no es de este vínculo
                 programar(c);
                 return null;
             }
@@ -341,7 +355,7 @@ final class Satelite {
         Respuesta(int codigo, String cuerpo) { this.codigo = codigo; this.cuerpo = cuerpo; }
     }
 
-    private static Respuesta post(String url, String cuerpo, String llave) throws Exception {
+    static Respuesta post(String url, String cuerpo, String llave) throws Exception {
         HttpURLConnection h = (HttpURLConnection) new URL(url).openConnection();
         try {
             h.setConnectTimeout(15000);

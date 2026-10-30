@@ -82,8 +82,8 @@ jobs:
       - name: Publicar versión
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: satelite-v1.0.${{ github.run_number }}
-          name: Satélite 1.0.${{ github.run_number }}${{ env.PRUEBA == '1' && ' (prueba)' || '' }}
+          tag_name: satelite-v1.1.${{ github.run_number }}
+          name: Satélite 1.1.${{ github.run_number }}${{ env.PRUEBA == '1' && ' (prueba)' || '' }}
           body: |
             Bajá Satelite.apk desde el celu e instalalo.
             ${{ env.PRUEBA == '1' && 'Versión de prueba: tiene una firma descartable. Cuando cargues el secreto SATELITE_CLAVE, desinstalá esta antes de instalar la siguiente.' || 'Se instala encima de la anterior sin perder nada.' }}

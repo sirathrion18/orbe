@@ -2,6 +2,25 @@
 import { esc } from "./inicio.js";
 import { sesion } from "./almacen.js";
 import { datosSatelite, APK } from "./satelite.js";
+import { leer } from "./almacen.js";
+import { CATEGORIAS, configAvisos } from "./avisos.js";
+
+// Ajustes › Satélite › Avisos: qué te avisa Orbe en el celu, cuándo no, y cuántos como mucho por día.
+const DIA_CORTO = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
+function bloqueAvisos() {
+  const c = configAvisos(), env = leer("avisosEnvio");
+  const horas = (sel) => Array.from({ length: 24 }, (_, h) => `<option value="${h}" ${h === sel ? "selected" : ""}>${String(h).padStart(2, "0")}:00</option>`).join("");
+  const prox = (env?.proximos || []).filter((x) => x.ts > Date.now());
+  return `<details class="sat-avisos" id="avisos"><summary><b>Avisos de Orbe en el celu</b> <span class="vacio" style="font-size:13px">${env ? (env.cantidad ? env.cantidad + " programados" : "ninguno programado") + " · " + hace(env.cuando) : "todavía no mandé ninguno"}</span></summary>
+    <form data-form="avisos" style="margin-top:12px">
+      ${CATEGORIAS.map(([k, n, d]) => `<label class="sat-cat" style="display:flex;gap:10px;align-items:flex-start;margin:10px 0"><input type="checkbox" name="${k}" ${c[k] ? "checked" : ""} style="width:20px;height:20px;flex:none;margin-top:2px"><span><b>${esc(n)}</b><br><small class="vacio">${esc(d)}</small></span></label>`).join("")}
+      <div class="grupo" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><label for="av-hora">Resumen a las</label><input id="av-hora" class="campo-hora" type="time" name="hora" value="${esc(c.hora)}" style="width:auto"></div>
+      <div class="grupo" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><span>Silencio de</span><select class="campo-hora" name="desde" aria-label="Silencio desde" style="width:auto">${horas(c.desde)}</select><span>a</span><select class="campo-hora" name="hasta" aria-label="Silencio hasta" style="width:auto">${horas(c.hasta)}</select></div>
+      <div class="grupo" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><label for="av-max">Como mucho</label><select id="av-max" class="campo-hora" name="max" style="width:auto">${[2, 3, 4, 5, 6, 8, 10].map((n) => `<option value="${n}" ${n === c.max ? "selected" : ""}>${n}</option>`).join("")}</select><span>por día</span></div>
+      <button class="btn ancho-completo" style="margin-top:6px">Guardar y mandar al celu</button></form>
+    ${prox.length ? `<p class="vacio" style="font-size:13px;margin-top:12px">Lo próximo: ${prox.map((x) => `${DIA_CORTO[new Date(x.ts).getDay()]} ${hhmm(x.ts)} · ${esc(x.titulo)}`).join(" — ")}</p>` : ""}
+    <p class="vacio" style="font-size:12px;margin-top:10px">Orbe arma los avisos de las próximas 36 horas con lo que ya sabe (nada inventado) y Satélite los programa en el celu. Si hay más de la cuenta, quedan los urgentes primero. Necesita Satélite 1.1 o más nueva y permiso de notificaciones.</p></details>`;
+}
 
 const hace = (t) => {
   if (!t) return "todavía nada";
@@ -41,6 +60,6 @@ export function bloqueSatelite(conectado) {
       <button class="chip" data-accion="sat-anular" data-id="${esc(d.id)}">Anular</button></li>`).join("")}</ul>
     <p class="vacio" style="font-size:13px;margin-top:10px">${s.alarma?.ts ? "Próxima alarma que ve: " + hhmm(s.alarma.ts) + " (" + new Date(s.alarma.ts).toLocaleDateString("es-AR", { weekday: "short", day: "numeric" }) + ")." : s.alarma ? "No ve ninguna alarma puesta." : ""} ${s.recibidos ? s.recibidos + " pagos del celu en total." : ""} Orbe mira el buzón al abrir y cada 5 minutos.</p>
     <div class="chips" style="margin-top:12px"><button class="btn sec" data-accion="sat-retirar">Mirar el buzón ahora</button>${codVivo ? "" : '<button class="chip" data-accion="sat-codigo" data-nombre="Otro celu">Vincular otro</button>'}<a class="chip" href="${APK}" rel="noopener">Bajar la última versión</a></div>` : "";
-  return `<section class="bloque satelite"><h2>Satélite · tu celu</h2>${cuerpo}${lista}
+  return `<section class="bloque satelite"><h2>Satélite · tu celu</h2>${cuerpo}${lista}${devs.length ? bloqueAvisos() : ""}
     <p class="vacio" style="margin-top:12px;font-size:12px">Escucha solo esas tres apps y de cada aviso manda app, monto, comercio y hora: nunca el texto completo ni otras notificaciones. Va cifrado y Orbe lo borra del buzón apenas lo pasa a tu planilla. Si perdés el celu, tocá «Anular» y esa llave deja de servir.</p></section>`;
 }

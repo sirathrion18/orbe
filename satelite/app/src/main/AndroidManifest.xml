@@ -6,6 +6,8 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- Para que el envío cada 30 minutos siga después de reiniciar el celu. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Para mostrar los avisos de Orbe (Android 13+ lo pide). Sin alarmas exactas: los avisos usan una ventana de 10 minutos. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!-- Para reconocer Mercado Pago, BNA+ y Personal Pay por su nombre entre las apps del celu. -->
     <queries>
@@ -50,6 +52,11 @@
             android:name=".Envio"
             android:exported="false"
             android:permission="android.permission.BIND_JOB_SERVICE" />
+
+        <!-- La alarma de cada aviso de Orbe (solo la puede disparar el propio Satélite). -->
+        <receiver
+            android:name=".Alarma"
+            android:exported="false" />
 
         <receiver
             android:name=".Arranque"
