@@ -1,5 +1,15 @@
 # Novedades de Orbe
 
+## v0.43.2 · 30/10/2026
+
+Pantalla completa.
+
+- Proyectos: el cosmos ocupa toda la primera pantalla, con el título encima, y se funde abajo en la lista de proyectos.
+- Los logos de los planetas ahora se ven siempre, en cualquier celu (antes en algunos quedaban oscuros). Se siguen eligiendo como antes, en la ficha de cada proyecto.
+- Los botones (Tirar, ?, Sobrio, zoom) bajaron, al pie del cosmos, para que el título quede limpio.
+- Chau planeta «Archivo de proyectos cerrados y otros»: era un archivo, no un proyecto.
+- El anillo de Nexus, más finito y suave.
+
 ## v0.43.1 · 30/10/2026
 
 ES.

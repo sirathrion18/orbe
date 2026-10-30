@@ -414,6 +414,8 @@ const PAGINAS = {
 export function renderUniverso(id, datos, ctx, tema) {
   const u = UNIVERSOS.find((x) => x.id === id);
   if (!u) return renderNoEncontrado();
+  // Proyectos: el cosmos ocupa toda la primera pantalla, con el título encima, y se funde en la lista.
+  if (id === "proyectos") return `<div class="pagina proy-pag">${cuerpoProyectos(datos, cabecera(u, datos, tema))}</div>`;
   return `<div class="pagina">${cabecera(u, datos, tema)}${PAGINAS[id](datos, ctx)}</div>`;
 }
 

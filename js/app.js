@@ -181,14 +181,15 @@ function pintar(refresco = false) {
 // y deja de dibujar apenas salís.
 let cosmos = null;
 let abriendoEd = null;
+// Cambiar un logo desde el cosmos: la lista de abajo se repinta (sin tocar el cosmos, que ya lo cambió).
 function montarCosmos(r) {
   const caja = r === "/u/proyectos" ? document.getElementById("cosmos") : null;
   if (!caja) { cosmos?.parar(); return; }
   import("./cosmos.js").then((m) => {
     cosmos = m;
     if (!document.body.contains(caja)) return;
-    if (!m.montar(caja, paraCosmos(listaProyectos(estado.datos)), { ideas: textosIdeas() })) caja.remove();
-  }).catch(() => caja.remove());
+    if (!m.montar(caja, paraCosmos(listaProyectos(estado.datos)), { ideas: textosIdeas() })) caja.classList.add("sin-3d");
+  }).catch(() => caja.classList.add("sin-3d"));
 }
 
 // «River», siempre en negrita, en todo Orbe.

@@ -155,16 +155,16 @@ function ponerPlanetas(lista) {
     const cuerpo = new THREE.Mesh(new THREE.SphereGeometry(A.tam, 40, 28), new THREE.MeshStandardMaterial({ map: superficie(id.base, id.acc, i + 1), roughness: .8, metalness: .05, emissive: new THREE.Color(id.glow), emissiveIntensity: .02 }));
     const atm = new THREE.Mesh(new THREE.SphereGeometry(A.tam * 1.22, 32, 20), atmosfera(id.glow));
     const ins = new THREE.Sprite(new THREE.SpriteMaterial({ map: insigniaTex(p.id, p.nombre), transparent: true, depthWrite: false, color: new THREE.Color(.92, .92, .92) }));
-    ins.scale.set(A.tam * 1.5, A.tam * 1.5, 1);
+    ins.scale.set(A.tam * 1.5, A.tam * 1.5, 1); ins.visible = false; // el logo va en el DOM, encima (nítido en cualquier celu)
     const toque = new THREE.Mesh(new THREE.SphereGeometry(A.tam * 1.9, 12, 8), new THREE.MeshBasicMaterial({ visible: false }));
     toque.userData.i = i;
     g.add(cuerpo, atm, ins, toque);
     if (id.anillo) {
-      const ar = new THREE.Mesh(new THREE.RingGeometry(A.tam * 1.45, A.tam * 2, 64), new THREE.MeshBasicMaterial({ color: id.acc, transparent: true, opacity: .18, side: THREE.DoubleSide, depthWrite: false }));
+      const ar = new THREE.Mesh(new THREE.RingGeometry(A.tam * 1.5, A.tam * 1.85, 64), new THREE.MeshBasicMaterial({ color: id.acc, transparent: true, opacity: .1, side: THREE.DoubleSide, depthWrite: false }));
       ar.rotation.x = -Math.PI / 2 + .3; g.add(ar);
     }
     E.sistema.add(g);
-    return { p, id, g, cuerpo, atm, ins, toque, A, fase: idx / l.length * Math.PI * 2, esc: 1, flash: 0, etq: null };
+    return { p, id, g, cuerpo, atm, ins, toque, A, i0: i, fase: idx / l.length * Math.PI * 2, esc: 1, flash: 0, etq: null, insD: null };
   });
 }
 
@@ -403,7 +403,7 @@ function avisarCaja(t, ms = 2400) {
 function capa() {
   caja.querySelectorAll(".cz-capa").forEach((n) => n.remove());
   const c = document.createElement("div"); c.className = "cz-capa";
-  c.innerHTML = `<div class="cz-etqs"></div><div class="cz-aviso" role="status" aria-live="polite"></div>
+  c.innerHTML = `<div class="cz-inss" aria-hidden="true"></div><div class="cz-etqs"></div><div class="cz-aviso" role="status" aria-live="polite"></div>
     <div class="cz-ctrl"><button type="button" class="cz-chip" data-cz="tirar" aria-pressed="${lanzar}">◆ Tirar</button><button type="button" class="cz-chip" data-cz="chiches" aria-label="Qué se puede hacer acá">?</button><button type="button" class="cz-chip" data-cz="sobrio" aria-pressed="${sobrio}">${sobrio ? "Cosmos" : "Sobrio"}</button></div>
     <div class="cz-chiches" hidden><b>Para jugar</b><ul>
       <li><b>Girar:</b> un dedo, de costado. <b>Dos dedos:</b> pellizcá para acercar, subí o bajá los dos para verlo de canto o desde abajo, y giralos como una perilla.</li>
@@ -420,6 +420,8 @@ function capa() {
       <button type="button" class="btn sec cz-fl" data-cz="ant" aria-label="Planeta anterior">‹</button><button type="button" class="btn sec cz-fl" data-cz="sig" aria-label="Planeta siguiente">›</button></div></div></div>`;
   caja.appendChild(c);
   const etqs = c.querySelector(".cz-etqs");
+  const inss = c.querySelector(".cz-inss");
+  E.planetas.forEach((pl) => { const d = document.createElement("div"); d.className = "cz-ins"; d.style.background = identidad(pl.p.id, pl.p.nombre).base; d.innerHTML = identidad(pl.p.id, pl.p.nombre).logo; inss.appendChild(d); pl.insD = d; });
   E.planetas.forEach((pl) => { const e = document.createElement("div"); e.className = "cz-etq"; e.innerHTML = `<b>${escHtml(pl.p.nombre)}</b><small>${escHtml(pl.p.sub || "")}</small>`; etqs.appendChild(e); pl.etq = e; });
   c.addEventListener("click", (ev) => {
     const b = ev.target.closest("[data-cz]"); if (!b) return;
@@ -794,6 +796,19 @@ function cuadro(ahora) {
   camPos.lerp(objPos, sig(2.6)); camMira.lerp(objMira, sig(3)); E.cam.position.copy(camPos); E.cam.lookAt(camMira);
 
   const W = ancho0, H = alto0;
+  const dCam = E.cam.position.length();
+  E.planetas.forEach((pl) => {
+    if (!pl.insD) return;
+    pl.g.getWorldPosition(tmp);
+    const dist = tmp.distanceTo(E.cam.position);
+    const rpx = (pl.A.tam * pl.esc) / (dist * Math.tan(E.cam.fov * Math.PI / 360)) * (H / 2);
+    tmp.project(E.cam);
+    const x = (tmp.x + 1) / 2 * W, y = (1 - tmp.y) / 2 * H, tam2 = Math.max(10, rpx * 1.15);
+    pl.insD.style.transform = `translate(${(x - tam2 / 2).toFixed(1)}px, ${(y - tam2 / 2).toFixed(1)}px)`;
+    pl.insD.style.width = pl.insD.style.height = tam2.toFixed(1) + "px";
+    pl.insD.style.zIndex = String(Math.round(1000 - dist * 20));
+    pl.insD.style.opacity = tmp.z > 1 ? 0 : (E.sel === null || E.sel === pl.i0 ? 1 : .45) * (dist > dCam + 1.5 ? .55 : 1);
+  });
   E.planetas.forEach((pl) => {
     if (!pl.etq) return;
     pl.g.getWorldPosition(tmp); tmp.y -= pl.A.tam * pl.esc * 1.25; tmp.project(E.cam);

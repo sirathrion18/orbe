@@ -37,7 +37,7 @@ const ALIAS = [
   [/archivo\s*64|ajedrez/i, "a64"], [/mateshka|ruso/i, "mateshka"], [/sur\s*lo-?fi/i, "sur"], [/l[ií]nea sagrada/i, "linea"], [/^orbe\b/i, "orbe"]
 ];
 // Fichas de la central que son universos o archivo, no proyectos: no van al cosmos.
-const NO_PLANETA = /^(plata|bna|facu|viaje)\b|archivo de cerrados|contexto global/i;
+const NO_PLANETA = /^(plata|bna|facu|viaje)\b|cerrados|contexto global/i;
 
 export function idDeFicha(nombre) {
   const n = String(nombre || "").replace(/^ficha\s*·\s*/i, "").trim();
@@ -65,5 +65,5 @@ export function identidad(id, nombre) {
 // Insignia redonda para las páginas (la misma que se ve en el cosmos).
 export function insigniaHtml(id, nombre, tam = 44) {
   const i = identidad(id, nombre);
-  return `<span class="insignia" style="width:${tam}px;height:${tam}px;background:${i.base};box-shadow:0 0 0 1px ${i.glow}55, 0 0 18px ${i.glow}33">${i.logo}</span>`;
+  return `<span class="insignia" data-ins="${String(id).replace(/[^a-z0-9-]/gi, "")}" style="width:${tam}px;height:${tam}px;background:${i.base};box-shadow:0 0 0 1px ${i.glow}55, 0 0 18px ${i.glow}33">${i.logo}</span>`;
 }

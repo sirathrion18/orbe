@@ -47,7 +47,7 @@ export function paraCosmos(lista) {
 }
 
 // ---------- Universo Proyectos ----------
-export function cuerpoProyectos(datos) {
+export function cuerpoProyectos(datos, cab = "") {
   const lista = proyectos(datos);
   const l = datosListas(), gh = l?.github || {};
   const nuevas = propuestasNuevas();
@@ -69,7 +69,7 @@ export function cuerpoProyectos(datos) {
   }).join("");
   const aviso = !permisos().drive ? '<p class="fuente-dato">Con Drive conectado (Ajustes › Google), Orbe lee las fichas de la central de proyectos y suma los proyectos nuevos solos.</p>'
     : datosCentral()?.error === "sin-carpeta" ? '<p class="fuente-dato">No encontré la carpeta «Central de proyectos» en tu Drive.</p>' : "";
-  return `<div class="cosmos" id="cosmos"><noscript>El cosmos necesita JavaScript.</noscript></div>
+  return `<div class="cosmos" id="cosmos"><div class="cz-cab">${cab}</div><noscript>El cosmos necesita JavaScript.</noscript></div>
     ${prop}
     <div class="chips" style="margin:14px 0 4px"><a class="chip" href="#/ideas">Ideas${ideas ? " · " + ideas : ""} ›</a><a class="chip" href="#/propuestas">Propuestas ›</a></div>
     <h2 class="fz-titulo">Todos los proyectos</h2><div class="proys">${cartas || '<p class="vacio">Todavía no hay proyectos.</p>'}</div>
