@@ -1,5 +1,13 @@
 # Novedades de Orbe
 
+## v0.43.3 · 30/10/2026
+
+Menos texto, más «?».
+
+- Cosmos sin cartelitos: al jugar ya no sale texto. Todo lo que hace cada chiche está en el «?», con qué hacés y qué pasa.
+- ◆ Tirar: cuando la piedra choca, se abre la ficha corta del planeta (con su próximo paso).
+- Lluvia de ideas: tocás un meteorito y se abre una tarjetita con una idea tuya; la tocás y se cierra.
+
 ## v0.43.2 · 30/10/2026
 
 Pantalla completa.

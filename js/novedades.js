@@ -1,6 +1,16 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.43.3",
+    fecha: "30/10/2026",
+    titulo: "Menos texto, más «?».",
+    cambios: [
+      "Cosmos sin cartelitos: al jugar ya no sale texto. Todo lo que hace cada chiche está en el «?», con qué hacés y qué pasa.",
+      "◆ Tirar: cuando la piedra choca, se abre la ficha corta del planeta (con su próximo paso).",
+      "Lluvia de ideas: tocás un meteorito y se abre una tarjetita con una idea tuya; la tocás y se cierra.",
+    ],
+  },
+  {
     version: "0.43.2",
     fecha: "30/10/2026",
     titulo: "Pantalla completa.",

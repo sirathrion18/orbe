@@ -396,23 +396,31 @@ function modoSoberano() {
 
 // ---------- La capa de arriba: nombres, controles y la ficha corta ----------
 let tAviso;
-function avisarCaja(t, ms = 2400) {
+// Sin cartelitos al jugar: lo que hace cada chiche se explica en el «?».
+function avisarCaja() {}
+// Lo único que se abre: la idea del meteorito que tocaste (tocás la tarjeta y se cierra).
+function abrirIdea(t) {
   const a = caja?.querySelector(".cz-aviso"); if (!a) return;
-  a.textContent = t; a.classList.add("ver"); clearTimeout(tAviso); tAviso = setTimeout(() => a.classList.remove("ver"), ms);
+  a.innerHTML = `<span>Idea</span>${String(t).replace(/[<>&"]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" })[c])}`;
+  a.classList.add("ver", "idea"); clearTimeout(tAviso); tAviso = setTimeout(() => a.classList.remove("ver"), 9000);
 }
 function capa() {
   caja.querySelectorAll(".cz-capa").forEach((n) => n.remove());
   const c = document.createElement("div"); c.className = "cz-capa";
-  c.innerHTML = `<div class="cz-inss" aria-hidden="true"></div><div class="cz-etqs"></div><div class="cz-aviso" role="status" aria-live="polite"></div>
+  c.innerHTML = `<div class="cz-inss" aria-hidden="true"></div><div class="cz-etqs"></div><div class="cz-aviso" role="status" aria-live="polite" data-cz="cerrar-idea"></div>
     <div class="cz-ctrl"><button type="button" class="cz-chip" data-cz="tirar" aria-pressed="${lanzar}">◆ Tirar</button><button type="button" class="cz-chip" data-cz="chiches" aria-label="Qué se puede hacer acá">?</button><button type="button" class="cz-chip" data-cz="sobrio" aria-pressed="${sobrio}">${sobrio ? "Cosmos" : "Sobrio"}</button></div>
-    <div class="cz-chiches" hidden><b>Para jugar</b><ul>
-      <li><b>Girar:</b> un dedo, de costado. <b>Dos dedos:</b> pellizcá para acercar, subí o bajá los dos para verlo de canto o desde abajo, y giralos como una perilla.</li>
-      <li><b>◆ Tirar:</b> prendelo, arrastrá y soltá una piedra contra un planeta.</li>
-      <li><b>Lluvia de ideas:</b> deslizá dos dedos rápido para arriba. Tocá un meteorito y te tira una idea tuya.</li>
-      <li><b>Hilos:</b> mantené apretado un planeta y soltá sobre otro. Lo mismo otra vez lo borra.</li>
-      <li><b>Eclipses:</b> girá hasta que un planeta tape a Orbe.</li>
-      <li><b>Agujero negro:</b> mantené apretado el vacío.</li>
-      <li><b>Doble toque</b> en el vacío: vuelve a la vista de siempre.</li></ul><button type="button" class="cz-chip" data-cz="cerrar-chiches">Listo</button></div>
+    <div class="cz-chiches" hidden><b>Qué se puede hacer acá</b><dl>
+      <dt>Girar</dt><dd><i>Hacés:</i> deslizá un dedo de costado.<br><i>Pasa:</i> el cosmos gira alrededor de Orbe.</dd>
+      <dt>Dos dedos</dt><dd><i>Hacés:</i> pellizcá, subí o bajá los dos dedos, o giralos como una perilla.<br><i>Pasa:</i> acercás o alejás, lo ves de canto o desde abajo, lo girás.</dd>
+      <dt>Tocar un planeta</dt><dd><i>Pasa:</i> se acerca y se abre su ficha corta, con el próximo paso.</dd>
+      <dt>◆ Tirar</dt><dd><i>Hacés:</i> prendé «Tirar», arrastrá una piedra y soltala contra un planeta.<br><i>Pasa:</i> choca, el planeta se ilumina y se abre su ficha.</dd>
+      <dt>Lluvia de ideas</dt><dd><i>Hacés:</i> deslizá dos dedos rápido para arriba.<br><i>Pasa:</i> caen meteoritos; tocás uno y se abre una idea tuya.</dd>
+      <dt>Hilos</dt><dd><i>Hacés:</i> mantené apretado un planeta y soltá sobre otro.<br><i>Pasa:</i> quedan unidos con una línea de luz. Lo mismo otra vez, se corta.</dd>
+      <dt>Eclipse</dt><dd><i>Hacés:</i> girá hasta que un planeta tape a Orbe.<br><i>Pasa:</i> un aro de luz alrededor del planeta.</dd>
+      <dt>Agujero negro</dt><dd><i>Hacés:</i> mantené apretado el vacío.<br><i>Pasa:</i> a lo lejos aparece un agujero negro, un rato.</dd>
+      <dt>Doble toque en el vacío</dt><dd><i>Pasa:</i> vuelve a la vista de siempre.</dd>
+      <dt>Sobrio · Ver todo · − +</dt><dd><i>Pasa:</i> sin animaciones, todo a la vista, o más cerca y más lejos.</dd>
+      </dl><button type="button" class="cz-chip" data-cz="cerrar-chiches">Listo</button></div>
     <div class="cz-zoom" role="group" aria-label="Zoom"><button type="button" data-cz="lejos" aria-label="Alejar">−</button><button type="button" data-cz="todo">Ver todo</button><button type="button" data-cz="cerca" aria-label="Acercar">+</button></div>
     <div class="cz-hoja" aria-hidden="true"><div class="cz-caja"><div class="cz-ceja"></div><h3 class="cz-nombre"></h3><p class="cz-que"></p>
       <div class="cz-paso"><span>Próximo paso</span><div></div></div>
@@ -434,6 +442,7 @@ function capa() {
     else if (q === "cerca") ponerZoom(zoomObj / 1.3);
     else if (q === "todo") { if (E.sel !== null) soltar(); ponerZoom(1.7); }
     else if (q === "volver") soltar();
+    else if (q === "cerrar-idea") b.classList.remove("ver");
     else if (q === "ant" || q === "sig") paso(q === "ant" ? -1 : 1);
   });
   if (E.sel !== null) mostrarHoja();
@@ -590,7 +599,7 @@ function impacto(pl, p) {
   for (let k = 0; k < 40; k++) chispa(w.clone(), k % 2 ? p.c : pl.id.glow, new THREE.Vector3(azar(-1, 1), azar(-1, 1), azar(-1, 1)).normalize().multiplyScalar(azar(1.5, 4)), 1.4);
   pl.flash = 1.6; onda(pl, p.c); onda(pl, pl.id.glow);
   if (!sobrio) { cargar(.2, .6); luego(.2, () => rayo(borde(enSistema(pl.g)), enSistema(pl.g), pl.id.glow, .6)); }
-  avisarCaja(pl.p.paso ? `${pl.p.nombre} · próximo: ${pl.p.paso}` : `¡Pleno en ${pl.p.nombre}!`, 3600);
+  luego(.6, () => { if (E.sel !== pl.i0) elegir(pl.i0); }); // se abre su ficha corta
 }
 
 // ---------- Chiche: lluvia de ideas ----------
@@ -621,7 +630,7 @@ function tocarMeteoro(e) {
   m.vivo = false;
   for (let k = 0; k < 24; k++) chispa(m.sp.position.clone(), "#ffd6a8", new THREE.Vector3(azar(-1, 1), azar(-1, 1), azar(-1, 1)).multiplyScalar(2.4), 1.3);
   const l = extras.ideas?.length ? extras.ideas : IDEAS_RELLENO;
-  avisarCaja("Idea: " + uno(l), 5200);
+  abrirIdea(uno(l));
   return true;
 }
 
@@ -659,8 +668,6 @@ function moverHilos(dt) {
 }
 
 // ---------- Chiche: eclipses ----------
-const FRASES_ECLIPSE = ["Por un momento, todo gira alrededor de {p}.", "Eclipse de {p}: hasta Orbe le hace sombra.", "{p} se puso delante. Raro, pero lindo.",
-  "Alineación perfecta: Orbe, {p} y vos.", "Dicen que cuando {p} tapa a Orbe, el próximo paso sale solo.", "Cosas que pasan una vez cada tanto: {p} en eclipse."];
 const vistoEclipse = {};
 const pa = new THREE.Vector3(), pb = new THREE.Vector3();
 function revisarEclipse() {
@@ -679,7 +686,6 @@ function revisarEclipse() {
       E.activos.push({ v: 0, update(dt) { this.v += dt; const s = pl.A.tam * (2.1 + this.v * .6); sp.scale.set(s, s, 1); sp.material.opacity = .9 * Math.max(0, 1 - this.v / 2.4); if (this.v > 2.4) { pl.g.remove(sp); sp.material.dispose(); return false; } return true; } });
       const vistos = leer("eclipsesVistos", []);
       if (!vistos.includes(pl.p.id)) guardar("eclipsesVistos", [...vistos, pl.p.id], true);
-      avisarCaja("Eclipse · " + uno(FRASES_ECLIPSE).replace("{p}", pl.p.nombre), 4200);
       return;
     }
   }
