@@ -1,6 +1,15 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.43.1",
+    fecha: "30/10/2026",
+    titulo: "ES.",
+    cambios: [
+      "El Semanal: el logo resumido ahora es «ES», con la E en rojo y la S en negro (también en las opciones 3 y 6).",
+      "Proyectos › «Elegir logos»: un desplegable con las 10 opciones de cada proyecto, todos juntos. Tocás uno y queda.",
+    ],
+  },
+  {
     version: "0.43.0",
     fecha: "30/10/2026",
     titulo: "Para jugar.",

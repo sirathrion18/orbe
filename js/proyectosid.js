@@ -11,7 +11,7 @@ export const IDENT = {
   satelite: { base: "#1b1b20", acc: "#e8364f", glow: "#ff3b5c",
     logo: svg(`<circle cx="11" cy="13.5" r="5.6" fill="none" stroke="${B}" stroke-width="2.6"/><circle cx="18.4" cy="6" r="2.8" fill="#e8364f"/>`) },
   semanal: { base: "#d8d5cd", acc: "#c8102e", glow: "#ffd9de",
-    logo: svg(`<text x="2" y="17.5" font-family="Georgia, 'Times New Roman', serif" font-size="14" fill="#c8102e">El</text><text x="14" y="17.5" font-family="Georgia, 'Times New Roman', serif" font-size="14" fill="#111">S</text>`) },
+    logo: svg(`<text x="12" y="17.2" text-anchor="middle" font-family="Georgia,serif" font-size="15"><tspan fill="#c8102e">E</tspan><tspan fill="#111">S</tspan></text>`) },
   nexus: { base: "#e05d00", acc: "#ffd2a8", glow: "#ff7a1a", anillo: true,
     logo: svg(`<circle cx="12" cy="12" r="8.4" fill="none" stroke="${B}" stroke-width="2.3"/><path d="M12 6.5v5.8l3.8 2" fill="none" stroke="${B}" stroke-width="2.3" stroke-linecap="round"/>`) },
   rastreador: { base: "#0e6a82", acc: "#67e8f9", glow: "#22d3ee",

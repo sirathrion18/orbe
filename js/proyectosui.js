@@ -72,7 +72,10 @@ export function cuerpoProyectos(datos) {
   return `<div class="cosmos" id="cosmos"><noscript>El cosmos necesita JavaScript.</noscript></div>
     ${prop}
     <div class="chips" style="margin:14px 0 4px"><a class="chip" href="#/ideas">Ideas${ideas ? " · " + ideas : ""} ›</a><a class="chip" href="#/propuestas">Propuestas ›</a></div>
-    <h2 class="fz-titulo">Todos los proyectos</h2><div class="proys">${cartas || '<p class="vacio">Todavía no hay proyectos.</p>'}</div>${aviso}`;
+    <h2 class="fz-titulo">Todos los proyectos</h2><div class="proys">${cartas || '<p class="vacio">Todavía no hay proyectos.</p>'}</div>
+    ${(() => { const con = lista.filter((p) => opcionesLogo(p.id).length); if (!con.length) return "";
+      return `<details class="bloque plegable logos-todos" ${sesion("logosAbierto") ? "open" : ""}><summary>Elegir logos</summary>${con.map((p) => { const i = identidad(p.id, p.nombre);
+        return `<div class="logo-proy"><b>${esc(p.nombre)}</b><div class="logos-op">${opcionesLogo(p.id).map((l, k) => `<button class="logo-op ${logoElegido(p.id) === k ? "on" : ""}" data-accion="logo-elegir" data-id="${esc(p.id)}" data-i="${k}" aria-label="${esc(p.nombre)}, logo ${k + 1}" aria-pressed="${logoElegido(p.id) === k}"><span class="insignia" style="width:48px;height:48px;background:${i.base}">${l}</span><small>${k + 1}</small></button>`).join("")}</div></div>`; }).join("")}</details>`; })()}${aviso}`;
 }
 
 // ---------- Ficha de un proyecto ----------

@@ -1,5 +1,12 @@
 # Novedades de Orbe
 
+## v0.43.1 · 30/10/2026
+
+ES.
+
+- El Semanal: el logo resumido ahora es «ES», con la E en rojo y la S en negro (también en las opciones 3 y 6).
+- Proyectos › «Elegir logos»: un desplegable con las 10 opciones de cada proyecto, todos juntos. Tocás uno y queda.
+
 ## v0.43.0 · 30/10/2026
 
 Para jugar.
