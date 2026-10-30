@@ -15,7 +15,11 @@ export const GUINOS = [...ESPECIALES.slice(0, 1), ...CLASICOS, ...ESPECIALES.sli
 export const GUINOS_FECHA = [["diego", "30/10"], ["gol", "22/6"], ["tercera", "18/12"], ["messi", "24/6"], ["madrid", "9/12"], ["previa", "Previa"]];
 const DURA = 20 * 60000;
 const FRANJAS = [[9, 13, "a la mañana"], [13, 18, "a la tarde"], [18, 23, "a la noche"]];
-export const guinosPrendidos = () => leer("guinos", true) !== false;
+// Cuántos guiños: «pocos» (solo fechas y River, por defecto), «semana» (más un especial por semana),
+// «todos» (tres por día) o «ninguno». El viejo interruptor apagado equivale a «ninguno».
+export const NIVELES = [["pocos", "Pocos", "Solo las fechas (Diego, Messi, Madrid) y el día de River."], ["semana", "Uno por semana", "Las fechas, River y un especial distinto cada semana."], ["todos", "Todos", "Tres por día, rotando, más las fechas."], ["ninguno", "Ninguno", "Orbe sobrio todo el tiempo."]];
+export const nivelGuinos = () => leer("guinos", true) === false ? "ninguno" : (NIVELES.some(([k]) => k === leer("guinosNivel")) ? leer("guinosNivel") : "pocos");
+export const guinosPrendidos = () => nivelGuinos() !== "ninguno";
 const escH = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 function azar(semilla) {
@@ -69,10 +73,19 @@ export function guinoActivo(f, demo) {
   if (!guinosPrendidos()) return null;
   const ya = sesion("guinoYa");
   if (ya && Date.now() < ya.hasta) return ya.tipo;
+  const nivel = nivelGuinos();
+  if (nivel === "pocos") return null;
   const p = plan(f);
+  // Uno por semana: un solo día de la semana (sorteado por semana), y solo el especial.
+  let momentos = p.momentos;
+  if (nivel === "semana") {
+    const semana = Math.floor((nroDia(f) + 3) / 7), dia = Math.floor(azar(semana * 7919)() * 7);
+    if (((nroDia(f) % 7) + 7) % 7 !== dia) return null;
+    momentos = p.momentos.filter((m) => ESPECIALES.some(([k]) => k === m.tipo));
+  }
   const min = f.getHours() * 60 + f.getMinutes(), ahora = f.getTime();
   const visible = typeof document === "undefined" || document.visibilityState !== "hidden";
-  for (const m of p.momentos) {
+  for (const m of momentos) {
     if (m.min > min) continue;
     if (!m.visto) {
       if (!visible) return null; // con Orbe en segundo plano no se gasta
@@ -211,7 +224,7 @@ const OLA = `<svg class="ola" viewBox="0 0 240 30" fill="none" stroke="currentCo
 
 export function decoracion(tipo) {
   if (tipo === "arana") return `${TELA2}<button class="arana" data-accion="arana" aria-label="Una arañita. Tocala y sube."><span class="hilo"></span>${ARANA}</button>`;
-  if (tipo === "venom") return sesion("gotaEscondida") ? "" : `<button class="gota-venom" aria-label="Una gota negra que asoma. Tocala y se esconde.">${GOTA}</button>`;
+  if (tipo === "venom") return '<div class="tinta-venom" aria-hidden="true"></div>'; // un borde de tinta que aparece y se va
   if (tipo === "ninja") return HUMO;
   if (tipo === "cazador") return '<div class="cuadros" aria-hidden="true"></div>';
   if (tipo === "millo") return '<div class="banda banda-guino" aria-hidden="true"></div>';

@@ -516,6 +516,7 @@ document.addEventListener("click", (e) => {
     borrarSuscripcion(el.dataset.id); cerrarHoja(); avisar("Suscripción borrada"); pintar(true);
   }
   else if (a === "demo-guino") { sesion("demoGuino", el.dataset.g || null); avisar(el.dataset.g ? "Probando el guiño " + el.textContent + ": andá a Inicio" : "Guiños en modo real"); pintar(); }
+  else if (a === "guinos-nivel") { guardar("guinosNivel", el.dataset.n); guardar("guinos", el.dataset.n !== "ninguno"); vibrar(); pintar(true); }
   else if (a === "guinos") { guardar("guinos", leer("guinos", true) === false); vibrar(); pintar(true); }
   else if (a === "arana") {
     // La arañita sube por su hilo y se va.
