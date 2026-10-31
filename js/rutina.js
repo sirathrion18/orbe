@@ -1,6 +1,7 @@
 // La rutina de Nacho: martes en el gym (60 min) y 15 min en casa otro día.
 // Objetivos: más aire y rendimiento en el fútbol, algo de músculo, cuidar espalda baja, hombros y cuello.
-// En el gym nada de piso "raro": gato-camello y bird dog quedan para casa.
+// En el gym nada de piso "raro": gato-camello, bird dog y dead bug quedan para casa.
+// A la mañana, todos los días: Radio Taiso (3 a 5 min, sin saltos si molestan las rodillas).
 // Cada ejercicio tiene su animación de Pedri con el mismo id (js/pedri-ejercicios.js).
 // No reemplaza a un profe ni a un kinesiólogo: si algo duele de verdad, se corta y se consulta.
 
@@ -12,9 +13,9 @@ export const RUTINA_GYM = [
     { id: "sentadillalibre", nombre: "Sentadillas sin peso", dosis: "10", descanso: "—",
       claves: ["Brazos adelante para equilibrarte.", "Cola atrás, pecho arriba, hasta donde estés cómodo."],
       error: "Talones que se despegan.", alternativa: "Sentarse y pararse de un banco." },
-    { id: "rotacionsentado", nombre: "Rotación de pecho sentado en un banco", dosis: "6 por lado", descanso: "—",
-      claves: ["Brazos cruzados sobre el pecho.", "Girá el pecho; la cadera queda quieta en el banco."],
-      error: "Girar con fuerza o de golpe.", alternativa: "De pie, con las manos en la cintura." },
+    { id: "lateralbanda", nombre: "Caminata lateral con banda", dosis: "2 × 10 pasos por lado", descanso: "—",
+      claves: ["Banda arriba de las rodillas, rodillas apenas flexionadas.", "Pasos cortos de costado sin juntar los pies del todo.", "Rodillas hacia afuera, contra la banda."],
+      error: "Pararse derecho y arrastrar los pies.", alternativa: "Sin banda, pasos laterales en media sentadilla." },
   ] },
   { bloque: "Piernas y espalda · 3 vueltas", min: "uno atrás del otro · 75 s de descanso por vuelta", items: [
     { id: "sentadilla", nombre: "Sentadilla con mancuerna al pecho, al cajón", dosis: "3 × 10–12", descanso: "—", peso: true,
@@ -48,13 +49,13 @@ export const RUTINA_GYM = [
       claves: ["Codos pegados a los costados.", "Estirá los brazos hacia abajo hasta el final.", "Volvé lento hasta el pecho."],
       error: "Que los codos se abran o se adelanten.", alternativa: "Fondos con las manos en un banco, rodillas flexionadas." },
   ] },
-  { bloque: "Para el fútbol · 2 vueltas", min: "60 s de descanso por vuelta", items: [
+  { bloque: "Para el fútbol · 2 vueltas", min: "60 s de descanso por vuelta · semanas pares: aductores en vez de curl femoral", items: [
     { id: "estocada", nombre: "Estocada hacia atrás", dosis: "2 × 8 por pierna", descanso: "—", peso: true,
       claves: ["Paso largo hacia atrás, torso derecho.", "Bajá derecho, como un ascensor; la rodilla de atrás casi toca el piso.", "La rodilla de adelante sobre el pie."],
       error: "Paso corto: la rodilla de adelante se va muy adelante.", alternativa: "Agarrado de una máquina o la pared, sin peso." },
-    { id: "aductores", nombre: "Aductores en máquina", dosis: "2 × 12", descanso: "—", peso: true,
-      claves: ["Espalda apoyada, rango cómodo para arrancar.", "Cerrá las piernas en 1 tiempo, abrí en 3."],
-      error: "Abrir más de lo cómodo con mucho peso.", alternativa: "Apretar una pelota entre las rodillas acostado, 20 s." },
+    { id: "femoral", nombre: "Curl femoral en máquina", dosis: "2 × 12", descanso: "—", peso: true,
+      claves: ["La rodilla alineada con el eje de la máquina.", "Doblá las rodillas en 1 tiempo, volvé en 3.", "Cadera apoyada, sin levantar la cola."],
+      error: "Peso alto que te hace levantar la cadera del asiento o la camilla.", alternativa: "Aductores en máquina (semanas pares)." },
     { id: "talones", nombre: "Elevación de talones", dosis: "2 × 15", descanso: "60 s",
       claves: ["Subí rápido hasta la punta, arriba un segundo.", "Bajá lento, en 3 tiempos.", "Apoyate solo para el equilibrio."],
       error: "Rebotar abajo sin control.", alternativa: "En un escalón, para más recorrido." },
@@ -68,14 +69,14 @@ export const RUTINA_GYM = [
     { id: "plancha", nombre: "Plancha", dosis: "3 × 20–30 s", descanso: "45 s",
       claves: ["Codos debajo de los hombros.", "Apretá la cola y la panza; el cuerpo en línea.", "Respirá normal."],
       error: "Cadera caída o muy arriba.", alternativa: "Plancha con las rodillas apoyadas." },
-    { id: "deadbug", nombre: "Dead bug", dosis: "2 × 8 por lado", descanso: "45 s",
-      claves: ["Espalda baja pegada al piso todo el tiempo.", "Brazo y pierna contrarios, lento.", "Exhalá mientras estirás."],
-      error: "Que la espalda se despegue del piso al estirar la pierna.", alternativa: "Mover solo las piernas, de a una." },
+    { id: "pallof", nombre: "Pallof press en polea", dosis: "2 × 10 por lado", descanso: "45 s", peso: true,
+      claves: ["De costado a la polea, manija a la altura del pecho.", "Empujá la manija hacia adelante y sostené 2 s sin dejar que el cuerpo gire.", "Pies al ancho de la cadera, cola apretada."],
+      error: "Peso alto que te gira el torso hacia la polea.", alternativa: "Con banda elástica atada a la altura del pecho." },
   ] },
 ];
 
 export const RUTINA_CASA = [
-  { bloque: "En casa · 15 min, otro día de la semana", min: "sin descanso largo", items: [
+  { bloque: "En casa · 15 min, otro día de la semana (puede ir pegado al Radio Taiso)", min: "sin descanso largo", items: [
     { id: "papada", nombre: "Mentón hacia atrás (papada)", dosis: "10 × 3 s", descanso: "—",
       claves: ["Mirada al frente.", "Llevá la cabeza atrás como haciendo papada, sin bajar la vista.", "Sostené 3 segundos."],
       error: "Bajar la cabeza en vez de llevarla atrás.", alternativa: "Acostado, apretando la nuca contra el piso." },
@@ -91,6 +92,9 @@ export const RUTINA_CASA = [
     { id: "birddog", nombre: "Bird dog", dosis: "2 × 8 por lado", descanso: "30 s",
       claves: ["La cadera no rota.", "Arriba, 2 segundos."],
       error: "Levantar la pierna de más.", alternativa: "Solo la pierna." },
+    { id: "deadbug", nombre: "Dead bug", dosis: "2 × 8 por lado", descanso: "30 s",
+      claves: ["Espalda baja pegada al piso todo el tiempo.", "Brazo y pierna contrarios, lento.", "Exhalá mientras estirás."],
+      error: "Que la espalda se despegue del piso al estirar la pierna.", alternativa: "Mover solo las piernas, de a una." },
     { id: "respiracion", nombre: "Respiración lenta", dosis: "2 min", descanso: "—",
       claves: ["Inhalá en 4, exhalá en 6."],
       error: "Levantar los hombros al inhalar.", alternativa: "Acostado." },
@@ -98,10 +102,13 @@ export const RUTINA_CASA = [
 ];
 
 // Cómo sigue: 8 semanas.
+export const MANANA = { id: "radiotaiso", nombre: "Radio Taiso", dosis: "3 a 5 min, todos los días", claves: ["Movimientos amplios y suaves, siguiendo la música.", "Si los saltitos molestan, cambialos por subir en puntas de pie."] };
+// Después de las 8 semanas: potencia y agilidad (saltos bajos, cambios de ritmo) cuando rodillas y tendones estén listos.
+
 export const PROGRESION = [
   { semanas: "1 y 2", texto: "Técnica. Peso con el que hacés 12 repeticiones y te sobran 4. 2 vueltas en todo, 4 intervalos de cardio." },
   { semanas: "3 y 4", texto: "3 vueltas en piernas, espalda y pecho. Cuando las 12 salen cómodas, la próxima vez un escalón más (2,5 kg o una placa)." },
-  { semanas: "5 y 6", texto: "Puente, face pull y brazos pasan a 3 vueltas. Cardio: 6 intervalos." },
+  { semanas: "5 y 6", texto: "Puente, face pull y brazos pasan a 3 vueltas. Cardio: 6 intervalos. Aductores y curl femoral, los dos." },
   { semanas: "7 y 8", texto: "Misma regla: 3 × 12 cómodas → subís. Plancha a 3 × 40 s. Cardio: 8 intervalos. Si algo molesta, volvés al peso anterior y lo anotás." },
 ];
 
