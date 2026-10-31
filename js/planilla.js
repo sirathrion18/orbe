@@ -84,7 +84,7 @@ export function renderPlanilla(ctx, $0, oculto) {
   const fila = (f) => `<li><span class="c">${esc(f.concepto)}${f.nota ? `<small>${esc(f.nota)}</small>` : ""}</span><span class="p">${f.plan ? $(f.plan) : "—"}</span>
       <span class="r ${f.real == null || f.est ? "est" : ""}">${f.real != null ? $(f.real) : f.plan ? $(f.plan) : "—"}</span></li>`;
   const grupos = GRUPOS.map((g) => ({ g, fs: filas.filter((f) => f.g === g) })).filter((x) => x.fs.length).map(({ g, fs }) =>
-    `<section class="pl-grp" style="--g:${g.color}"><div class="pl-gh"><span>${g.nombre}</span><b>${$(fs.reduce((s, f) => s + val(f), 0))}</b></div><ul>${fs.map(fila).join("")}</ul></section>`).join("");
+    `<section class="pl-grp g-${g.id}"><div class="pl-gh"><span>${g.nombre}</span><b>${$(fs.reduce((s, f) => s + val(f), 0))}</b></div><ul>${fs.map(fila).join("")}</ul></section>`).join("");
 
   // Las cuentas de tu Excel: total, saldo = ingresos − total, semanal = saldo ÷ 4, diario = saldo ÷ 24.
   const totP = col.total ?? filas.reduce((s, f) => s + f.plan, 0), totR = filas.reduce((s, f) => s + val(f), 0);

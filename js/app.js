@@ -78,8 +78,7 @@ function proximoCambioDeLuz() {
   return [hoy.sale, hoy.pone, manana.sale, manana.pone].map((d) => d.getTime()).find((t) => t > ahora.getTime());
 }
 function aplicarTema() {
-  // Finanzas, siempre en blanco: los números se leen mejor.
-  const tema = ruta().startsWith("/u/finanzas") ? "claro" : temaActual();
+  const tema = temaActual();
   document.documentElement.dataset.theme = tema;
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.content = tema === "oscuro" ? "#0B0B0C" : "#FFFFFF";
