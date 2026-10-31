@@ -1,12 +1,13 @@
 // Orbe — arranque, navegación, tema, buscador y acciones.
 import { cargarDatos, cargarClima, mezclar } from "./fuente.js";
+import { aplicarDia, infoDias, cargarReferencias, cerrarBanner } from "./dias.js";
 import { renderClima, conectarClima, alEntrar as entrarClima, montarRadar, lugar as lugarClima } from "./clima.js";
 import * as G from "./google.js";
 import { construirContexto } from "./contexto.js";
 import { renderInicio, despuesInicio, esc, colorUniverso, regresiva, renderAvisos } from "./inicio.js";
 import { ICONOS } from "./iconos.js";
 import { renderDetalle, DETALLE_UNI } from "./detalles.js";
-import { hojaArchivosProd, renderAjustesGuinos } from "./paginas.js";
+import { hojaArchivosProd, renderAjustesGuinos, renderAjustesInicio } from "./paginas.js";
 import { renderRiver, renderUniverso, renderBloqueo, renderAgenda, renderRespiro, renderDatos, renderAjustes, renderNovedades, renderNoEncontrado, renderSemanal, renderPedirDiario, renderUrgente, hojaMovimiento, hojaTp, hojaMateria, hojaAsignar, hojaAgus, hojaPartido, hojaPasos, hojaPesos, hojaGasto } from "./paginas.js";
 import { HOJAS_PRESU, leerConfigPresu, cruzar, responder as responderPresu, confirmarIngreso } from "./presupuesto.js";
 import { agregarManual } from "./finanzas.js";
@@ -106,6 +107,7 @@ function pintar(refresco = false) {
   if (edChk && sesion("chkEditando") === edChk.dataset.id) sesion("chkBorrador", { id: edChk.dataset.id, titulo: edChk.titulo.value, u: new FormData(edChk).get("u") || "",
     items: [...edChk.querySelectorAll(".chk-ed-item")].map((li) => ({ t: li.querySelector("input").value, ok: li.dataset.ok === "1" })) });
   const tema = aplicarTema();
+  try { aplicarDia(); } catch (e) { /* un día con color nunca rompe Orbe */ }
   const demo = sesion("demo");
   // Lo que se deriva de Finanzas (pagar las tarjetas) se suma a los pendientes del calendario.
   if (!estado.datos.pendientesBase) estado.datos.pendientesBase = estado.datos.pendientes || [];
@@ -144,6 +146,7 @@ function pintar(refresco = false) {
   }
   else if (r === "/urgente") html = renderUrgente(estado.datos, estado.ctx);
   else if (r === "/ajustes/guinos") html = renderAjustesGuinos();
+  else if (r === "/ajustes/inicio") html = renderAjustesInicio(infoDias());
   else if (r === "/pedir-diario") html = renderPedirDiario();
   else if (r === "/avisos") html = renderAvisos(estado.datos, estado.ctx);
   else if (r === "/checklists") { usarColores((u) => colorUniverso(estado.datos, u, tema)); html = renderChecklists(); }
@@ -534,6 +537,15 @@ document.addEventListener("click", (e) => {
     if (l.has(el.dataset.k)) l.delete(el.dataset.k); else l.add(el.dataset.k);
     guardar("inicioOcultos", [...l]); vibrar(); pintar(true);
   }
+  else if (a === "tira-ver") {
+    const l = new Set(leer("tirasApagadas", []));
+    if (l.has(el.dataset.k)) l.delete(el.dataset.k); else l.add(el.dataset.k);
+    guardar("tirasApagadas", [...l]); vibrar(); pintar(true);
+  }
+  else if (a === "dias-color") { guardar("diasColorOn", leer("diasColorOn", true) === false); vibrar(); aplicarDia(); pintar(true); }
+  else if (a === "dia-cerrar") { cerrarBanner(); vibrar(); pintar(true); }
+  else if (a === "dias-releer") { avisar("Leyendo tu lista…"); cargarReferencias(true).then((r) => { avisar(r?.falta ? "No encontré «Orbe · referencias» en tu Drive" : "Listo: " + (r?.dias?.length || 0) + " fechas"); pintar(true); }).catch(() => avisar("No pude leer tu Drive")); }
+  else if (a === "demo-dia") { sesion("demoDia", el.dataset.k || null); aplicarDia(); pintar(true); }
   else if (a === "inicio-compacto") { guardar("inicioCompacto", el.dataset.v === "1"); pintar(); }
   else if (a === "buscar") {
     // La lupa de arriba abre (y cierra) el buscador.
@@ -1312,6 +1324,8 @@ function migrar() {
     leerHojaDelLink();
     // Refresca la agenda sin preguntar: la sesión del servidor dura semanas.
     await refrescarAgenda();
+    // Tus referencias (días con color, íconos del reloj, palabras secretas) desde tu Drive, cada 12 horas.
+    cargarReferencias().then((r) => { if (r && Date.now() - r.cuando < 60000) pintar(true); }).catch(() => {});
     await refrescarTodo();
   } catch (e) {
     app.innerHTML = `<div class="pagina"><h1>Ups</h1><p class="bajada">No pude cargar Orbe. Revisá la conexión y volvé a abrir.</p></div>`;

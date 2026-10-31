@@ -15,12 +15,31 @@ import { ultimaEdicion, esNueva, proximaSemanal } from "./semanal.js";
 import { wChecklists, usarColores } from "./checklists.js";
 import { decoracion, hudSobre, decreto, lineaTva, lineaGuino } from "./guinos.js";
 import { wBnaHoy } from "./bnahoy.js";
-import { huevo, huevosDespues } from "./huevos.js";
+import { huevo, huevosDespues, dibujoRef } from "./huevos.js";
+import { diasDeHoy, horaDeHoy, diasPrendidos, bannerCerrado } from "./dias.js";
 import { racha, motivoSinDiario, resumenGastosHoy } from "./finanzasui.js";
 
 export const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 const C = 2 * Math.PI * 100; // circunferencia del anillo (r = 100)
+
+// El banner del día con color: entre el saludo y las tarjetas, a lo ancho. Se cierra con la cruz (el color queda).
+const MESES_L = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+function bannerDia(ctx) {
+  if (ctx.demo || !diasPrendidos() || bannerCerrado(ctx.fecha)) return "";
+  const hora = horaDeHoy(ctx.fecha, ctx.min);
+  const lista = hora ? [hora] : diasDeHoy(ctx.fecha).slice(0, 2);
+  if (!lista.length) return "";
+  const x = lista[0], f = ctx.fecha;
+  // Cada color con su diseño: patria y lo celeste, cinta con la bandera al costado; lo sobrio, titular sin caja; River, la banda cruzada.
+  const estilo = { sobrio: "c", rojo: "b" }[x.tema] || "a";
+  const esHoy = x.d === f.getDate() && x.m === f.getMonth() + 1;
+  const cuando = hora ? `Hoy · ${hora.hora}` : `${esHoy ? "Hoy · " : "Prueba · "}${x.d} de ${MESES_L[x.m - 1]}`;
+  return `<section class="dia-banner v-${estilo} t-${x.tema}" aria-label="Día especial: ${esc(lista.map((y) => y.frase).join(" "))}">
+    <span class="db-franja" aria-hidden="true"></span>${x.icono ? `<span class="db-ico" aria-hidden="true">${dibujoRef(x.icono)}</span>` : ""}
+    <span class="db-txt"><span class="db-k">${cuando}</span>${lista.map((y) => `<span class="db-t">${esc(y.frase)}</span>`).join("")}</span>
+    <button class="db-x" data-accion="dia-cerrar" aria-label="Cerrar el banner de hoy"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></section>`;
+}
 
 export function colorTipo(datos, tipo, tema) {
   const t = datos.tipos[tipo] || datos.tipos.otro;
@@ -57,7 +76,9 @@ function elegirSaludo(datos, ctx, clima) {
   else if (ctx.modo === "libre") cat = (ctx.dia === 0 || ctx.dia === 6) ? "finde" : "libre";
   else if (semilla % 2 === 0) cat = ["", "lunes", "martes", "miercoles", "jueves", "viernes", ""][ctx.dia] || "";
   if (!cat || !SALUDOS[cat]) cat = hora < 13 ? "manana" : "tarde";
-  const lista = SALUDOS[cat];
+  // Nunca un «Domingo…» un sábado: se sacan las frases que nombran otro día de la semana.
+  const otroDia = new RegExp("\\b(" + ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"].filter((_, i) => i !== (ctx.fecha.getDay() + 6) % 7).join("|") + ")\\b", "i");
+  const lista = SALUDOS[cat].filter((t) => !otroDia.test(t)).length ? SALUDOS[cat].filter((t) => !otroDia.test(t)) : SALUDOS[cat];
   // Cambia a lo largo del día: un saludo distinto cada dos horas, sin repetir el de ayer a la misma hora.
   const tramo = Math.floor(ctx.min / 120);
   const plantilla = lista[(semilla * 7 + tramo * 13 + 3) % lista.length];
@@ -237,7 +258,9 @@ function tiras(ctx, datos) {
   const bna = ctx.demo ? null : ctx.hoy.find((b) => b.tipo === "bna");
   const hoyIso = ctx.fecha.getFullYear() + "-" + String(ctx.fecha.getMonth() + 1).padStart(2, "0") + "-" + String(ctx.fecha.getDate()).padStart(2, "0");
   // Lo circunstancial se desliza a la derecha y no vuelve por hoy: pasa a la siguiente cosa.
-  const oc = (k) => tiraOculta(k, hoyIso);
+  // Los que apagaste en Ajustes › Inicio no aparecen nunca (la de la alarma tiene clave «alarma-AAAA-MM-DD»).
+  const apagadas = new Set(leer("tirasApagadas", []));
+  const oc = (k) => apagadas.has(String(k).replace(/-\d{4}-\d{2}-\d{2}$/, "")) || tiraOculta(k, hoyIso);
   const alarmas = tiraAlarmas(ctx);
   // La de la alarma se recuerda por la noche entera (no vuelve a aparecer pasada la medianoche).
   if (alarmas && !oc(alarmas.match(/data-desliza="([^"]+)"/)[1])) R(alarmas);
@@ -611,7 +634,7 @@ export function renderInicio(datos, ctx, climaDatos, tema) {
       ${compacto ? `<div class="cab">${anillo(datos, ctx, tema)}${saludo}</div>` : `${saludo}${reloj}${ctx.guino === "tva" ? lineaTva(urgentesTodos(datos, ctx).length) : leyenda(datos, ctx, tema)}`}
     </div>
     <div class="col-b">
-      ${chipAvisos(datos, ctx)}
+      ${bannerDia(ctx)}${chipAvisos(datos, ctx)}
       <div class="widgets">${ctx.fechaGuino?.tarjeta || ""}${lineaGuino(ctx.guino, ctx)}${ver("plata", wPlata(datos, ctx))}${cuadros}</div>
       ${ver("semanal", wSemanal())}
       <p class="pie">${MARCA}${((h) => h ? "<br>" + h : "")(huevo("pie", hctx))}<br>${pieAgenda(datos)} · <a href="#/novedades">novedades</a> · <a href="privacidad.html">privacidad</a></p>

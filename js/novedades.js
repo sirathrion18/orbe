@@ -1,6 +1,24 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.50.0",
+    fecha: "31/10/2026",
+    titulo: "Orbe se pone la camiseta.",
+    cambios: [
+      "Clima con más vida: el sol estira y gira sus rayitos, la nube se mece, la lluvia cae despacito. Doce variaciones: soleado, algo nublado, nublado, niebla, llovizna, lluvia, lluvia fuerte, tormenta (y con granizo), nieve, ventoso, calor y noche.",
+      "¿Llevo paraguas? ahora es una pastillita adentro de la tarjeta del clima; se pone en rojo cuando hay que llevarlo.",
+      "Radar arreglado: el mapa de fondo ya no pide clave (ahora es OpenStreetMap, también en modo oscuro).",
+      "Inicio y Clima dicen lo mismo: «Mayormente despejado» en los dos lados.",
+      "Modo compacto sin scroll: El Semanal va en una sola línea y se fue el pie de abajo.",
+      "Ajustes › Inicio, página propia: modo, tarjetas, recordatorios que prendés y apagás (fichar, alarmas, dólar, estudio…), días con color, barra y tipografías.",
+      "Días con color: en las fechas de tu lista (patria, Selección, River, superhéroes, Agus y lo que sumes) Orbe se tiñe y aparece un banner entre el saludo y las tarjetas. Patria con la banderita al costado, lo triste en sobrio, River con la banda cruzada. Se cierra con la cruz y el color queda.",
+      "Tu lista vive en tu Drive («Orbe · referencias»), no en el código: la editás como un doc. Las fechas anuales de Amorcitos se tiñen solas de rosa.",
+      "Huevitos, solo íconos: nada al lado de la fecha; iconitos adentro del reloj que, si los tocás, te dicen qué son. River ahora es una camisetita con su banda.",
+      "Agenda: si un evento tiene dirección, lo tocás y se abre Google Maps con «Cómo llegar».",
+      "Arreglo: un sábado el saludo ya no dice «Domingo…».",
+    ],
+  },
+  {
     version: "0.49.0",
     fecha: "31/10/2026",
     titulo: "El clima, en casa.",

@@ -160,7 +160,7 @@ export async function leerAgenda() {
       const tipo = tipoDe(titulo + " " + (c.summary || "") + " " + c.id);
       const finTxt = iso(fin) === dia ? hhmm(fin) : "23:59";
       (porDia[dia] = porDia[dia] || []).push({ inicio: hhmm(ini), fin: finTxt, titulo: NOMBRES[tipo] || titulo, original: titulo, tipo,
-        a: ini.getTime(), b: fin.getTime(), creado: e.created || "", cal: c.summary || "" });
+        a: ini.getTime(), b: fin.getTime(), creado: e.created || "", cal: c.summary || "", lugar: (e.location || "").trim().slice(0, 200) });
     });
   }));
   // Si dos eventos del mismo tipo se pisan (por ejemplo, un horario viejo del BNA en otro calendario),

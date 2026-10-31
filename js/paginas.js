@@ -22,7 +22,7 @@ import { bloqueSatelite } from "./sateliteui.js";
 import { datosEconomia, linkEconomia, idEconomia } from "./economia.js";
 import { ultimaEdicion, htmlEdicion, edicionAbierta, datosArchivo } from "./semanal.js";
 import { GUINOS, GUINOS_FECHA, guinosPrendidos, resumenGuinos, NIVELES, nivelGuinos } from "./guinos.js";
-import { cuentaHuevos, HUEVOS_PRUEBA } from "./huevos.js";
+import { cuentaHuevos, huevosPrueba } from "./huevos.js";
 import { bloqueSuscripciones } from "./suscripciones.js";
 import { heroHoy, avisoRacha, graficoDias, tarjetaAgus, heroMes, analisisGastos, bloqueMesReal, bloqueGastosHoy, bloqueGastosMes, bloqueSaldo, recordarSaldo } from "./finanzasui.js";
 import { renderMes } from "./agendames.js";
@@ -458,8 +458,14 @@ export function renderPedirDiario() {
 }
 
 // ---------- Secciones ----------
+const ICONO_PIN = '<svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true" fill="currentColor"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>';
 export function renderAgenda(datos, ctx, tema) {
-  const fila = (b) => `<li><span><i class="dot" style="background:${colorTipo(datos, b.tipo, tema)};margin-right:10px"></i>${esc(b.titulo)}${b.fijo ? ' <span class="tag">horario fijo</span>' : ""}</span><span class="der">${b.inicio}–${hhmm(b.fin)}</span></li>`;
+  // Si el evento tiene ubicación en Google Calendar, tocarlo abre Google Maps con «Cómo llegar» (en transporte público).
+  const mapa = (l) => "https://www.google.com/maps/dir/?" + new URLSearchParams({ api: "1", destination: l, travelmode: "transit" });
+  const fila = (b) => {
+    const dentro = `<span class="ag-tit"><i class="dot" style="background:${colorTipo(datos, b.tipo, tema)};margin-right:10px"></i><span>${esc(b.titulo)}${b.fijo ? ' <span class="tag">horario fijo</span>' : ""}${b.lugar ? `<small class="ag-lugar">${ICONO_PIN} ${esc(b.lugar)}</small>` : ""}</span></span><span class="der">${b.inicio}–${hhmm(b.fin)}</span>`;
+    return b.lugar ? `<li class="ag-ir"><a href="${esc(mapa(b.lugar))}" target="_blank" rel="noopener" aria-label="${esc(b.titulo)}: cómo llegar a ${esc(b.lugar)} en Google Maps">${dentro}</a></li>` : `<li>${dentro}</li>`;
+  };
   const ag = datos.agenda;
   const extra = (iso) => {
     if (!ag) return "";
@@ -527,32 +533,56 @@ function estadoPartes(est) {
   return filas.length ? `<ul class="lista">${filas.join("")}</ul>` : '<p class="vacio">Todavía no se actualizó nada en este dispositivo.</p>';
 }
 
-// Ajustes › Diseño: todo lo que cambia cómo se ve Inicio, junto y arriba de todo.
-const VER_INICIO = [["bnahoy", "BNA · lo que falta tachar", "solo en tu horario del banco"], ["chk", "Checklists"], ["clima", "Clima"], ["river", "River"], ["plata", "Diario de plata"], ["preguntas", "Preguntas de plata"], ["semanal", "El Semanal"], ["transporte", "Transporte", "solo aparece si hay problemas"]];
+// Ajustes › Diseño: el tema, la entrada a Ajustes › Inicio y los guiños.
+// Inicio: qué tarjetas se ven (Urgente siempre está). Las de Avisos se prenden y apagan aparte.
+const VER_INICIO = [["clima", "Clima", "temperatura y pronóstico, abre la página Clima"], ["river", "River", "el próximo partido con cuenta regresiva"], ["plata", "Diario de plata", "lo que te queda hoy"], ["semanal", "El Semanal", "la última edición; en compacto, una sola línea"]];
+// Recordatorios que te aparecen en Avisos (y en el número de la campanita).
+export const TIRAS = [["fichar", "Fichar en Teams", "media hora antes de entrar al BNA"], ["alarma", "Alarmas de la noche", "si Satélite no ve una alarma para mañana"], ["cumple", "Cumpleaños de mañana"], ["agus", "Fechas con Agus", "desde 3 días antes"], ["diario", "Te pasaste del diario"], ["racha", "Racha arriba del diario"], ["linea", "Línea E con problemas", "los días de BNA"], ["estudio", "Rato para estudiar", "cuando hay un hueco y una entrega cerca"], ["dolar", "Dólar", "solo si se movió más de 2 %"]];
 const DIBUJO_MODO = {
   normal: '<svg viewBox="0 0 64 56" aria-hidden="true"><rect x="8" y="6" width="30" height="3" rx="1.5"/><rect x="8" y="12" width="20" height="3" rx="1.5"/><circle cx="32" cy="32" r="11" fill="none" stroke-width="2.5"/><circle cx="14" cy="50" r="2.4"/><circle cx="23" cy="50" r="2.4"/><circle cx="32" cy="50" r="2.4"/><circle cx="41" cy="50" r="2.4"/><circle cx="50" cy="50" r="2.4"/></svg>',
   compacto: '<svg viewBox="0 0 64 56" aria-hidden="true"><circle cx="16" cy="14" r="7.5" fill="none" stroke-width="2.2"/><rect x="28" y="9" width="28" height="3" rx="1.5"/><rect x="28" y="15" width="18" height="3" rx="1.5"/><rect x="8" y="28" width="48" height="8" rx="3" opacity=".55"/><rect x="8" y="40" width="23" height="11" rx="3" opacity=".55"/><rect x="33" y="40" width="23" height="11" rx="3" opacity=".55"/></svg>'
 };
-function bloqueDiseno(tema, f, muestra, demo) {
-  const compacto = !!leer("inicioCompacto");
-  const ocultos = new Set(leer("inicioOcultos", []));
-  const modo = (k, n, d) => `<button class="muestra modo-ini ${compacto === k ? "on" : ""}" data-accion="inicio-compacto" data-v="${k ? 1 : 0}" aria-pressed="${compacto === k}">${DIBUJO_MODO[k ? "compacto" : "normal"]}<b>${n}</b><small>${d}</small></button>`;
+const interruptor = (accion, k, on, n, d) => `<li><button class="interruptor" role="switch" aria-checked="${on}" data-accion="${accion}" data-k="${k}"><span><b>${n}</b>${d ? `<small>${d}</small>` : ""}</span><i aria-hidden="true"></i></button></li>`;
+function bloqueDiseno(tema) {
+  const compacto = !!leer("inicioCompacto"), ocultos = new Set(leer("inicioOcultos", []));
+  const tarjetas = VER_INICIO.filter(([k]) => !ocultos.has(k)).length;
   return `<section class="bloque diseno" id="diseno"><h2>Diseño</h2>
-    <h3 class="sub-aj">Inicio</h3>
-    <div class="muestras">${modo(false, "Reloj grande", "el reloj al medio")}${modo(true, "Compacto", "más cosas sin bajar")}</div>
-    <ul class="interruptores"><li><button class="interruptor" role="switch" aria-checked="${!!leer("dockNombres")}" data-accion="dock-nombres"><span><b>Nombres en la barra de abajo</b><small>si no, solo los íconos (manteniendo apretado aparece el nombre)</small></span><i aria-hidden="true"></i></button></li></ul>
-    <h3 class="sub-aj">Qué se ve en Inicio</h3>
-    <ul class="interruptores">${VER_INICIO.map(([k, n, d]) => { const on = !ocultos.has(k); return `<li><button class="interruptor" role="switch" aria-checked="${on}" data-accion="inicio-ver" data-k="${k}"><span><b>${n}</b>${d ? `<small>${d}</small>` : ""}</span><i aria-hidden="true"></i></button></li>`; }).join("")}</ul>
-    <p class="fuente-dato">Urgente siempre se ve, para que nada se pase.</p>
+    <a class="fila-nav" href="#/ajustes/inicio"><span><b>Inicio</b><small>${compacto ? "Compacto" : "Reloj grande"} · ${tarjetas} ${tarjetas === 1 ? "tarjeta" : "tarjetas"} · recordatorios, tipografías y días con color</small></span><span class="ir" aria-hidden="true">›</span></a>
+    <a class="fila-nav" href="#/ajustes/guinos"><span><b>Guiños</b><small>${esc((NIVELES.find(([k]) => k === nivelGuinos()) || [])[1] || "")}${guinosPrendidos() ? " · " + cuentaHuevos().vistos + " de " + cuentaHuevos().total + " encontrados" : ""}</small></span><span class="ir" aria-hidden="true">›</span></a>
     <h3 class="sub-aj">Tema</h3>
     <div class="chips">${[["auto", "Automático"], ["claro", "Claro"], ["oscuro", "Oscuro"]].map(([k, n]) => `<button class="chip ${tema === k ? "on" : ""}" data-accion="tema-fijo" data-tema="${k}">${n}</button>`).join("")}</div>
-    <p class="fuente-dato">Automático: claro de día y oscuro desde la puesta del sol en Buenos Aires. El botón de Inicio lo cambia hasta la próxima salida o puesta.</p>
-    <h3 class="sub-aj">Guiños</h3>
-    <a class="fila-nav" href="#/ajustes/guinos"><span><b>Guiños</b><small>${esc((NIVELES.find(([k]) => k === nivelGuinos()) || [])[1] || "")}${guinosPrendidos() ? " · " + cuentaHuevos().vistos + " de " + cuentaHuevos().total + " encontrados" : ""}</small></span><span class="ir" aria-hidden="true">›</span></a>
-    <h3 class="sub-aj">Tipografía del reloj</h3>
-    <div class="muestras">${RELOJES.map((x) => muestra("reloj", x)).join("")}</div>
-    <h3 class="sub-aj">Tipografía del saludo</h3>
-    <div class="muestras">${SALUDOS_F.map((x) => muestra("saludo", x)).join("")}</div></section>`;
+    <p class="fuente-dato">Automático: claro de día y oscuro desde la puesta del sol en Buenos Aires. El botón de Inicio lo cambia hasta la próxima salida o puesta.</p></section>`;
+}
+
+// Ajustes › Inicio: todo lo de la pantalla de entrada, para ir tocando y probando.
+export function renderAjustesInicio(diasInfo) {
+  const compacto = !!leer("inicioCompacto"), ocultos = new Set(leer("inicioOcultos", [])), apagadas = new Set(leer("tirasApagadas", []));
+  const f = { reloj: "logo", saludo: "revista", ...leer("fuentes", {}) };
+  const muestra = (grupo, [k, n, d]) => `<button class="muestra ${f[grupo] === k ? "on" : ""}" data-accion="fuente" data-grupo="${grupo}" data-valor="${k}" aria-pressed="${f[grupo] === k}">
+      <b style="font-family:${FAMILIA[k]}">${grupo === "reloj" ? "10:24" : "Buen día"}</b><small>${n} · ${d}</small></button>`;
+  const modo = (k, n, d) => `<button class="muestra modo-ini ${compacto === k ? "on" : ""}" data-accion="inicio-compacto" data-v="${k ? 1 : 0}" aria-pressed="${compacto === k}">${DIBUJO_MODO[k ? "compacto" : "normal"]}<b>${n}</b><small>${d}</small></button>`;
+  const di = diasInfo || {};
+  return `<div class="pagina aj-inicio"><a class="volver" href="#/ajustes">${ICONOS.volver} Ajustes</a><h1>Inicio</h1>
+    <p class="bajada">Lo que ves al abrir Orbe. Tocá, probá y volvé a Inicio para ver cómo queda.</p>
+    <section class="bloque"><h2>Modo</h2>
+      <div class="muestras">${modo(false, "Reloj grande", "el reloj al medio, con scroll")}${modo(true, "Compacto", "todo en una pantalla, sin scroll")}</div>
+      <p class="fuente-dato">El modo es de cada dispositivo: podés tener compacto en el celu y reloj grande en la compu.</p></section>
+    <section class="bloque"><h2>Tarjetas</h2>
+      <ul class="interruptores">${VER_INICIO.map(([k, n, d]) => interruptor("inicio-ver", k, !ocultos.has(k), n, d)).join("")}</ul>
+      <p class="fuente-dato">Urgente siempre se ve, para que nada se pase.</p></section>
+    <section class="bloque"><h2>Recordatorios</h2>
+      <p class="fuente-dato" style="margin-top:0">Aparecen en Avisos y suman en la campanita. Apagalos los que no te sirvan.</p>
+      <ul class="interruptores">${TIRAS.map(([k, n, d]) => interruptor("tira-ver", k, !apagadas.has(k), n, d)).join("")}</ul></section>
+    <section class="bloque"><h2>Días con color</h2>
+      <ul class="interruptores">${interruptor("dias-color", "on", leer("diasColorOn", true) !== false, "Teñir Orbe en fechas especiales", "la patria, el fútbol, la Selección y lo que tengas en tu lista")}</ul>
+      <p class="fuente-dato">${di.doc ? `La lista vive en tu Drive: <a href="${esc(di.doc)}" target="_blank" rel="noopener">${esc(di.nombre || "Orbe · referencias")}</a>${di.cuantos ? ` · ${di.cuantos} fechas` : ""}. Editala cuando quieras; Orbe la vuelve a leer cada 12 horas.` : "La lista vive en tu Drive, en «Orbe · referencias». Orbe todavía no la leyó en este dispositivo."}</p>
+      ${di.proximo ? `<p class="fuente-dato">Próximo: <b>${esc(di.proximo)}</b></p>` : ""}
+      <div class="chips" style="margin-top:8px"><button class="chip" data-accion="dias-releer">Leer la lista de nuevo</button></div>
+      <details class="plegable"><summary>Probar uno</summary><div class="chips" style="margin-top:8px">${(di.prueba || []).map(([k, n]) => `<button class="chip ${sesionLeer("demoDia") === k ? "on" : ""}" data-accion="demo-dia" data-k="${esc(k)}">${esc(n)}</button>`).join("")}<button class="chip ${!sesionLeer("demoDia") ? "on" : ""}" data-accion="demo-dia" data-k="">Hoy real</button></div></details></section>
+    <section class="bloque"><h2>Barra de abajo</h2>
+      <ul class="interruptores">${interruptor("dock-nombres", "x", !!leer("dockNombres"), "Nombres debajo de los íconos", "si no, solo los íconos (manteniendo apretado aparece el nombre)")}</ul></section>
+    <section class="bloque"><h2>Tipografía del reloj</h2><div class="muestras">${RELOJES.map((x) => muestra("reloj", x)).join("")}</div>
+      <h2 style="margin-top:18px">Tipografía del saludo</h2><div class="muestras">${SALUDOS_F.map((x) => muestra("saludo", x)).join("")}</div></section></div>`;
 }
 
 // Ajustes › Guiños: el nivel, cuántos huevitos hay escondidos y, plegado abajo, para probar.
@@ -562,12 +592,12 @@ export function renderAjustesGuinos() {
     <p class="bajada">Cosas que te gustan, escondidas en Orbe. Elegís cuántas.</p>
     <div class="niveles-g">${NIVELES.map(([k, n, d]) => `<button class="nivel-g ${nivel === k ? "on" : ""}" data-accion="guinos-nivel" data-n="${k}" aria-pressed="${nivel === k}"><b>${n}</b><small>${d}</small></button>`).join("")}</div>
     ${nivel !== "ninguno" ? `<section class="bloque hv-cuenta"><span class="k">Huevitos</span><b>Hay ${total} escondidos. Encontraste ${vistos}.</b>
-      <span class="fuente-dato" style="margin:0">Aparecen en su momento (una hora, una fecha, un día de River) y nunca más de dos a la vez. Algunos se buscan: palabras en el buscador, toques escondidos. Si tocás uno, te dice qué es.</span>
+      <span class="fuente-dato" style="margin:0">Son iconitos adentro del reloj que aparecen en su momento (una hora, un día de River), de a uno. Otros se buscan: palabras en el buscador. Si tocás uno, te dice qué es. Qué aparece y cuándo lo decidís vos en «Orbe · referencias», en tu Drive.</span>
       <span class="hv-barra" aria-hidden="true"><i style="width:${total ? Math.round(vistos / total * 100) : 0}%"></i></span></section>` : ""}
     ${nivel === "todos" ? `<p class="fuente-dato">${resumenGuinos(new Date())} Tocando tres veces el saludo sale uno al toque.</p>` : ""}
     <details class="bloque plegable"><summary>Probar</summary>
       <p class="fuente-dato" style="margin:6px 0 8px">Un huevito ahora (se apaga al cerrar Orbe):</p>
-      <div class="chips"><button class="chip ${!sesionLeer("demoHuevo") ? "on" : ""}" data-accion="demo-huevo" data-h="">Real</button>${HUEVOS_PRUEBA.map(([k, n]) => `<button class="chip ${sesionLeer("demoHuevo") === k ? "on" : ""}" data-accion="demo-huevo" data-h="${k}">${esc(n)}</button>`).join("")}</div>
+      <div class="chips"><button class="chip ${!sesionLeer("demoHuevo") ? "on" : ""}" data-accion="demo-huevo" data-h="">Real</button>${huevosPrueba().map(([k, n]) => `<button class="chip ${sesionLeer("demoHuevo") === k ? "on" : ""}" data-accion="demo-huevo" data-h="${k}">${esc(n)}</button>`).join("")}</div>
       <p class="fuente-dato" style="margin:14px 0 8px">Un guiño grande (los de «Todos»):</p>
       <div class="chips"><button class="chip ${!sesionLeer("demoGuino") ? "on" : ""}" data-accion="demo-guino" data-g="">Real</button>${GUINOS.map(([k, n]) => `<button class="chip ${sesionLeer("demoGuino") === k ? "on" : ""}" data-accion="demo-guino" data-g="${k}">${n}</button>`).join("")}</div>
       <div class="chips" style="margin-top:8px">${GUINOS_FECHA.map(([k, n]) => `<button class="chip ${sesionLeer("demoGuino") === "f:" + k ? "on" : ""}" data-accion="demo-guino" data-g="f:${k}">${n}</button>`).join("")}</div>
@@ -591,7 +621,7 @@ export function renderAjustes(estadoTema, demo, hayPin, google) {
       <b style="font-family:${FAMILIA[k]}">${grupo === "reloj" ? "10:24" : "Buen día"}</b><small>${n} · ${d}</small></button>`;
   return `<div class="pagina">${volver}<h1>Ajustes</h1><p class="bajada">${MARCA} versión ${VERSION}.</p>
     ${google.aviso ? `<section class="bloque" role="alert" style="background:var(--urg-bg)"><p>${esc(google.aviso)}</p></section>` : ""}
-    ${bloqueDiseno(tema, f, muestra, demo)}
+    ${bloqueDiseno(tema)}
     <section class="bloque"><h2>Cuenta de Google</h2>${tarjeta}
       <p class="vacio" style="margin-top:12px;font-size:12px">La sesión dura 30 días y se renueva sola cada vez que usás Orbe. Orbe nunca ve tu contraseña.</p></section>
 

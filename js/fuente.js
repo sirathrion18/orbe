@@ -59,7 +59,8 @@ export async function cargarClima(ciudad) {
 // Códigos WMO de Open-Meteo a estado e ícono.
 export function describirClima(codigo) {
   if (codigo === 0) return { estado: "Despejado", icono: "sol" };
-  if (codigo <= 2) return { estado: "Parcialmente nublado", icono: "parcial" };
+  if (codigo <= 2) return { estado: codigo === 1 ? "Mayormente despejado" : "Algo nublado", icono: "parcial" }; // mismas palabras que la página Clima
+  if (codigo >= 51 && codigo <= 57) return { estado: "Llovizna", icono: "lluvia" };
   if (codigo === 3) return { estado: "Nublado", icono: "nube" };
   if (codigo === 45 || codigo === 48) return { estado: "Niebla", icono: "nube" };
   if (codigo >= 51 && codigo <= 67) return { estado: "Lluvia", icono: "lluvia" };

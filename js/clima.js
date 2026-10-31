@@ -55,25 +55,40 @@ export function estado(codigo, dia = true) {
   else if (c <= 2) e = { t: c === 1 ? "Mayormente despejado" : "Algo nublado", k: "parcial", esc: "sol" };
   else if (c === 3) e = { t: "Nublado", k: "nube", esc: "nubes" };
   else if (c === 45 || c === 48) e = { t: "Niebla", k: "niebla", esc: "niebla" };
-  else if (c >= 51 && c <= 57) e = { t: "Llovizna", k: "lluvia", esc: "lluvia" };
-  else if (c >= 61 && c <= 67) e = { t: c >= 65 ? "Lluvia fuerte" : "Lluvia", k: "lluvia", esc: "lluvia" };
-  else if (c >= 71 && c <= 77) e = { t: "Nieve", k: "nube", esc: "nubes" };
-  else if (c >= 80 && c <= 82) e = { t: "Chaparrones", k: "lluvia", esc: "lluvia" };
-  else if (c >= 95) e = { t: "Tormenta", k: "tormenta", esc: "tormenta" };
+  else if (c >= 51 && c <= 57) e = { t: "Llovizna", k: "llovizna", esc: "llovizna" };
+  else if (c === 65 || c === 82) e = { t: c === 82 ? "Chaparrones fuertes" : "Lluvia fuerte", k: "fuerte", esc: "fuerte" };
+  else if (c >= 61 && c <= 67) e = { t: c === 66 || c === 67 ? "Lluvia helada" : "Lluvia", k: "lluvia", esc: "lluvia" };
+  else if ((c >= 71 && c <= 77) || c === 85 || c === 86) e = { t: "Nieve", k: "nieve", esc: "nieve" };
+  else if (c >= 80 && c <= 81) e = { t: "Chaparrones", k: "lluvia", esc: "lluvia" };
+  else if (c >= 95) e = { t: c >= 96 ? "Tormenta con granizo" : "Tormenta", k: "tormenta", esc: "tormenta" };
   if (!dia) { if (e.k === "sol" || e.k === "parcial") e = { ...e, k: e.k === "sol" ? "luna" : "lunanube" }; if (e.esc === "sol") e = { ...e, esc: "noche" }; }
   return e;
 }
+// Variaciones de la tarjeta grande que no salen del código del cielo: viento fuerte y calor.
+function variacion(e, c) {
+  if (c.wind_speed_10m >= 40 && ["sol", "parcial", "nube", "luna", "lunanube"].includes(e.k)) return { ...e, t: e.t + " y ventoso", k: "viento", esc: "viento" };
+  if (c.temperature_2m >= 32 && e.k === "sol") return { ...e, t: "Despejado y caluroso", k: "calor", esc: "calor" };
+  return e;
+}
+const RAYOS = (cx, cy, r1, r2, n = 8) => Array.from({ length: n }, (_, i) => { const a = i * 2 * Math.PI / n, c = Math.cos(a), s = Math.sin(a), f = (v) => Math.round(v * 10) / 10;
+  return `M${f(cx + c * r1)} ${f(cy + s * r1)}L${f(cx + c * r2)} ${f(cy + s * r2)}`; }).join("");
+const NUBE = (y = 0) => `M13 ${35 + y}h22a8 8 0 0 0 0-16 10 10 0 0 0-19 2 7 7 0 0 0-3 14z`;
 const SVG = {
-  sol: '<circle cx="24" cy="24" r="8" fill="none" stroke="#F08A3C" stroke-width="2.4"/><g stroke="#F08A3C" stroke-width="2.4" stroke-linecap="round"><path d="M24 6v5M24 37v5M6 24h5M37 24h5M11.3 11.3l3.5 3.5M33.2 33.2l3.5 3.5M11.3 36.7l3.5-3.5M33.2 14.8l3.5-3.5"/></g>',
-  luna: '<path d="M30 10a14 14 0 1 0 8 22 11 11 0 1 1-8-22z" fill="none" stroke="currentColor" stroke-width="2.2" opacity=".8"/>',
-  parcial: '<circle cx="18" cy="17" r="6.5" fill="none" stroke="#F08A3C" stroke-width="2.2"/><path d="M15 36h20a7 7 0 0 0 0-14 9 9 0 0 0-17 2 6 6 0 0 0-3 12z" style="fill:var(--tile)" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>',
-  lunanube: '<path d="M21 8a9 9 0 1 0 6 15 7 7 0 1 1-6-15z" fill="none" stroke="currentColor" stroke-width="2" opacity=".7"/><path d="M15 38h20a7 7 0 0 0 0-14 9 9 0 0 0-17 2 6 6 0 0 0-3 12z" style="fill:var(--tile)" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>',
-  nube: '<path d="M13 35h22a8 8 0 0 0 0-16 10 10 0 0 0-19 2 7 7 0 0 0-3 14z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>',
-  lluvia: '<path d="M13 28h22a8 8 0 0 0 0-16 10 10 0 0 0-19 2 7 7 0 0 0-3 14z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><g class="cl-azul" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M17 33l-2 5M25 33l-2 5M33 33l-2 5"/></g>',
-  tormenta: '<path d="M13 27h22a8 8 0 0 0 0-16 10 10 0 0 0-19 2 7 7 0 0 0-3 14z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M26 29l-5 8h6l-4 7" fill="none" stroke="#C8102E" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>',
-  niebla: '<g stroke="currentColor" stroke-width="2.2" stroke-linecap="round" opacity=".7"><path d="M9 18h30M13 25h28M8 32h28M14 39h22"/></g>',
+  sol: `<g class="ci-rayos" style="transform-origin:24px 24px" stroke="#F08A3C" stroke-width="2.4" stroke-linecap="round"><path d="${RAYOS(24, 24, 12.5, 17.5)}"/></g><circle cx="24" cy="24" r="8" fill="none" stroke="#F08A3C" stroke-width="2.4"/>`,
+  luna: '<g class="ci-luna" style="transform-origin:24px 24px"><path d="M30 10a14 14 0 1 0 8 22 11 11 0 1 1-8-22z" fill="none" stroke="currentColor" stroke-width="2.2" opacity=".8"/></g><g fill="currentColor"><circle class="ci-titila" cx="38" cy="12" r="1.1"/><circle class="ci-titila d2" cx="42" cy="22" r=".8"/></g>',
+  parcial: `<g class="ci-rayos" style="transform-origin:18px 17px" stroke="#F08A3C" stroke-width="2" stroke-linecap="round"><path d="${RAYOS(18, 17, 9.5, 12.5)}"/></g><circle cx="18" cy="17" r="6.5" fill="none" stroke="#F08A3C" stroke-width="2.2"/><g class="ci-nube"><path d="M15 36h20a7 7 0 0 0 0-14 9 9 0 0 0-17 2 6 6 0 0 0-3 12z" style="fill:var(--tile)" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/></g>`,
+  lunanube: '<g class="ci-luna" style="transform-origin:18px 16px"><path d="M21 8a9 9 0 1 0 6 15 7 7 0 1 1-6-15z" fill="none" stroke="currentColor" stroke-width="2" opacity=".7"/></g><g class="ci-nube"><path d="M15 38h20a7 7 0 0 0 0-14 9 9 0 0 0-17 2 6 6 0 0 0-3 12z" style="fill:var(--tile)" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/></g>',
+  nube: `<g class="ci-nube d2" opacity=".35"><path d="M24 22h14a5.5 5.5 0 0 0 0-11 7 7 0 0 0-13 1.5 5 5 0 0 0-1 9.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></g><g class="ci-nube"><path d="${NUBE()}" style="fill:var(--tile)" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/></g>`,
+  lluvia: `<g class="cl-azul" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path class="ci-gota" d="M17 33l-1.6 4"/><path class="ci-gota d2" d="M25 33l-1.6 4"/><path class="ci-gota d3" d="M33 33l-1.6 4"/></g><g class="ci-nube"><path d="${NUBE(-7)}" style="fill:var(--tile)" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/></g>`,
+  tormenta: `<g class="cl-azul" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path class="ci-gota" d="M16 32l-1.4 3.6"/><path class="ci-gota d3" d="M34 32l-1.4 3.6"/></g><path class="ci-rayo" d="M26 29l-5 8h6l-4 7" fill="none" stroke="#C8102E" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/><g class="ci-nube"><path d="${NUBE(-8)}" style="fill:var(--tile)" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/></g>`,
+  llovizna: `<g class="cl-azul" fill="currentColor"><circle class="ci-gota lenta" cx="16.5" cy="34" r="1.2"/><circle class="ci-gota lenta d2" cx="22.5" cy="37" r="1.2"/><circle class="ci-gota lenta d3" cx="28.5" cy="34" r="1.2"/><circle class="ci-gota lenta d4" cx="34" cy="37" r="1.2"/></g><g class="ci-nube"><path d="${NUBE(-7)}" style="fill:var(--tile)" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/></g>`,
+  fuerte: `<g class="cl-azul" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path class="ci-gota rapida" d="M15 32l-2.2 6"/><path class="ci-gota rapida d2" d="M21 32l-2.2 6"/><path class="ci-gota rapida d3" d="M27 32l-2.2 6"/><path class="ci-gota rapida d4" d="M33 32l-2.2 6"/><path class="ci-gota rapida d5" d="M24 38l-2.2 6"/></g><g class="ci-nube"><path d="${NUBE(-8)}" style="fill:var(--tile)" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/></g>`,
+  nieve: `<g class="cl-azul" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path class="ci-copo" d="M17 33.5v4M15 35.5h4"/><path class="ci-copo d2" d="M25 36.5v4M23 38.5h4"/><path class="ci-copo d3" d="M33 33.5v4M31 35.5h4"/></g><g class="ci-nube"><path d="${NUBE(-7)}" style="fill:var(--tile)" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/></g>`,
+  viento: '<g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path class="ci-viento" d="M7 18h24a5 5 0 1 0-5-5"/><path class="ci-viento d2" d="M5 26h33a5 5 0 1 1-5 5"/><path class="ci-viento d3" d="M10 34h14"/></g>',
+  calor: `<g class="ci-rayos calor" style="transform-origin:24px 24px" stroke="#E2541F" stroke-width="2.6" stroke-linecap="round"><path d="${RAYOS(24, 24, 12.5, 19, 12)}"/></g><circle cx="24" cy="24" r="8.5" fill="#F08A3C" fill-opacity=".25" stroke="#E2541F" stroke-width="2.4"/>`,
+  niebla: '<g stroke="currentColor" stroke-width="2.2" stroke-linecap="round" opacity=".7"><path class="ci-nube" d="M9 18h30"/><path class="ci-nube d2" d="M13 25h28"/><path class="ci-nube" d="M8 32h28"/><path class="ci-nube d2" d="M14 39h22"/></g>',
 };
-export const icono = (k) => `<svg viewBox="0 0 48 48" aria-hidden="true">${SVG[k] || SVG.parcial}</svg>`;
+export const icono = (k, vivo) => `<svg viewBox="0 0 48 48" aria-hidden="true"${vivo ? ' class="ci-vivo"' : ""}>${SVG[k] || SVG.parcial}</svg>`;
 const rumbo = (g) => ["N", "NE", "E", "SE", "S", "SO", "O", "NO"][Math.round(((g % 360) + 360) % 360 / 45) % 8];
 const uvTxt = (u) => u < 3 ? "Bajo" : u < 6 ? "Moderado" : u < 8 ? "Alto" : u < 11 ? "Muy alto" : "Extremo";
 const hh = (iso) => iso.slice(11, 16);
@@ -136,9 +151,14 @@ function curva(horas, ahoraIdx = 0) {
 // Animación del cielo según el clima (sutil, se apaga con «reducir movimiento»).
 function cielo(esc) {
   const r = (n, f) => Array.from({ length: n }, (_, i) => f(i)).join("");
-  if (esc === "lluvia" || esc === "tormenta") return `<div class="cl-cielo ${esc}">${r(22, (i) => `<i style="left:${(i * 37) % 100}%;animation-delay:${((i * 0.29) % 1.2).toFixed(2)}s;animation-duration:${(0.8 + (i % 5) * 0.12).toFixed(2)}s"></i>`)}${esc === "tormenta" ? '<b class="rayo"></b>' : ""}</div>`;
+  // Gotas: cuántas y qué tan rápido según el tipo de lluvia (todo lento, salvo la lluvia fuerte).
+  const LL = { llovizna: [14, 2.8], lluvia: [22, 1.7], tormenta: [24, 1.5], fuerte: [34, 1.0] };
+  if (LL[esc]) { const [n, v] = LL[esc]; return `<div class="cl-cielo lluvia ${esc}">${r(n, (i) => `<i style="left:${(i * 37) % 100}%;animation-delay:${(-(i * 0.29) % v).toFixed(2)}s;animation-duration:${(v + (i % 5) * v * 0.12).toFixed(2)}s"></i>`)}${esc === "tormenta" ? '<b class="rayo"></b>' : ""}</div>`; }
+  if (esc === "nieve") return `<div class="cl-cielo nieve">${r(18, (i) => `<i style="left:${(i * 37 + 3) % 100}%;animation-delay:${(-(i * 0.71) % 7).toFixed(2)}s;animation-duration:${(6 + (i % 4)).toFixed(1)}s"></i>`)}</div>`;
+  if (esc === "viento") return `<div class="cl-cielo viento">${r(5, (i) => `<i style="top:${18 + i * 16}%;width:${70 + (i % 3) * 40}px;animation-delay:${(-i * 1.7).toFixed(1)}s;animation-duration:${(7 + (i % 3) * 1.5).toFixed(1)}s"></i>`)}</div>`;
   if (esc === "noche") return `<div class="cl-cielo noche">${r(14, (i) => `<i style="left:${(i * 41 + 7) % 96}%;top:${(i * 17 + 4) % 34}%;animation-delay:${(i * 0.37 % 3).toFixed(2)}s"></i>`)}</div>`;
   if (esc === "sol") return '<div class="cl-cielo sol"><b></b></div>';
+  if (esc === "calor") return '<div class="cl-cielo sol calor"><b></b></div>';
   if (esc === "niebla") return '<div class="cl-cielo niebla"><b></b><b></b></div>';
   return '<div class="cl-cielo nubes"><b></b><b></b></div>';
 }
@@ -148,17 +168,16 @@ export function renderClima(datos) {
   const cab = `${volver}<h1 class="cl-tit">Clima</h1><button class="cl-lugar" data-cl="lugar" aria-label="Cambiar el lugar">📍 <span>${esc(l.nombre)}</span><small>cambiar</small></button>`;
   const elegir = leer("lugarClima") ? "" : `<section class="bloque cl-elegir"><b>¿Desde dónde mirás el clima?</b><p class="vacio">Ahora uso CABA en general. Elegí tu barrio para que sea preciso.</p><div class="chips"><button class="chip on" data-cl="lugar">Elegir lugar</button><button class="chip" data-cl="gps">Usar mi ubicación</button></div></section>`;
   if (!p || p.lat !== l.lat || p.lon !== l.lon) return `<div class="pagina clima-pag">${cab}${elegir}<section class="bloque"><p class="vacio">Trayendo el pronóstico…</p></section></div>`;
-  const ahora = new Date(), c = p.current, d = p.daily, e = estado(c.weather_code, !!c.is_day);
+  const ahora = new Date(), c = p.current, d = p.daily, e = variacion(estado(c.weather_code, !!c.is_day), c);
   const proximas = horasDesde(p, ahora, 25);
   const maxPP = Math.max(0, ...proximas.slice(0, 12).map((x) => x.pp));
   const cuandoLlueve = maxPP >= 30 ? proximas.find((x) => x.pp === maxPP) : null;
-  const linea = cuandoLlueve ? `${estado(cuandoLlueve.cod, cuandoLlueve.dia).k === "tormenta" ? "Puede haber tormenta" : "Puede llover"} ${franja(Number(cuandoLlueve.t.slice(11, 13)))} (${maxPP} %)` : maxPP ? `Poca chance de lluvia en las próximas horas` : `Sin lluvia en las próximas horas`;
+  const linea = cuandoLlueve ? `${({ tormenta: "Puede haber tormenta", nieve: "Puede nevar" })[estado(cuandoLlueve.cod, cuandoLlueve.dia).k] || "Puede llover"} ${franja(Number(cuandoLlueve.t.slice(11, 13)))} (${maxPP} %)` : maxPP ? `Poca chance de lluvia en las próximas horas` : `Sin lluvia en las próximas horas`;
   const alertas = (al?.alertas || []).map((a) => `<div class="cl-alerta n-${esc(a.nivel || "amarilla")}"><b>Alerta ${esc(a.nivel || "")} por ${esc((a.evento || "").toLowerCase())}</b><span>${esc(a.cuando || "")}</span>${a.texto ? `<details><summary>Qué dice el SMN</summary><p>${esc(a.texto)}</p></details>` : ""}</div>`).join("");
   const pg = paraguas(p, datos, ahora);
-  const hero = `<section class="cl-hero esc-${e.esc}">${cielo(e.esc)}<span class="t">${Math.round(c.temperature_2m)}°</span>${icono(e.k)}<span class="est">${e.t}</span>
-    <span class="s">Sensación ${Math.round(c.apparent_temperature)}° · ↑${Math.round(d.temperature_2m_max[0])}° ↓${Math.round(d.temperature_2m_min[0])}°</span><span class="s">${linea}</span></section>
-    <div class="cl-datos"><div><b>${Math.round(c.relative_humidity_2m)} %</b><small>Humedad</small></div><div><b>${Math.round(c.wind_speed_10m)} km/h</b><small>Viento ${rumbo(c.wind_direction_10m)}</small></div><div><b>UV ${Math.round(d.uv_index_max[0])}</b><small>${uvTxt(d.uv_index_max[0])}</small></div><div><b>${ahora.getHours() < 12 && hh(d.sunrise[0]) > `${String(ahora.getHours()).padStart(2, "0")}:00` ? hh(d.sunrise[0]) : hh(d.sunset[0])}</b><small>${ahora.getHours() < 12 && hh(d.sunrise[0]) > `${String(ahora.getHours()).padStart(2, "0")}:00` ? "Amanecer" : "Atardecer"}</small></div></div>
-    <div class="cl-paraguas${pg.si ? " si" : ""}"><span aria-hidden="true">${pg.si ? "☂️" : "🌂"}</span><p>${esc(pg.txt)}</p></div>`;
+  const hero = `<section class="cl-hero esc-${e.esc}">${cielo(e.esc)}<span class="t">${Math.round(c.temperature_2m)}°</span>${icono(e.k, true)}<span class="est">${e.t}</span>
+    <span class="s">Sensación ${Math.round(c.apparent_temperature)}° · ↑${Math.round(d.temperature_2m_max[0])}° ↓${Math.round(d.temperature_2m_min[0])}°</span><span class="s">${linea}</span><span class="cl-paraguas${pg.si ? " si" : ""}"><span aria-hidden="true">${pg.si ? "☂️" : "🌂"}</span>${esc(pg.txt)}</span></section>
+    <div class="cl-datos"><div><b>${Math.round(c.relative_humidity_2m)} %</b><small>Humedad</small></div><div><b>${Math.round(c.wind_speed_10m)} km/h</b><small>Viento ${rumbo(c.wind_direction_10m)}</small></div><div><b>UV ${Math.round(d.uv_index_max[0])}</b><small>${uvTxt(d.uv_index_max[0])}</small></div><div><b>${ahora.getHours() < 12 && hh(d.sunrise[0]) > `${String(ahora.getHours()).padStart(2, "0")}:00` ? hh(d.sunrise[0]) : hh(d.sunset[0])}</b><small>${ahora.getHours() < 12 && hh(d.sunrise[0]) > `${String(ahora.getHours()).padStart(2, "0")}:00` ? "Amanecer" : "Atardecer"}</small></div></div>`;
   const gmn = Math.min(...d.temperature_2m_min.slice(0, 7)), gmx = Math.max(...d.temperature_2m_max.slice(0, 7));
   const semana = `<ul class="cl-sem">${d.time.slice(0, 7).map((iso, i) => {
     const f = new Date(iso + "T12:00"), a = Math.round(d.temperature_2m_min[i]), b = Math.round(d.temperature_2m_max[i]), pp = d.precipitation_probability_max?.[i] ?? 0;
@@ -167,7 +186,7 @@ export function renderClima(datos) {
       ${ab ? `<div class="cl-det"><p>${DIAS_L[f.getDay()][0].toUpperCase() + DIAS_L[f.getDay()].slice(1)} ${f.getDate()}: ${estado(d.weather_code[i]).t.toLowerCase()}${d.precipitation_sum?.[i] ? `, ${String(Math.round(d.precipitation_sum[i] * 10) / 10).replace(".", ",")} mm de lluvia` : ""}. Viento hasta ${Math.round(d.wind_speed_10m_max[i])} km/h · UV ${Math.round(d.uv_index_max[i])} · sol ${hh(d.sunrise[i])}–${hh(d.sunset[i])}.</p>${curva(horasDelDia(p, iso), i === 0 ? ahora.getHours() : -1)}</div>` : ""}</li>`;
   }).join("")}</ul>`;
   const radar = `<h3 class="cl-h2">Radar · últimas 2 horas</h3><div class="cl-radar" id="cl-radar" data-lat="${l.lat}" data-lon="${l.lon}"><p class="vacio">Cargando el radar…</p></div>`;
-  const fuente = `<p class="fuente-dato">Pronóstico: Open-Meteo, actualizado ${new Date(p.cuando).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })} · <button class="link" data-cl="refrescar">Actualizar</button><br>Radar: RainViewer con los radares del SMN · Mapa © OpenStreetMap, © CARTO${al?.ok === false ? "<br>Las alertas del SMN no respondieron; se reintenta solo." : ""}</p>`;
+  const fuente = `<p class="fuente-dato">Pronóstico: Open-Meteo, actualizado ${new Date(p.cuando).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })} · <button class="link" data-cl="refrescar">Actualizar</button><br>Radar: RainViewer con los radares del SMN · Mapa © OpenStreetMap${al?.ok === false ? "<br>Las alertas del SMN no respondieron; se reintenta solo." : ""}</p>`;
   return `<div class="pagina clima-pag">${cab}${elegir}${alertas}${hero}<h3 class="cl-h2">Por horas</h3>${curva(proximas, 0)}<h3 class="cl-h2">La semana <small>tocá un día</small></h3>${semana}${radar}${fuente}</div>`;
 }
 
@@ -194,9 +213,10 @@ export async function montarRadar() {
   const ox = cx - W / 2, oy = cy - H / 2;
   const oscuro = document.documentElement.dataset.theme === "oscuro";
   const base = [], capas = [];
-  const t8 = 256; // cada tile de zoom 8 mide 256 px a esta escala
-  for (let x = Math.floor(ox / t8); x <= Math.floor((ox + W) / t8); x++) for (let y = Math.floor(oy / t8); y <= Math.floor((oy + H) / t8); y++)
-    base.push(`<img src="https://${"abcd"[(x + y) % 4]}.basemaps.cartocdn.com/${oscuro ? "dark_all" : "light_all"}/8/${x}/${y}@2x.png" style="left:${x * t8 - ox}px;top:${y * t8 - oy}px;width:${t8}px;height:${t8}px" alt="">`);
+  // Mapa base de OpenStreetMap en zoom 9 (128 px cada uno a esta escala, nítido en el celu). En modo oscuro se invierte.
+  const t9 = 128;
+  for (let x = Math.floor(ox / t9); x <= Math.floor((ox + W) / t9); x++) for (let y = Math.floor(oy / t9); y <= Math.floor((oy + H) / t9); y++)
+    base.push(`<img src="https://tile.openstreetmap.org/9/${x}/${y}.png" referrerpolicy="strict-origin-when-cross-origin" style="left:${x * t9 - ox}px;top:${y * t9 - oy}px;width:${t9}px;height:${t9}px" alt="">`);
   const tR = 256 * ESC;
   cuadros.forEach((c, k) => {
     const imgs = [];
@@ -204,7 +224,7 @@ export async function montarRadar() {
       imgs.push(`<img src="${m.host}${c.path}/256/${Z}/${x}/${y}/2/1_1.png" style="left:${x * tR - ox}px;top:${y * tR - oy}px;width:${tR}px;height:${tR}px" alt="">`);
     capas.push(`<div class="cl-capa" data-k="${k}"${k === cuadros.length - 1 ? ' style="opacity:1"' : ""}>${imgs.join("")}</div>`);
   });
-  caja.innerHTML = `<div class="cl-mapa" style="height:${H}px">${base.join("")}${capas.join("")}<span class="cl-yo" style="left:${W / 2}px;top:${H / 2}px"></span><span class="cl-hora"></span></div>`;
+  caja.innerHTML = `<div class="cl-mapa${oscuro ? " osc" : ""}" style="height:${H}px"><div class="cl-base">${base.join("")}</div>${capas.join("")}<span class="cl-yo" style="left:${W / 2}px;top:${H / 2}px"></span><span class="cl-hora"></span></div>`;
   const hora = caja.querySelector(".cl-hora"), cs = [...caja.querySelectorAll(".cl-capa")];
   let i = cs.length - 1, pausa = 0;
   const mostrar = () => {

@@ -1864,9 +1864,10 @@ body.mu-abierto { overflow: hidden; }
 .cl-datos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
 .cl-datos div { background: var(--tile); border-radius: 14px; padding: 10px 6px; text-align: center; }
 .cl-datos b { display: block; font-size: 15px; } .cl-datos small { font-size: 11px; color: var(--muted); }
-.cl-paraguas { display: flex; gap: 12px; align-items: center; margin-top: 10px; padding: 12px 14px; border-radius: 16px; border: 1px solid var(--line); }
-.cl-paraguas span { font-size: 24px; } .cl-paraguas p { margin: 0; font-size: 14.5px; line-height: 1.35; }
-.cl-paraguas.si { border-color: transparent; background: var(--urg-bg); }
+/* ¿Llevo paraguas?: una línea chiquita adentro de la tarjeta grande (v0.50) */
+.cl-hero .cl-paraguas { grid-column: 1 / -1; display: inline-flex; align-items: center; gap: 6px; justify-self: start; margin-top: 4px; padding: 4px 10px 4px 8px; border-radius: 999px; font-size: 12.5px; color: var(--muted); background: color-mix(in srgb, var(--text) 6%, transparent); }
+.cl-hero .cl-paraguas span { font-size: 14px; line-height: 1; }
+.cl-hero .cl-paraguas.si { color: var(--text); font-weight: 600; background: var(--urg-bg); }
 .cl-h2 { margin: 24px 0 8px; font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
 .cl-h2 small { text-transform: none; letter-spacing: 0; font-weight: 500; margin-left: 6px; }
 .cl-azul { color: #3B82C4; } :root[data-theme="oscuro"] .cl-azul { color: #6CB0EE; }
@@ -1898,6 +1899,8 @@ body.mu-abierto { overflow: hidden; }
 .cl-mapa img { position: absolute; max-width: none; user-select: none; pointer-events: none; }
 .cl-capa { position: absolute; inset: 0; opacity: 0; transition: opacity .25s; }
 .cl-capa img { opacity: .75; image-rendering: auto; }
+.cl-base { position: absolute; inset: 0; } .cl-base img { filter: saturate(.35) contrast(.92); }
+.cl-mapa.osc .cl-base img { filter: invert(1) hue-rotate(180deg) saturate(.25) brightness(.8) contrast(.9); }
 .cl-yo { position: absolute; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px #fff, 0 0 0 9px rgba(200,16,46,.2); z-index: 3; }
 .cl-hora { position: absolute; left: 10px; bottom: 10px; z-index: 3; font-size: 12px; font-weight: 700; padding: 4px 9px; border-radius: 999px; background: var(--bg); color: var(--text); box-shadow: 0 2px 8px rgba(0,0,0,.15); }
 .cl-hoja { position: fixed; inset: 0; z-index: 80; background: rgba(0,0,0,.35); display: flex; align-items: flex-end; justify-content: center; }
@@ -1909,11 +1912,11 @@ body.mu-abierto { overflow: hidden; }
 .link { border: 0; background: none; padding: 0; color: inherit; text-decoration: underline; font: inherit; }
 /* El cielo animado del recuadro de arriba */
 .cl-cielo { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
-.cl-cielo.sol b { position: absolute; right: -40px; top: -40px; width: 200px; height: 200px; border-radius: 50%; background: radial-gradient(circle, rgba(240,138,60,.28), rgba(240,138,60,0) 65%); animation: cl-late 6s ease-in-out infinite; }
+.cl-cielo.sol b { position: absolute; right: -40px; top: -40px; width: 200px; height: 200px; border-radius: 50%; background: radial-gradient(circle, rgba(240,138,60,.18), rgba(240,138,60,0) 65%); animation: cl-late 9s ease-in-out infinite; }
 .cl-cielo.nubes b, .cl-cielo.niebla b { position: absolute; width: 220px; height: 70px; border-radius: 50%; background: currentColor; opacity: .07; filter: blur(10px); animation: cl-nube 26s linear infinite; }
 .cl-cielo.nubes b:nth-child(2), .cl-cielo.niebla b:nth-child(2) { top: 55%; width: 280px; animation-duration: 38s; animation-delay: -14s; }
 .cl-cielo.niebla b { height: 40px; opacity: .1; }
-.cl-cielo.lluvia i, .cl-cielo.tormenta i { position: absolute; top: -20px; width: 1.5px; height: 16px; border-radius: 1px; background: #3B82C4; opacity: .35; animation: cl-gota 1s linear infinite; }
+.cl-cielo.lluvia i, .cl-cielo.tormenta i { position: absolute; top: -20px; width: 1.5px; height: 16px; border-radius: 1px; background: #3B82C4; opacity: .35; animation: cl-gota 2.4s linear infinite; }
 :root[data-theme="oscuro"] .cl-cielo.lluvia i, :root[data-theme="oscuro"] .cl-cielo.tormenta i { background: #6CB0EE; }
 .cl-cielo .rayo { position: absolute; inset: 0; background: #fff; opacity: 0; animation: cl-rayo 9s infinite; }
 .cl-cielo.noche i { position: absolute; width: 2px; height: 2px; border-radius: 50%; background: currentColor; opacity: .25; animation: cl-titila 3.4s ease-in-out infinite; }
@@ -1922,4 +1925,117 @@ body.mu-abierto { overflow: hidden; }
 @keyframes cl-gota { to { transform: translateY(260px) translateX(-14px); } }
 @keyframes cl-rayo { 0%, 91%, 100% { opacity: 0; } 92% { opacity: .35; } 93% { opacity: 0; } 94% { opacity: .2; } }
 @keyframes cl-titila { 50% { opacity: .8; } }
-@media (prefers-reduced-motion: reduce) { .cl-cielo * { animation: none !important; } }
+/* El dibujo grande se mueve despacito: el sol estira y gira sus rayos, la nube va y viene, las gotas caen lento (v0.50) */
+.ci-vivo g, .ci-vivo path, .ci-vivo circle { transform-box: view-box; }
+.ci-vivo .ci-rayos { animation: ci-rayos 8s ease-in-out infinite alternate; }
+.ci-vivo .ci-nube { animation: ci-vaiven 7s ease-in-out infinite alternate; }
+.ci-vivo .ci-nube.d2 { animation-duration: 9s; animation-direction: alternate-reverse; }
+.ci-vivo .ci-gota { animation: ci-gota 2.8s ease-in infinite; }
+.ci-vivo .ci-gota.d2 { animation-delay: -.95s; } .ci-vivo .ci-gota.d3 { animation-delay: -1.9s; }
+.ci-vivo .ci-rayo { animation: ci-rayo 7s ease-in-out infinite; }
+.ci-vivo .ci-luna { animation: ci-luna 10s ease-in-out infinite alternate; }
+.ci-vivo .ci-titila { animation: cl-titila 4s ease-in-out infinite; opacity: .3; } .ci-vivo .ci-titila.d2 { animation-delay: -2s; }
+@keyframes ci-rayos { from { transform: rotate(-12deg) scale(.82); opacity: .55; } to { transform: rotate(18deg) scale(1.04); opacity: 1; } }
+@keyframes ci-vaiven { from { transform: translateX(-2.6px); } to { transform: translateX(2.6px); } }
+@keyframes ci-gota { 0% { transform: translateY(-4px); opacity: 0; } 20% { opacity: 1; } 75% { opacity: .9; } 100% { transform: translateY(6px); opacity: 0; } }
+@keyframes ci-rayo { 0%, 70%, 100% { opacity: 1; } 74% { opacity: .25; } 77% { opacity: 1; } 80% { opacity: .4; } }
+@keyframes ci-luna { from { transform: rotate(-7deg); } to { transform: rotate(7deg); } }
+/* Variaciones (v0.50): llovizna, lluvia fuerte, nieve, viento y calor */
+.cl-cielo.llovizna i { height: 9px; width: 1.2px; opacity: .28; }
+.cl-cielo.fuerte i { height: 20px; opacity: .42; }
+.cl-cielo.nieve i { position: absolute; top: -10px; width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: .3; animation: cl-copo 7s linear infinite; }
+.cl-cielo.viento i { position: absolute; left: -140px; height: 1.5px; border-radius: 2px; background: currentColor; opacity: .12; animation: cl-sopla 8s ease-in-out infinite; }
+.cl-cielo.calor b { width: 260px; height: 260px; right: -70px; top: -70px; background: radial-gradient(circle, rgba(226,84,31,.26), rgba(226,84,31,0) 65%); animation-duration: 6s; }
+@keyframes cl-copo { 0% { transform: translate(0, 0); } 50% { transform: translate(10px, 130px); } 100% { transform: translate(-6px, 260px); } }
+@keyframes cl-sopla { 0% { transform: translateX(0); opacity: 0; } 15% { opacity: .14; } 85% { opacity: .14; } 100% { transform: translateX(640px); opacity: 0; } }
+.ci-vivo .ci-gota.lenta { animation-duration: 3.6s; } .ci-vivo .ci-gota.rapida { animation-duration: 1.5s; }
+.ci-vivo .ci-gota.d4 { animation-delay: -2.7s; } .ci-vivo .ci-gota.rapida.d4 { animation-delay: -1.1s; } .ci-vivo .ci-gota.rapida.d5 { animation-delay: -.4s; }
+.ci-vivo .ci-gota.rapida.d2 { animation-delay: -.5s; } .ci-vivo .ci-gota.rapida.d3 { animation-delay: -1s; }
+.ci-vivo .ci-gota.lenta.d2 { animation-delay: -.9s; } .ci-vivo .ci-gota.lenta.d3 { animation-delay: -1.8s; }
+.ci-vivo .ci-copo { animation: ci-copo 4.5s ease-in-out infinite; } .ci-vivo .ci-copo.d2 { animation-delay: -1.5s; } .ci-vivo .ci-copo.d3 { animation-delay: -3s; }
+.ci-vivo .ci-viento { stroke-dasharray: 60; animation: ci-viento 4s ease-in-out infinite alternate; } .ci-vivo .ci-viento.d2 { animation-delay: -1.3s; } .ci-vivo .ci-viento.d3 { animation-delay: -2.6s; }
+.ci-vivo .ci-rayos.calor { animation-duration: 5s; }
+@keyframes ci-copo { 0% { transform: translate(0, -3px); opacity: 0; } 25% { opacity: 1; } 50% { transform: translate(1.5px, 2px); } 85% { opacity: .9; } 100% { transform: translate(-1px, 7px); opacity: 0; } }
+@keyframes ci-viento { from { stroke-dashoffset: 14; transform: translateX(-1.5px); } to { stroke-dashoffset: 0; transform: translateX(1.5px); } }
+@media (prefers-reduced-motion: reduce) { .cl-cielo *, .ci-vivo * { animation: none !important; } }
+
+/* Modo compacto sin scroll (v0.50): El Semanal en una sola línea y sin el pie de abajo */
+.inicio.compacto .sem { display: flex; align-items: center; gap: 12px; margin-top: 10px; padding: 12px 14px; box-shadow: inset 0 3px 0 var(--rojo); }
+.inicio.compacto .sem .filetes, .inicio.compacto .sem-dib, .inicio.compacto .sem-pie, .inicio.compacto .sem-nota { display: none; }
+.inicio.compacto .sem .fila { padding: 0; flex: none; gap: 8px; }
+.inicio.compacto .sem-logo { font-size: 19px; }
+.inicio.compacto .sem .nueva { font-size: 0; width: 7px; height: 7px; padding: 0; border-radius: 50%; }
+.inicio.compacto .sem .tapa { padding: 0; flex: 1; min-width: 0; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.inicio.compacto .sem::after { content: "›"; color: var(--muted); font-size: 20px; line-height: 1; }
+.inicio.compacto .pie { display: none; }
+
+/* Agenda: el evento con dirección se toca y abre «Cómo llegar» en Google Maps (v0.50) */
+.lista li.ag-ir { padding: 0; }
+.lista li.ag-ir > a { display: flex; justify-content: space-between; align-items: center; gap: 10px; width: 100%; padding: 12px 0; color: inherit; text-decoration: none; }
+.ag-tit { display: flex; align-items: flex-start; flex: 1; min-width: 0; } .ag-tit > span { min-width: 0; } .ag-ir .der { flex: none; } .ag-tit .dot { margin-top: 6px; flex: none; }
+.ag-lugar { display: flex; align-items: center; gap: 4px; margin-top: 2px; font-size: 12px; color: var(--accent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .ag-lugar svg { flex: none; }
+
+/* ---------- Días con color (v0.50) ----------
+   En fechas de tu lista (doc «Orbe · referencias» en tu Drive) se tiñe toda la app: el acento, una franja finita arriba
+   y una línea corta adentro del reloj. Celeste y blanco sin sol amarillo; los aniversarios tristes, sobrios. */
+:root[data-dia="celeste"] { --accent: #2E7CBF; --urg-bg: #EAF3FB; --track: #D3E4F3; --franja: linear-gradient(90deg, #75AADB 0 33.3%, #fff 33.3% 66.6%, #75AADB 66.6%); }
+:root[data-theme="oscuro"][data-dia="celeste"] { --accent: #86BDEB; --urg-bg: #122130; --track: #1F3244; }
+:root[data-dia="sobrio"] { --accent: #56708A; --urg-bg: #EEF1F4; --franja: linear-gradient(90deg, #8A9AAA, #8A9AAA); }
+:root[data-theme="oscuro"][data-dia="sobrio"] { --accent: #9FB2C4; --urg-bg: #1A1F25; }
+:root[data-dia="rojo"] { --accent: #D0102E; --franja: linear-gradient(90deg, #fff 0 38%, #E30613 38% 62%, #fff 62%); }
+:root[data-theme="oscuro"][data-dia="rojo"] { --accent: #FF5A6A; }
+:root[data-dia="heroe"] { --accent: #C8162B; --franja: linear-gradient(90deg, #C8162B 0 50%, #1F4E9C 50%); }
+:root[data-theme="oscuro"][data-dia="heroe"] { --accent: #FF5B66; }
+:root[data-dia="rosa"] { --accent: #C93C72; --urg-bg: #FBEDF3; --track: #F3D6E2; --franja: linear-gradient(90deg, #F2A7C3, #F2A7C3); }
+:root[data-theme="oscuro"][data-dia="rosa"] { --accent: #F28BB0; --urg-bg: #2A1520; --track: #3A2230; }
+:root[data-dia] body::before { content: ""; position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 50; background: var(--franja); opacity: .9; pointer-events: none; }
+:root[data-dia="sobrio"] body::before { height: 2px; opacity: .6; }
+/* Los iconitos adentro del reloj no heredan el tamaño del dibujo del anillo */
+.anillo .hv-svg { width: 12px; height: 12px; display: inline-block; overflow: hidden; }
+.anillo .hv-svg.hv-ancho { width: auto; height: 10px; }
+.anillo .hv-reloj { cursor: pointer; padding: 4px; margin-top: 0; }
+
+/* ---------- Banner del día con color (v0.50): entre el saludo y las tarjetas ---------- */
+.dia-banner { --c1: #75AADB; --c2: #fff; position: relative; display: flex; align-items: center; gap: 12px; margin: 14px 0 0; padding: 14px 44px 14px 16px; border-radius: 18px; overflow: hidden; color: var(--text); }
+.dia-banner.t-sobrio { --c1: #8A9AAA; --c2: #C9D2DB; }
+.dia-banner.t-rojo { --c1: #E30613; --c2: #fff; }
+.dia-banner.t-heroe { --c1: #C8162B; --c2: #1F4E9C; }
+.dia-banner.t-rosa { --c1: #F28BB0; --c2: #fff; }
+.db-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.db-k { font-size: 10.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+.db-t { font-family: var(--serif); font-size: 21px; line-height: 1.12; }
+.db-t + .db-t { font-size: 16px; color: var(--muted); }
+.db-ico { flex: none; display: grid; place-items: center; width: 34px; height: 34px; }
+.db-ico .hv-svg, .db-ico .hv-svg.hv-ancho { width: 30px; height: 30px; }
+.db-x { position: absolute; top: 8px; right: 8px; width: 30px; height: 30px; display: grid; place-items: center; border: 0; border-radius: 50%; background: transparent; color: var(--muted); padding: 0; cursor: pointer; }
+.db-franja { display: none; }
+/* A · Cinta: la tarjeta con una franja vertical de los colores del día */
+.dia-banner.v-a { background: color-mix(in srgb, var(--accent) 9%, var(--tile)); padding-left: 28px; }
+.dia-banner.v-a .db-franja { display: block; position: absolute; left: 9px; top: 12px; bottom: 12px; width: 7px; border-radius: 4px; box-shadow: 0 0 0 1px color-mix(in srgb, var(--c1) 45%, transparent); background: linear-gradient(180deg, var(--c1) 0 33.3%, var(--c2) 33.3% 66.6%, var(--c1) 66.6%); }
+.dia-banner.v-a.t-sobrio .db-franja { width: 5px; background: var(--c1); }
+.dia-banner.v-a.t-rojo .db-franja { background: linear-gradient(180deg, var(--c2) 0 30%, var(--c1) 30% 70%, var(--c2) 70%); }
+.dia-banner.v-a.t-heroe .db-franja { background: linear-gradient(180deg, var(--c1) 0 50%, var(--c2) 50%); }
+/* B · Bandera: arriba y abajo los colores del día, el texto al medio */
+.dia-banner.v-b { flex-direction: column; justify-content: center; text-align: center; gap: 6px; padding: 24px 44px; background: var(--tile); box-shadow: inset 0 10px 0 var(--c1), inset 0 -10px 0 var(--c1); }
+.dia-banner.v-b .db-txt { align-items: center; }
+.dia-banner.v-b .db-ico { width: 40px; height: 40px; position: absolute; left: 14px; top: 50%; transform: translateY(-50%); }
+.dia-banner.v-b .db-ico .hv-svg { width: 38px; height: 38px; }
+.dia-banner.v-b.t-sobrio { box-shadow: inset 0 3px 0 var(--c1), inset 0 -3px 0 var(--c1); }
+.dia-banner.v-b.t-rojo { box-shadow: none; }
+.dia-banner.v-b.t-rojo .db-franja { display: block; position: absolute; right: -30px; top: -20px; bottom: -20px; width: 90px; background: var(--c1); transform: rotate(24deg); opacity: .9; }
+.dia-banner.v-b.t-rojo .db-txt { position: relative; }
+.dia-banner.v-b.t-heroe { box-shadow: inset 0 10px 0 var(--c1), inset 0 -10px 0 var(--c2); }
+/* C · Titular: sin caja, como una nota de revista, con el filete de El Semanal */
+.dia-banner.v-c { display: grid; grid-template-columns: auto 1fr; align-items: start; gap: 4px 10px; padding: 12px 40px 6px 0; border-radius: 0; background: none; border-top: 3px solid var(--accent); }
+.dia-banner.v-c::before { content: ""; position: absolute; left: 0; right: 0; top: 3px; border-top: 1px solid var(--text); opacity: .6; }
+.dia-banner.v-c .db-ico { width: auto; height: auto; margin-top: 1px; }
+.dia-banner.v-c .db-ico .hv-svg { width: 16px; height: 16px; }
+.dia-banner.v-c .db-txt { grid-column: 2; }
+.dia-banner.v-c .db-ico + .db-txt { grid-column: 2; }
+.dia-banner.v-c .db-t { font-size: 25px; font-style: italic; }
+.dia-banner.v-c .db-x { top: 10px; right: 0; }
+.inicio.compacto .dia-banner { margin-top: 10px; padding-top: 10px; padding-bottom: 10px; }
+.inicio.compacto .dia-banner .db-t { font-size: 18px; }
+.inicio.compacto .dia-banner.v-b { padding: 14px 40px; }
+.dia-banner.v-a.t-rojo .db-franja { background: var(--c1); }
+.dia-banner.v-b.t-rojo .db-x { color: #fff; z-index: 1; }
