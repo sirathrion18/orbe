@@ -1,6 +1,20 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.48.0",
+    fecha: "31/10/2026",
+    titulo: "La vida es mejor con vos.",
+    cambios: [
+      "Debajo de Amorcitos ahora dice «La vida es mejor con vos».",
+      "Salidas culturales en una tarjeta propia con su iconito: se abre y recién ahí aparecen todas las entradas.",
+      "Lapicito para editar o borrar en salidas, planes y «para ver» (en las salidas también qué fue y cuántas veces fueron). Agus también puede.",
+      "Banderas oficiales (las de Wikipedia) en el mundito y en cada país.",
+      "El mundito gira más suave: la mitad de sensible, frena despacito cuando lo soltás y arranca un poco más lejos.",
+      "De noche, en el mundito, algunas estrellas titilan y cada tanto pasa un cometa.",
+      "El pingüino ahora sale a pasear: cada tanto cruza caminando por abajo. Si lo agarrás, se sorprende, se sonroja, te dice «¡te amo!» y se esconde.",
+    ],
+  },
+  {
     version: "0.47.0",
     fecha: "31/10/2026",
     titulo: "Agus llega a Orbe.",

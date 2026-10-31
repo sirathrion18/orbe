@@ -80,6 +80,18 @@ export async function aplicar(env, rol, op) {
     const lista = (op.lista || []).slice(0, 400).map((g) => ({ rubro: txt(g.rubro, 40), nombre: txt(g.nombre, 80), puntaje: Number(g.puntaje) >= 0 && Number(g.puntaje) <= 5 ? Number(g.puntaje) : null, lugar: txt(g.lugar, 60), porIr: !!g.porIr, afuera: !!g.afuera })).filter((g) => g.nombre);
     d.gastro = { cuando: Date.now(), firma: txt(op.firma, 40), lista };
   }
+  // Corregir un ítem (título, fecha, nota; en salidas también qué fue y cuántas veces). El tipo no cambia.
+  else if (t === "item-editar") {
+    const i = d.items.findIndex((x) => x.id === op.id);
+    if (i < 0) return d;
+    const x = d.items[i];
+    if (rol === "agus" && !TIPOS_AGUS.includes(x.tipo)) throw new Error("permiso");
+    const c = op.cambios || {}, sirve = {};
+    ["titulo", "fecha", "nota", "cat", "veces"].forEach((k) => { if (c[k] !== undefined) sirve[k] = c[k]; });
+    const nuevo = item({ ...x, ...sirve, id: x.id, tipo: x.tipo });
+    if (!nuevo.titulo) throw new Error("vacio");
+    d.items[i] = { ...x, ...nuevo };
+  }
   else if (t === "item-tilde" || t === "item-borrar") {
     const x = d.items.find((i) => i.id === op.id);
     if (!x) return d;

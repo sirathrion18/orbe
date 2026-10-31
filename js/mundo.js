@@ -4,10 +4,20 @@
 // se pellizca para acercar, y con un botón se aplana en planisferio.
 // Lo usan Orbe y la página de Agus. Los lugares vienen de lo compartido (servidor), no de este código.
 
-let THREE = null, GEO = null;
+let THREE = null, GEO = null, COD = null;
 async function cargar() {
   if (!THREE) THREE = await import("/vendor/three/build/three.module.min.js");
   if (!GEO) GEO = await fetch("/vendor/mundo/paises-110m.json").then((r) => r.json());
+  if (!COD) COD = await fetch("/vendor/banderas/codigos.json").then((r) => r.json()).catch(() => ({}));
+}
+// Banderas oficiales (las de Wikipedia, vía flag-icons): se cargan solo las que hacen falta.
+const IMG = {};
+const a2 = (iso) => COD?.[iso]?.[0] || "";
+const urlBandera = (iso) => a2(iso) ? "/vendor/banderas/" + a2(iso) + ".svg" : "";
+function imagenBandera(iso) {
+  if (IMG[iso]) return IMG[iso];
+  IMG[iso] = new Promise((ok) => { const u = urlBandera(iso); if (!u) return ok(null); const i = new Image(); i.onload = () => ok(i); i.onerror = () => ok(null); i.src = u; });
+  return IMG[iso];
 }
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const oscuro = () => document.documentElement.dataset.theme === "oscuro";
@@ -25,32 +35,18 @@ export function lugaresDe(doc) {
   return { l, fui, ir, paises };
 }
 
-// ---------- Banderas (dibujadas acá: el mapa no dice a dónde fueron) ----------
-function sol(g, cx, cy, r, col) {
-  g.strokeStyle = g.fillStyle = col; g.lineWidth = Math.max(1, r / 4);
-  for (let k = 0; k < 16; k++) { const a = k / 16 * Math.PI * 2; g.beginPath(); g.moveTo(cx + Math.cos(a) * r * 1.1, cy + Math.sin(a) * r * 1.1); g.lineTo(cx + Math.cos(a) * r * 1.9, cy + Math.sin(a) * r * 1.9); g.stroke(); }
-  g.beginPath(); g.arc(cx, cy, r, 0, 7); g.fill();
-}
+// ---------- Un país sin bandera cargada: rosa con un corazón (desbloqueado igual) ----------
 function corazon(g, x, y, s, col) {
   g.fillStyle = col; g.beginPath(); g.moveTo(x, y + s * .3);
   g.bezierCurveTo(x, y, x - s * .5, y, x - s * .5, y + s * .3); g.bezierCurveTo(x - s * .5, y + s * .6, x, y + s * .75, x, y + s);
   g.bezierCurveTo(x, y + s * .75, x + s * .5, y + s * .6, x + s * .5, y + s * .3); g.bezierCurveTo(x + s * .5, y, x, y, x, y + s * .3); g.fill();
 }
-const fajas = (g, x, y, w, h, cols, vert) => cols.forEach((c, i) => { g.fillStyle = c; vert ? g.fillRect(x + w * i / cols.length, y, w / cols.length + 1, h) : g.fillRect(x, y + h * i / cols.length, w, h / cols.length + 1); });
-export const BANDERAS = {
-  "032": (g, x, y, w, h) => { fajas(g, x, y, w, h, ["#75AADB", "#FFFFFF", "#75AADB"]); sol(g, x + w / 2, y + h / 2, Math.min(w, h / 3) * .16, "#F6B40E"); },
-  "724": (g, x, y, w, h) => { g.fillStyle = "#C60B1E"; g.fillRect(x, y, w, h); g.fillStyle = "#FFC400"; g.fillRect(x, y + h / 4, w, h / 2); },
-  "380": (g, x, y, w, h) => fajas(g, x, y, w, h, ["#009246", "#FFFFFF", "#CE2B37"], true),
-  "858": (g, x, y, w, h) => { g.fillStyle = "#FFFFFF"; g.fillRect(x, y, w, h); g.fillStyle = "#0038A8"; for (let k = 1; k < 9; k += 2) g.fillRect(x, y + k * h / 9, w, h / 9 + .5); g.fillStyle = "#FFFFFF"; g.fillRect(x, y, w * .42, h * 5 / 9); sol(g, x + w * .21, y + h * 2.5 / 9, Math.min(w, h) * .09, "#FCD116"); },
-  "643": (g, x, y, w, h) => fajas(g, x, y, w, h, ["#FFFFFF", "#0039A6", "#D52B1E"]),
-  "392": (g, x, y, w, h) => { g.fillStyle = "#FFFFFF"; g.fillRect(x, y, w, h); g.fillStyle = "#BC002D"; g.beginPath(); g.arc(x + w / 2, y + h / 2, Math.min(w, h) * .3, 0, 7); g.fill(); },
-  "076": (g, x, y, w, h) => { g.fillStyle = "#009C3B"; g.fillRect(x, y, w, h); g.fillStyle = "#FFDF00"; g.beginPath(); g.moveTo(x + w / 2, y + h * .1); g.lineTo(x + w * .9, y + h / 2); g.lineTo(x + w / 2, y + h * .9); g.lineTo(x + w * .1, y + h / 2); g.fill(); g.fillStyle = "#002776"; g.beginPath(); g.arc(x + w / 2, y + h / 2, Math.min(w, h) * .2, 0, 7); g.fill(); },
-  "152": (g, x, y, w, h) => { fajas(g, x, y, w, h, ["#FFFFFF", "#D52B1E"]); g.fillStyle = "#0039A6"; g.fillRect(x, y, w / 3, h / 2); },
-  "250": (g, x, y, w, h) => fajas(g, x, y, w, h, ["#0055A4", "#FFFFFF", "#EF4135"], true),
-  "620": (g, x, y, w, h) => { g.fillStyle = "#046A38"; g.fillRect(x, y, w * .4, h); g.fillStyle = "#DA291C"; g.fillRect(x + w * .4, y, w * .6, h); },
-};
-// Un país sin bandera dibujada: rosa con un corazón (desbloqueado igual).
-const bandera = (iso) => BANDERAS[iso] || ((g, x, y, w, h) => { g.fillStyle = "#E46A7E"; g.fillRect(x, y, w, h); corazon(g, x + w / 2, y + h * .3, Math.min(w, h) * .4, "#FFFFFF"); });
+// La bandera tapa el territorio sin deformarse (como una foto «cubriendo» el recuadro), centrada.
+function pintarBandera(g, img, x, y, w, h) {
+  if (!img) { g.fillStyle = "#E46A7E"; g.fillRect(x, y, w, h); corazon(g, x + w / 2, y + h * .3, Math.min(w, h) * .4, "#FFFFFF"); return; }
+  const r = img.naturalWidth / img.naturalHeight || 4 / 3, e = Math.max(w / r, h);
+  g.drawImage(img, x + w / 2 - e * r / 2, y + h / 2 - e / 2, e * r, e);
+}
 
 // ---------- Textura del mundo ----------
 const TW = 2048, TH = 1024;
@@ -70,7 +66,8 @@ export function principal(f) {
   const rs = anillos(f).filter((r) => r.every((q, k) => !k || Math.abs(q[0] - r[k - 1][0]) < 180));
   return rs.sort((a, b) => areaDe(b) - areaDe(a))[0] || anillos(f)[0];
 }
-function textura(datos, os) {
+async function textura(datos, os) {
+  const imgs = {}; await Promise.all([...datos.fui].map(async (iso) => { imgs[iso] = await imagenBandera(iso); }));
   const c = document.createElement("canvas"); c.width = TW; c.height = TH;
   const g = c.getContext("2d");
   const mar = os ? "#0B1422" : "#A9C9E4", tierra = os ? "#4A6470" : "#FBF8F2", borde = os ? "rgba(255,255,255,.07)" : "rgba(60,80,100,.12)";
@@ -85,8 +82,8 @@ function textura(datos, os) {
     const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
     if (fui) {
       // Las islas lejanas toman los colores de la bandera agrandada; el territorio principal, la bandera justa.
-      bandera(f.i)(g, x0 - (x1 - x0), y0 - (y1 - y0), (x1 - x0) * 3, (y1 - y0) * 3);
-      bandera(f.i)(g, x0, y0, x1 - x0, y1 - y0);
+      pintarBandera(g, imgs[f.i], x0 - (x1 - x0), y0 - (y1 - y0), (x1 - x0) * 3, (y1 - y0) * 3);
+      pintarBandera(g, imgs[f.i], x0, y0, x1 - x0, y1 - y0);
     } else {
       g.fillStyle = os ? "rgba(125,111,214,.45)" : "rgba(156,139,234,.35)"; g.fillRect(0, 0, TW, TH);
       g.strokeStyle = os ? "rgba(156,139,234,.8)" : "rgba(110,95,200,.55)"; g.lineWidth = 3;
@@ -128,8 +125,8 @@ class Globo {
   constructor(caja, datos, { grande = false, alTocarPais } = {}) {
     this.caja = caja; this.datos = datos; this.grande = grande; this.alTocarPais = alTocarPais;
     this.os = oscuro(); this.morf = 0; this.morfObj = 0;
-    this.rx = .3; this.ry = -1.55; this.rz = 0; this.z = grande ? 4.4 : 3.75; this.zObj = this.z;
-    this.vel = grande ? .0012 : .0035; this.pins = []; this.arcos = [];
+    this.rx = .3; this.ry = -1.55; this.rz = 0; this.z = grande ? 4.9 : 3.75; this.zObj = this.z;
+    this.vel = grande ? .0012 : .0035; this.pins = []; this.arcos = []; this.vx = this.vy = 0;
     const W = caja.clientWidth || 300, H = caja.clientHeight || 300;
     const r = this.r = new THREE.WebGLRenderer({ antialias: true, alpha: !this.os });
     r.setPixelRatio(Math.min(2, devicePixelRatio)); r.setSize(W, H);
@@ -137,12 +134,17 @@ class Globo {
     r.domElement.className = "mu-lienzo"; caja.prepend(r.domElement);
     this.esc = new THREE.Scene(); this.cam = new THREE.PerspectiveCamera(32, W / H, .1, 200); this.cam.position.set(0, 0, this.z);
     if (this.os) {
-      const n = grande ? 1500 : 500, p = new Float32Array(n * 3);
-      for (let i = 0; i < n; i++) { const u = Math.random() * 2 - 1, a = Math.random() * 6.283, rr = 40 + Math.random() * 30; p[i * 3] = rr * Math.sqrt(1 - u * u) * Math.cos(a); p[i * 3 + 1] = rr * u; p[i * 3 + 2] = rr * Math.sqrt(1 - u * u) * Math.sin(a) - 20; }
-      const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(p, 3));
-      this.esc.add(new THREE.Points(g, new THREE.PointsMaterial({ size: grande ? .12 : .16, color: "#cfd6ff", transparent: true, opacity: .75 })));
+      // Estrellas: cada una con su ritmo; algunas titilan más que otras.
+      const n = grande ? 1500 : 500, p = new Float32Array(n * 3), fa = new Float32Array(n), br = new Float32Array(n);
+      for (let i = 0; i < n; i++) { const u = Math.random() * 2 - 1, a = Math.random() * 6.283, rr = 40 + Math.random() * 30; p[i * 3] = rr * Math.sqrt(1 - u * u) * Math.cos(a); p[i * 3 + 1] = rr * u; p[i * 3 + 2] = rr * Math.sqrt(1 - u * u) * Math.sin(a) - 20; fa[i] = Math.random() * 6.283; br[i] = Math.random() < .14 ? 1 : .25; }
+      const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(p, 3)); g.setAttribute("fase", new THREE.BufferAttribute(fa, 1)); g.setAttribute("brillo", new THREE.BufferAttribute(br, 1));
+      this.estrellas = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, uniforms: { t: { value: 0 }, tam: { value: grande ? 2.6 : 2.2 } },
+        vertexShader: "attribute float fase;attribute float brillo;uniform float t,tam;varying float a;void main(){a=.45+brillo*.55*(.5+.5*sin(t*(1.2+fase*.4)+fase*7.));vec4 mv=modelViewMatrix*vec4(position,1.);gl_PointSize=tam*(1.+brillo*.8*(.5+.5*sin(t*1.7+fase*5.)))*" + Math.min(2, devicePixelRatio).toFixed(1) + ";gl_Position=projectionMatrix*mv;}",
+        fragmentShader: "varying float a;void main(){vec2 c=gl_PointCoord-.5;float d=length(c);if(d>.5)discard;gl_FragColor=vec4(.86,.89,1.,a*(1.-d*1.6));}" });
+      this.esc.add(new THREE.Points(g, this.estrellas));
+      this.cometas = []; this.proxCometa = 1.5 + Math.random() * 3;
     }
-    const tex = new THREE.CanvasTexture(textura(datos, this.os)); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
+    const tex = new THREE.CanvasTexture(datos.lienzo); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
     this.mat = new THREE.ShaderMaterial({ side: THREE.DoubleSide, uniforms: { m: { value: tex }, morf: { value: 0 } }, vertexShader: VS, fragmentShader: FS(this.os) });
     this.globo = new THREE.Group(); this.esc.add(this.globo);
     this.malla = new THREE.Mesh(new THREE.SphereGeometry(1, grande ? 128 : 64, grande ? 96 : 48), this.mat); this.globo.add(this.malla);
@@ -189,7 +191,7 @@ class Globo {
     return Math.max(ancho / 2 / (t * asp), alto / 2 / t);
   }
   plano(si) {
-    this.morfObj = si ? 1 : 0; this.zObj = si ? this.zPlano() : 4.4;
+    this.morfObj = si ? 1 : 0; this.zObj = si ? this.zPlano() : 4.9;
     if (si) this.ryPlano = Math.round(this.ry / (Math.PI * 2)) * Math.PI * 2;
     if (si) { this.rx0 = this.rx; this.ry0 = this.ry; this.rz0 = this.rz; }
   }
@@ -205,6 +207,9 @@ class Globo {
     if (!this.ver || document.hidden) return;
     this.t += 1 / 60;
     const k = .12;
+    if (this.estrellas) { this.estrellas.uniforms.t.value = this.t; this.cometa(); }
+    // Envión: después de soltar, sigue girando un poco y frena solo.
+    if (!this.toques && (Math.abs(this.vx) > .00005 || Math.abs(this.vy) > .00005)) { this.ry += this.vx; this.rx = Math.max(-1.45, Math.min(1.45, this.rx + this.vy)); this.vx *= .93; this.vy *= .93; }
     if (Math.abs(this.morfObj - this.morf) > .001) {
       this.morf += (this.morfObj - this.morf) * .09; if (Math.abs(this.morfObj - this.morf) < .002) this.morf = this.morfObj;
       this.mat.uniforms.morf.value = this.morf; this.halo.visible = this.morf < .3; this.ubicar();
@@ -225,7 +230,7 @@ class Globo {
     const dd = () => { const [a, b] = [...pts.values()]; return { d: Math.hypot(a.x - b.x, a.y - b.y), ang: Math.atan2(b.y - a.y, b.x - a.x), my: (a.y + b.y) / 2 }; };
     el.addEventListener("pointerdown", (e) => {
       el.setPointerCapture(e.pointerId); pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); this.toques = pts.size; this.ryObj = null;
-      if (pts.size === 1) { ini = { x: e.clientX, y: e.clientY, t: Date.now(), mov: 0 }; }
+      if (pts.size === 1) { ini = { x: e.clientX, y: e.clientY, t: Date.now(), mov: 0 }; this.vx = this.vy = 0; }
       if (pts.size === 2) { dos = { ...dd(), z: this.zObj, rz: this.rz, rx: this.rx }; ini = null; }
     });
     el.addEventListener("pointermove", (e) => {
@@ -234,11 +239,11 @@ class Globo {
       if (pts.size === 1 && ini) {
         const dx = e.clientX - ant.x, dy = e.clientY - ant.y; ini.mov += Math.abs(dx) + Math.abs(dy);
         if (this.morf > .5) { this.globo.position.x = Math.max(-2, Math.min(2, this.globo.position.x + dx * .006)); this.globo.position.y = Math.max(-1, Math.min(1, this.globo.position.y - dy * .006)); }
-        else { const f = .006 * this.z / 4.4; this.ry += dx * f; this.rx = Math.max(-1.45, Math.min(1.45, this.rx + dy * f)); }
+        else { const f = .0032 * this.z / 4.4; this.ry += dx * f; this.rx = Math.max(-1.45, Math.min(1.45, this.rx + dy * f)); this.vx = dx * f * .6; this.vy = dy * f * .6; }
       } else if (pts.size === 2 && dos) {
         const n = dd();
         this.zObj = this.z = Math.max(this.morf > .5 ? 2.5 : 1.9, Math.min(this.morf > .5 ? this.zPlano() * 1.2 : 7, dos.z * dos.d / n.d));
-        if (this.morf < .5) { this.rz = dos.rz + (n.ang - dos.ang); this.rx = Math.max(-1.45, Math.min(1.45, dos.rx + (n.my - dos.my) * .008)); }
+        if (this.morf < .5) { this.rz = dos.rz + (n.ang - dos.ang) * .7; this.rx = Math.max(-1.45, Math.min(1.45, dos.rx + (n.my - dos.my) * .005)); }
       }
     });
     const fin = (e) => {
@@ -246,7 +251,7 @@ class Globo {
       pts.delete(e.pointerId); this.toques = pts.size;
       if (ini && pts.size === 0 && ini.mov < 8 && Date.now() - ini.t < 350) {
         const ahora = Date.now();
-        if (ahora - toqueEn < 320) { this.rx = .3; this.rz = 0; this.zObj = this.morf > .5 ? this.zPlano() : 4.4; this.globo.position.set(0, 0, 0); }
+        if (ahora - toqueEn < 320) { this.rx = .3; this.rz = 0; this.zObj = this.morf > .5 ? this.zPlano() : 4.9; this.globo.position.set(0, 0, 0); }
         else this.tocar(e);
         toqueEn = ahora;
       }
@@ -276,6 +281,39 @@ class Globo {
     const f = GEO.find((p) => anillos(p).some((r) => dentro(lon, lat, r)));
     this.alTocarPais?.(f ? f.i : null, f ? f.n : null);
   }
+  // Cometas: cada tanto cruza uno por el fondo (solo de noche).
+  cometa() {
+    if (quieto()) return;
+    const ahora = performance.now(), dt = Math.min(.25, ((ahora - (this.tCometa || ahora)) / 1000)); this.tCometa = ahora;
+    this.proxCometa -= dt;
+    if (this.proxCometa <= 0) {
+      this.proxCometa = 7 + Math.random() * 9;
+      // Una cabeza brillante y una cola de puntitos que se achican y se apagan.
+      const N = 40, g = new THREE.BufferGeometry(), pos = new Float32Array(N * 3), a = new Float32Array(N), t = new Float32Array(N);
+      for (let i = 0; i < N; i++) t[i] = 1 - i / N;
+      g.setAttribute("position", new THREE.BufferAttribute(pos, 3)); g.setAttribute("alfa", new THREE.BufferAttribute(a, 1)); g.setAttribute("tam", new THREE.BufferAttribute(t, 1));
+      const m = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+        vertexShader: "attribute float alfa,tam;varying float va;void main(){va=alfa;gl_PointSize=(1.+tam*tam*7.)*" + Math.min(2, devicePixelRatio).toFixed(1) + ";gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}",
+        fragmentShader: "varying float va;void main(){float d=length(gl_PointCoord-.5);if(d>.5)discard;gl_FragColor=vec4(1.,.93,.97,va*smoothstep(.5,.0,d));}" });
+      const pts = new THREE.Points(g, m);
+      // Cruza en diagonal por la parte de arriba de lo que se ve (detrás del globo), calculado para la pantalla que haya.
+      const zc = -10, d = this.z - zc, hh = d * Math.tan(this.cam.fov * Math.PI / 360), hw = hh * this.cam.aspect, lado = Math.random() < .5 ? -1 : 1;
+      const desde = new THREE.Vector3(lado * hw * 1.15, hh * (.45 + Math.random() * .45), zc), hacia = new THREE.Vector3(-lado * hw * (.1 + Math.random() * .7), hh * (-.15 + Math.random() * .4), zc);
+      this.esc.add(pts); this.cometas.push({ pts, desde, hacia, v: 0, dur: 1.6 + Math.random() * .8 });
+    }
+    this.cometas = this.cometas.filter((c) => {
+      c.v += dt; const k = c.v / c.dur;
+      if (k > 1.3) { this.esc.remove(c.pts); c.pts.geometry.dispose(); c.pts.material.dispose(); return false; }
+      const pos = c.pts.geometry.attributes.position.array, al = c.pts.geometry.attributes.alfa.array, N = al.length;
+      for (let i = 0; i < N; i++) {
+        const q = Math.max(0, Math.min(1, k - i * .009)), p = c.desde.clone().lerp(c.hacia, q);
+        pos[i * 3] = p.x; pos[i * 3 + 1] = p.y; pos[i * 3 + 2] = p.z;
+        al[i] = (1 - i / N) * Math.min(1, (1.3 - k) * 3, k * 6);
+      }
+      c.pts.geometry.attributes.position.needsUpdate = c.pts.geometry.attributes.alfa.needsUpdate = true;
+      return true;
+    });
+  }
   parar() {
     this.vivo = false; this.io.disconnect();
     this.esc.traverse((o) => { o.geometry?.dispose(); o.material?.map?.dispose?.(); o.material?.dispose?.(); });
@@ -291,13 +329,9 @@ function dentro(x, y, r) {
   return si;
 }
 
-// ---------- Nombres en castellano de algunos países (los demás quedan como vienen) ----------
-const NOMBRES = { "032": "Argentina", "724": "España", "380": "Italia", "858": "Uruguay", "643": "Rusia", "392": "Japón", "076": "Brasil", "152": "Chile", "250": "Francia", "620": "Portugal", "840": "Estados Unidos", "484": "México", "604": "Perú", "600": "Paraguay", "068": "Bolivia", "826": "Reino Unido", "276": "Alemania", "300": "Grecia" };
-const nombrePais = (iso, d, en) => d.paises[iso]?.nombre || NOMBRES[iso] || en || "";
-function banderita(iso, w = 44, h = 30) {
-  const c = document.createElement("canvas"); c.width = w * 2; c.height = h * 2; const g = c.getContext("2d"); bandera(iso)(g, 0, 0, w * 2, h * 2);
-  return `<img class="mu-flag" src="${c.toDataURL()}" width="${w}" height="${h}" alt="">`;
-}
+// ---------- Nombres y banderitas ----------
+const nombrePais = (iso, d, en) => d.paises[iso]?.nombre || COD?.[iso]?.[1] || en || "";
+const banderita = (iso, w = 44, h = 33) => urlBandera(iso) ? `<img class="mu-flag" src="${urlBandera(iso)}" width="${w}" height="${h}" alt="">` : `<span class="mu-flag sin" style="width:${w}px;height:${h}px">♥</span>`;
 
 // ---------- Portada (chiquito) ----------
 let portada = null;
@@ -309,6 +343,8 @@ export async function montarPortada(caja, doc, alAbrir) {
   try { await cargar(); } catch (e) { caja.classList.add("sin-3d"); return; }
   if (!document.body.contains(caja)) return;
   portada?.parar();
+  datos.lienzo = await textura(datos, oscuro());
+  if (!document.body.contains(caja)) return;
   try { portada = new Globo(caja, datos); portada.firma = firma; } catch (e) { caja.classList.add("sin-3d"); portada = null; return; }
   caja.onclick = () => alAbrir?.();
 }
@@ -342,6 +378,7 @@ export async function abrir(doc, desde, extra = "") {
     info.innerHTML = `${fue ? banderita(iso) : '<span class="mu-lock grande" aria-hidden="true">🔒</span>'}<div><b>${esc(nom)}</b><small>${fue ? "Fuimos a " + p.fuimos.map((x) => esc(x.titulo)).join(", ") : p?.ir.length ? "Por desbloquear · queremos ir" : "Todavía no fuimos"}</small>${fue && p.ir.length ? `<small>Nos falta: ${p.ir.map((x) => esc(x.titulo)).join(", ")}</small>` : ""}</div><button class="mu-x" aria-label="Cerrar">✕</button>`;
     info.hidden = false;
   };
+  datos.lienzo = await textura(datos, oscuro());
   await new Promise((ok) => setTimeout(ok, 60));
   grande = new Globo(escena, datos, { grande: true, alTocarPais: (iso, en) => mostrar(iso, en) });
   const cerrar = () => {

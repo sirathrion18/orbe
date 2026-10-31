@@ -8,12 +8,12 @@ tema(); matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", 
 
 let doc = docLocal();
 const cab = `<header class="amor-cab"><h1><span class="amor-cor" aria-hidden="true">♥</span> Amorcitos</h1><button class="chip" id="salir">Salir</button></header>
-  <p class="bajada">Lo de los dos: súper, menú, planes, pelis y fechas.</p>`;
+  <p class="bajada">La vida es mejor con vos</p>`;
 function pintar() { app.innerHTML = cab + render(doc, new Date(), { puedeTodo: doc?.yo === "nacho" }); montarMundo(doc).catch(() => {}); }
 function entrar(error) {
   const txt = error === "cuenta" ? "Esa cuenta de Google no tiene acceso a Amorcitos." : error ? "No se pudo entrar. Probá de nuevo." : "";
   app.innerHTML = `<header class="amor-cab"><h1><span class="amor-cor" aria-hidden="true">♥</span> Amorcitos</h1></header>
-    <p class="bajada">Lo de los dos: súper, menú, planes, pelis y fechas.</p>
+    <p class="bajada">La vida es mejor con vos</p>
     ${txt ? `<p class="amor-error">${txt}</p>` : ""}
     <a class="btn" href="/api/amor/login" style="display:inline-flex;margin-top:12px">Entrar con Google</a>
     <p class="fuente-dato" style="margin-top:14px">Google solo le pasa tu mail. Nada de tu Gmail, Drive ni calendario.</p>`;

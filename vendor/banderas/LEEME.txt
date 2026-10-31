@@ -1,0 +1,2 @@
+Banderas: flag-icons 7.2.3 (Panayiotis Lipiridis, licencia MIT), basadas en las de Wikipedia.
+codigos.json: código numérico ISO 3166 → [código de dos letras, nombre en castellano] (i18n-iso-countries, MIT).

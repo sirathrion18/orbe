@@ -1,6 +1,6 @@
 // Estructura de Orbe: qué universos hay y qué trae cada uno.
 // Esto es diseño, no datos: no hay nada personal acá.
-export const VERSION = "0.47.0";
+export const VERSION = "0.48.0";
 
 // ID de cliente de Google (es público por diseño: no es una contraseña).
 // Se crea en Google Cloud con el origen https://orbe-5es.pages.dev
@@ -8,7 +8,7 @@ export const GOOGLE_CLIENT_ID = "775947921311-t5edjab9rq99eng3fd3dh1bs5c1jd8e7.a
 
 export const UNIVERSOS = [
   { id: "agus", nombre: "Amorcitos", corto: "Amorcitos", color: "#E46A7E",
-    bajada: "Lo de los dos: compras, comidas, planes y fechas.",
+    bajada: "La vida es mejor con vos",
     palabras: "pareja super compras menu comidas planes" },
   { id: "bna", nombre: "BNA", corto: "BNA", color: "tipo:bna", bloqueo: true,
     bajada: "Tu productividad, tus horarios y tu sueldo.",

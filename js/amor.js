@@ -59,11 +59,31 @@ const ICO = {
   feria: '<path d="M3 9l9-5 9 5M5 9v10h14V9M10 19v-5h4v5"/>',
   cine: '<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M8 6l2 4M14 6l2 4"/>',
   museo: '<path d="M3 10l9-6 9 6M5 10v8M9 10v8M15 10v8M19 10v8M3 20h18"/>', otro: '<circle cx="12" cy="12" r="8"/><path d="M12 8v8M8 12h8"/>' };
-const PINGU = '<svg viewBox="0 0 40 48" aria-hidden="true"><ellipse cx="20" cy="28" rx="13" ry="17" fill="#1b1b22"/><ellipse cx="20" cy="31" rx="8.5" ry="12.5" fill="#fff"/><circle cx="20" cy="12" r="9" fill="#1b1b22"/><ellipse cx="20" cy="14" rx="5.5" ry="5" fill="#fff"/><circle cx="17.6" cy="12.5" r="1.3" fill="#111"/><circle cx="22.4" cy="12.5" r="1.3" fill="#111"/><path d="M18.4 15.2l1.6 2 1.6-2z" fill="#F2A33A"/><path d="M9 26c-4 4-4 9-2 10M31 26c4 4 4 9 2 10" stroke="#1b1b22" stroke-width="3" fill="none" stroke-linecap="round"/><ellipse cx="15" cy="45" rx="4" ry="2" fill="#F2A33A"/><ellipse cx="25" cy="45" rx="4" ry="2" fill="#F2A33A"/><circle cx="13.5" cy="16" r="1.4" fill="#F4A3B3"/><circle cx="26.5" cy="16" r="1.4" fill="#F4A3B3"/></svg>';
-// El pingüino se esconde en un lugar distinto cada vez que se abre la página (y no siempre aparece).
-const LUGAR_PINGU = (() => { try { if (sessionStorage.getItem("amor.pingu") === "chau") return null; } catch (e) { /* nada */ } return Math.random() < .55 ? ["super", "menu", "ver", "planes", "salidas"][Math.floor(Math.random() * 5)] : null; })();
-const pingu = (donde) => LUGAR_PINGU === donde ? `<button class="am-pingu" data-am="pingu" aria-label="Un pingüino">${PINGU}<span class="am-globito">¡te amo!</span></button>` : "";
+// El pingüino: cada tanto cruza la pantalla caminando. Si lo agarrás, se sorprende, se sonroja, dice «te amo» y se esconde.
+const PINGU = `<svg viewBox="0 0 48 58" aria-hidden="true"><g class="pg-p pg-pi"><ellipse cx="17" cy="54" rx="5.5" ry="2.6" fill="#F2A33A"/></g><g class="pg-p pg-pd"><ellipse cx="31" cy="54" rx="5.5" ry="2.6" fill="#F2A33A"/></g>
+  <g class="pg-c"><ellipse cx="24" cy="34" rx="15" ry="19" fill="#22232c"/><ellipse cx="24" cy="37" rx="10" ry="14" fill="#fff"/>
+  <path class="pg-ai" d="M10 29c-5 5-5 11-3 13" stroke="#22232c" stroke-width="4" fill="none" stroke-linecap="round"/><path class="pg-ad" d="M38 29c5 5 5 11 3 13" stroke="#22232c" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <circle cx="24" cy="15" r="11" fill="#22232c"/><ellipse cx="24" cy="17.5" rx="7" ry="6.2" fill="#fff"/>
+  <g class="pg-o"><circle cx="21" cy="16" r="1.6" fill="#111"/><circle cx="27" cy="16" r="1.6" fill="#111"/></g>
+  <g class="pg-oo"><circle cx="21" cy="15.6" r="2.6" fill="#fff" stroke="#111" stroke-width="1.2"/><circle cx="21" cy="15.8" r="1.2" fill="#111"/><circle cx="27" cy="15.6" r="2.6" fill="#fff" stroke="#111" stroke-width="1.2"/><circle cx="27" cy="15.8" r="1.2" fill="#111"/></g>
+  <path d="M22 19.2l2 2.4 2-2.4z" fill="#F2A33A"/>
+  <g class="pg-r"><ellipse cx="17.6" cy="20.4" rx="2.6" ry="1.5" fill="#F27E95"/><ellipse cx="30.4" cy="20.4" rx="2.6" ry="1.5" fill="#F27E95"/></g></g></svg>`;
+
 let estadoGastro = { rubro: "", nuevo: false, salio: null, rk: "" };
+let editando = "", salidasAbierta = false;
+const LAPIZ = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>';
+const lapiz = (x) => `<button class="am-ed" data-am="editar" data-id="${esc(x.id)}" aria-label="Editar ${esc(x.titulo)}">${LAPIZ}</button>`;
+// El formulario para corregir o borrar un ítem, en el mismo lugar donde estaba.
+function edicion(x) {
+  const sal = x.tipo === "salida";
+  return `<form class="am-edita" data-am-form="editar" data-id="${esc(x.id)}">
+    <input name="titulo" value="${esc(x.titulo)}" aria-label="Nombre" required autocomplete="off">
+    ${sal ? `<div class="am-edita-fila"><select name="cat" aria-label="Qué fue">${Object.entries(CATS).map(([k, v]) => `<option value="${k}"${(x.cat || "otro") === k ? " selected" : ""}>${v}</option>`).join("")}</select>
+      <label class="am-veces">Fuimos <input name="veces" type="number" min="1" max="99" value="${x.veces || 1}" inputmode="numeric"> ${(x.veces || 1) === 1 ? "vez" : "veces"}</label></div>`
+      : `<input name="fecha" type="date" value="${esc((x.fecha || "").slice(0, 10))}" aria-label="Cuándo (opcional)">`}
+    <input name="nota" value="${esc(x.nota || "")}" placeholder="Nota (opcional)" aria-label="Nota" autocomplete="off">
+    <div class="am-edita-bot"><button class="btn">Guardar</button><button type="button" class="chip" data-am="no-editar">Cancelar</button><button type="button" class="chip am-borra" data-am="item-borrar" data-id="${esc(x.id)}">Borrar</button></div></form>`;
+}
 
 function gastroLista(doc) { return (doc.gastro?.lista || []).filter((g) => g.nombre); }
 function dado(doc) {
@@ -96,19 +116,19 @@ export function render(doc, hoy, { puedeTodo = false } = {}) {
       <button class="am-abrir" data-am="mundo">Abrir el mundo ›</button></div></section>`;
 
   const borrar = (x) => puedeTodo ? `<button class="am-x" data-am="item-borrar" data-id="${esc(x.id)}" aria-label="Sacar ${esc(x.titulo)}">${X}</button>` : "";
-  const tilde = (x, extra = "") => `<li><label><input type="checkbox" data-am="item-tilde" data-id="${esc(x.id)}" ${x.hecho ? "checked" : ""}><span class="${x.hecho ? "am-hecho" : ""}">${esc(x.titulo)}${x.nota || extra ? `<br><small class="vacio">${esc([extra, x.nota].filter(Boolean).join(" · "))}</small>` : ""}</span></label>${x.fecha ? `<span class="tag">${esc(corta(x.fecha))}</span>` : ""}<button class="am-x" data-am="item-borrar" data-id="${esc(x.id)}" aria-label="Sacar ${esc(x.titulo)}">${X}</button></li>`;
+  const tilde = (x, extra = "") => editando === x.id ? `<li class="am-li-ed">${edicion(x)}</li>` : `<li><label><input type="checkbox" data-am="item-tilde" data-id="${esc(x.id)}" ${x.hecho ? "checked" : ""}><span class="${x.hecho ? "am-hecho" : ""}">${esc(x.titulo)}${x.nota || extra ? `<br><small class="vacio">${esc([extra, x.nota].filter(Boolean).join(" · "))}</small>` : ""}</span></label>${x.fecha ? `<span class="tag">${esc(corta(x.fecha))}</span>` : ""}${lapiz(x)}</li>`;
   const lista = (l, vacio, f) => `<ul class="lista tps">${l.filter((x) => !x.hecho).map(f).join("") || `<li class="vacio">${vacio}</li>`}</ul>`;
   const hechos = (l, nombre, f) => l.some((x) => x.hecho) ? `<details class="mas"><summary>${nombre} (${l.filter((x) => x.hecho).length})</summary><ul class="lista tps">${l.filter((x) => x.hecho).map(f).join("")}</ul></details>` : "";
 
   // ---- Súper y menú ----
   const sup = doc.super || [];
-  const bSuper = `<section class="bloque am-sec"><h2>Lista del súper</h2>${pingu("super")}
+  const bSuper = `<section class="bloque am-sec"><h2>Lista del súper</h2>
     <ul class="lista">${sup.length ? sup.map((it) => `<li><label class="am-sup"><input type="checkbox" data-am="super-tilde" data-id="${esc(it.id)}" ${it.ok ? "checked" : ""}><span class="${it.ok ? "am-hecho" : ""}">${esc(it.t)}</span></label>
       <button class="am-x" data-am="super-borrar" data-id="${esc(it.id)}" aria-label="Sacar ${esc(it.t)}">${X}</button></li>`).join("") : '<li class="vacio">La lista está vacía.</li>'}</ul>
     <form class="form" data-am-form="super"><input name="texto" placeholder="Agregar algo" aria-label="Agregar a la lista" required autocomplete="off"><button class="btn">Sumar</button></form>
     ${sup.some((x) => x.ok) ? '<div class="chips" style="margin-top:10px"><button class="chip" data-am="super-limpiar">Sacar lo tildado</button></div>' : ""}</section>`;
   const menu = doc.menu || {};
-  const bMenu = `<section class="bloque am-sec"><h2>Menú de la semana</h2>${pingu("menu")}<div class="am-menu">${ORDEN.map((d) => `<label><span>${DIAS[d]}</span>
+  const bMenu = `<section class="bloque am-sec"><h2>Menú de la semana</h2><div class="am-menu">${ORDEN.map((d) => `<label><span>${DIAS[d]}</span>
     <input data-am-menu="${d}" value="${esc(menu[d] || "")}" placeholder="¿Qué se come?" autocomplete="off"></label>`).join("")}</div></section>`;
 
   // ---- ¿Dónde comemos? (dado + ranking plegado) ----
@@ -129,19 +149,25 @@ export function render(doc, hoy, { puedeTodo = false } = {}) {
   // ---- Para ver y planes ----
   const ver = items.filter((x) => x.tipo === "peli" || x.tipo === "serie");
   const fVer = (x) => tilde(x, x.tipo === "serie" ? "Serie" : "Peli");
-  const bVer = `<section class="bloque am-sec"><h2>Para ver</h2>${pingu("ver")}${lista(ver, "Nada en la lista todavía.", fVer)}${hechos(ver, "Vistas", fVer)}
+  const bVer = `<section class="bloque am-sec"><h2>Para ver</h2>${lista(ver, "Nada en la lista todavía.", fVer)}${hechos(ver, "Vistas", fVer)}
     <form class="form am-form" data-am-form="ver"><input name="titulo" placeholder="Peli o serie" aria-label="Sumar algo para ver" required autocomplete="off"><select name="tipo" aria-label="Qué es"><option value="peli">Peli</option><option value="serie">Serie</option></select><button class="btn">Sumar</button></form></section>`;
   const planes = items.filter((x) => x.tipo === "plan").sort((a, b) => (a.fecha || "9").localeCompare(b.fecha || "9"));
-  const bPlanes = `<section class="bloque am-sec"><h2>Planes y salidas</h2>${pingu("planes")}${lista(planes, "Ningún plan anotado.", (x) => tilde(x))}${hechos(planes, "Hechos", (x) => tilde(x))}
+  const bPlanes = `<section class="bloque am-sec"><h2>Planes</h2>${lista(planes, "Ningún plan anotado.", (x) => tilde(x))}${hechos(planes, "Hechos", (x) => tilde(x))}
     <form class="form am-form" data-am-form="plan"><input name="titulo" placeholder="Un plan (cena, salida…)" aria-label="Sumar un plan" required autocomplete="off"><input name="fecha" type="date" aria-label="Cuándo (opcional)"><button class="btn">Sumar</button></form></section>`;
 
-  // ---- Salidas culturales: entradas guardadas en un cajón ----
+  // ---- Salidas culturales: un cajón con las entradas, cerrado hasta que lo abrís ----
   const sal = items.filter((x) => x.tipo === "salida");
-  const bSal = `<section class="bloque am-sec"><h2>Salidas culturales</h2>${pingu("salidas")}
-    ${sal.length ? sal.map((x) => `<div class="am-ent"><span class="lado c-${esc(x.cat || "otro")}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">${ICO[x.cat] || ICO.otro}</svg>${CATS[x.cat] || "Salida"}</span>
+  const nVeces = sal.reduce((a, x) => a + (x.veces || 1), 0);
+  const cats = [...new Set(sal.map((x) => x.cat || "otro"))].slice(0, 4);
+  const bSal = `<details class="bloque am-sec am-cajon"${salidasAbierta || sal.some((x) => x.id === editando) ? " open" : ""} data-am-cajon>
+    <summary><span class="am-cajon-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5V6.8C3 6.4 3.4 6 3.8 6h16.4c.4 0 .8.4.8.8v1.7a2.5 2.5 0 000 5v1.7c0 .4-.4.8-.8.8H3.8c-.4 0-.8-.4-.8-.8v-1.7a2.5 2.5 0 000-5z" transform="rotate(-8 12 11)"/><path d="M9 7v9" stroke-dasharray="1.6 1.8" transform="rotate(-8 12 11)"/><path d="M5 18.5h14" opacity=".45"/></svg></span>
+      <span class="am-cajon-txt"><b>Salidas</b><small>${sal.length ? `${sal.length} ${sal.length === 1 ? "entrada" : "entradas"}${nVeces > sal.length ? ` · ${nVeces} salidas` : ""}` : "Todavía no hay entradas"}</small></span>
+      <span class="am-cajon-cats">${cats.map((c) => `<i class="c-${esc(c)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${ICO[c] || ICO.otro}</svg></i>`).join("")}</span></summary>
+    <div class="am-cajon-in">
+    ${sal.length ? sal.map((x) => editando === x.id ? `<div class="am-ent am-ent-ed">${edicion(x)}</div>` : `<div class="am-ent"><span class="lado c-${esc(x.cat || "otro")}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">${ICO[x.cat] || ICO.otro}</svg>${CATS[x.cat] || "Salida"}</span>
       <span class="cuerpo"><b>${esc(x.titulo)}</b>${x.nota ? `<small>${esc(x.nota)}</small>` : ""}</span>
-      <span class="am-vez">${(x.veces || 1) > 1 ? `<b>×${x.veces}</b>` : ""}<button data-am="item-mas" data-id="${esc(x.id)}" aria-label="Fuimos otra vez">+1</button></span></div>`).join("") : '<p class="vacio">Todavía no hay salidas.</p>'}
-    <form class="form am-form" data-am-form="salida"><input name="titulo" placeholder="Obra, recital, muestra…" aria-label="Sumar una salida" required autocomplete="off"><select name="cat" aria-label="Qué fue">${Object.entries(CATS).map(([k, v]) => `<option value="${k}">${v}</option>`).join("")}</select><button class="btn">Sumar</button></form></section>`;
+      <span class="am-vez">${(x.veces || 1) > 1 ? `<b>×${x.veces}</b>` : ""}${lapiz(x)}</span></div>`).join("") : '<p class="vacio">Cuando vayan a algo, guardalo acá.</p>'}
+    <form class="form am-form" data-am-form="salida"><input name="titulo" placeholder="Obra, recital, muestra…" aria-label="Sumar una salida" required autocomplete="off"><select name="cat" aria-label="Qué fue">${Object.entries(CATS).map(([k, v]) => `<option value="${k}">${v}</option>`).join("")}</select><button class="btn">Sumar</button></form></div></details>`;
 
   const docs = items.filter((x) => x.tipo === "doc" && /^https:\/\//.test(x.url));
   const bDocs = docs.length ? `<section class="bloque am-sec"><h2>Docs</h2><div class="chips">${docs.map((d) => `<a class="chip" href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.titulo)}</a>`).join("")}</div></section>` : "";
@@ -179,7 +205,10 @@ export function conectar({ cambio, aviso }) {
     const b = e.target.closest("[data-am]");
     if (!b || b.type === "checkbox") return;
     const t = b.dataset.am;
-    if (t === "super-borrar" || t === "item-borrar") hacer({ t, id: b.dataset.id });
+    if (t === "super-borrar") hacer({ t, id: b.dataset.id });
+    else if (t === "item-borrar") { editando = ""; hacer({ t, id: b.dataset.id }, "Borrado"); }
+    else if (t === "editar") { editando = b.dataset.id; local(); setTimeout(() => document.querySelector(".am-edita input")?.focus(), 30); }
+    else if (t === "no-editar") { editando = ""; local(); }
     else if (t === "super-limpiar") hacer({ t }, "Listo");
     else if (t === "item-mas") hacer({ t, id: b.dataset.id }, "¡Otra vez!");
     else if (t === "mundo") import("./mundo.js").then((m) => { const d = docLocal(); m.abrir(d, document.getElementById("am-globo"), extraMundo(d, new Date())); });
@@ -187,12 +216,10 @@ export function conectar({ cambio, aviso }) {
     else if (t === "rubro") { estadoGastro.rubro = b.dataset.v; estadoGastro.nuevo = false; estadoGastro.salio = null; local(); }
     else if (t === "nuevo") { estadoGastro.nuevo = !estadoGastro.nuevo; estadoGastro.rubro = ""; estadoGastro.salio = null; local(); }
     else if (t === "rk") { estadoGastro.rk = b.dataset.v; local(); }
-    else if (t === "pingu") {
-      if (b.classList.contains("chau")) return;
-      b.classList.add("habla"); try { sessionStorage.setItem("amor.pingu", "chau"); } catch (x) { /* nada */ }
-      setTimeout(() => b.classList.add("chau"), 1400); setTimeout(() => b.remove(), 3200);
-    }
   });
+  // El cajón de salidas recuerda si quedó abierto cuando se repinta.
+  document.addEventListener("toggle", (e) => { if (e.target.matches?.("[data-am-cajon]")) salidasAbierta = e.target.open; }, true);
+  pinguino();
   document.addEventListener("change", (e) => {
     const el = e.target;
     if (el.dataset?.am === "super-tilde") hacer({ t: "super-tilde", id: el.dataset.id, ok: el.checked });
@@ -208,10 +235,47 @@ export function conectar({ cambio, aviso }) {
     if (k === "super") hacer({ t: "super-sumar", texto: d.texto });
     else if (k === "plan") hacer({ t: "item-sumar", item: { tipo: "plan", titulo: d.titulo, fecha: d.fecha } }, "Plan anotado");
     else if (k === "ver") hacer({ t: "item-sumar", item: { tipo: d.tipo, titulo: d.titulo } }, "Anotado");
+    else if (k === "editar") { const id = f.dataset.id; editando = ""; hacer({ t: "item-editar", id, cambios: d }, "Guardado"); return; }
     else if (k === "salida") hacer({ t: "item-sumar", item: { tipo: "salida", titulo: d.titulo, cat: d.cat, hecho: true } }, "Anotada");
     else if (k === "otro") hacer({ t: "item-sumar", item: { tipo: d.tipo, titulo: d.titulo, fecha: d.fecha, nota: d.nota, url: d.url } }, "Agregado");
     setTimeout(() => document.querySelector(`[data-am-form="${k}"] input`)?.focus(), 50);
   });
+}
+
+// ---------- El pingüino que corre ----------
+// Aparece solo en Amorcitos: un rato después de entrar, cruza caminando por abajo; si nadie lo agarra, vuelve más tarde.
+let pinguHora = 0;
+function pinguino() {
+  const dormido = () => { try { return sessionStorage.getItem("amor.pingu") === "chau"; } catch (e) { return false; } };
+  const prueba = new URLSearchParams(location.search).has("pingu");
+  const programar = (s) => { clearTimeout(pinguHora); pinguHora = setTimeout(cruzar, s * 1000); };
+  function cruzar() {
+    if (dormido() && !prueba) return;
+    if (!document.querySelector(".am-portada") || document.hidden || document.querySelector(".mu-capa")) return programar(8);
+    const quieto = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const b = document.createElement("button");
+    b.className = "am-pingu"; b.setAttribute("aria-label", "Un pingüino"); b.innerHTML = PINGU + '<span class="am-wow" aria-hidden="true">!</span><span class="am-globito">¡te amo!</span>';
+    const izq = Math.random() < .5, w = innerWidth, ida = izq ? [-60, w + 10] : [w + 10, -60];
+    if (!izq) b.classList.add("vuelta");
+    document.body.append(b);
+    const dur = quieto ? 0 : 7000 + Math.random() * 2500;
+    const paso = quieto ? null : b.animate([{ transform: `translateX(${ida[0]}px)` }, { transform: `translateX(${ida[1]}px)` }], { duration: dur, easing: "linear", fill: "forwards" });
+    if (quieto) { b.style.transform = `translateX(${w - 70}px)`; }
+    const fin = () => { b.remove(); programar(35 + Math.random() * 40); };
+    if (paso) paso.onfinish = () => { if (!b.classList.contains("agarrado")) fin(); }; else setTimeout(() => { if (!b.classList.contains("agarrado")) fin(); }, 9000);
+    b.addEventListener("click", () => {
+      if (b.classList.contains("agarrado")) return;
+      b.classList.add("agarrado");
+      const r = b.getBoundingClientRect(); b.classList.toggle("bi", r.left > innerWidth / 2);
+      if (paso) { paso.commitStyles?.(); paso.cancel(); }
+      try { sessionStorage.setItem("amor.pingu", "chau"); } catch (e) { /* nada */ }
+      setTimeout(() => b.classList.add("rojo"), 450);
+      setTimeout(() => b.classList.add("habla"), 750);
+      setTimeout(() => b.classList.add("chau"), 2600);
+      setTimeout(() => b.remove(), 3500);
+    }, { once: false });
+  }
+  programar(prueba ? 1 : 6 + Math.random() * 8);
 }
 
 // ---------- Gastronomía: lee el doc de Nacho (texto plano) ----------
