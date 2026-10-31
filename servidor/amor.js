@@ -8,8 +8,9 @@ const NOVENTA_DIAS = 90 * 24 * 3600;
 export const cookieAmor = (v) => `${COOKIE_AMOR}=${encodeURIComponent(v)}; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=${NOVENTA_DIAS}`;
 export const borrarAmor = () => `${COOKIE_AMOR}=; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=0`;
 const CLAVE = "amor:doc";
-const TIPOS = ["plan", "peli", "serie", "fecha", "viaje", "vuelo", "doc"];
-const TIPOS_AGUS = ["plan", "peli", "serie"];
+const TIPOS = ["plan", "peli", "serie", "fecha", "viaje", "vuelo", "doc", "lugar", "salida"];
+const TIPOS_AGUS = ["plan", "peli", "serie", "salida"];
+const CATS = ["recital", "concierto", "jazz", "teatro", "feria", "cine", "museo", "otro"];
 
 // ¿Quién es? Nacho (con su sesión de Orbe o la de Amorcitos) o Agus (solo con la de Amorcitos).
 export async function quien(request, env) {
@@ -38,7 +39,13 @@ const fechaOk = (f) => /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$/.test(String(f || "")
 const urlOk = (u) => /^https:\/\/[^\s"<>]+$/.test(String(u || "")) ? String(u).slice(0, 400) : "";
 function item(x) {
   const tipo = TIPOS.includes(x.tipo) ? x.tipo : "plan";
-  return { id: txt(x.id, 20) || id(), tipo, titulo: txt(x.titulo, 120), fecha: fechaOk(x.fecha), nota: txt(x.nota, 160), hecho: !!x.hecho, url: urlOk(x.url) };
+  const o = { id: txt(x.id, 20) || id(), tipo, titulo: txt(x.titulo, 120), fecha: fechaOk(x.fecha), nota: txt(x.nota, 160), hecho: !!x.hecho, url: urlOk(x.url) };
+  if (tipo === "lugar") {
+    const la = Number(x.lat), lo = Number(x.lon);
+    Object.assign(o, { pais: txt(x.pais, 40), iso: /^\d{3}$/.test(String(x.iso || "")) ? String(x.iso) : "", lat: la >= -90 && la <= 90 ? Math.round(la * 1e4) / 1e4 : 0, lon: lo >= -180 && lo <= 180 ? Math.round(lo * 1e4) / 1e4 : 0 });
+  }
+  if (tipo === "salida") Object.assign(o, { cat: CATS.includes(x.cat) ? x.cat : "otro", veces: Math.max(1, Math.min(99, Math.round(Number(x.veces) || 1))) });
+  return o;
 }
 
 // Cada cambio es una operación chiquita que se aplica sobre lo último guardado: si los dos tocan a la vez, no se pisan.
@@ -55,6 +62,23 @@ export async function aplicar(env, rol, op) {
     if (!x.titulo) throw new Error("vacio");
     if (rol === "agus" && !TIPOS_AGUS.includes(x.tipo)) throw new Error("permiso");
     d.items.push(x); if (d.items.length > 400) throw new Error("lleno");
+  }
+  else if (t === "item-mas") {
+    const x = d.items.find((i) => i.id === op.id && i.tipo === "salida");
+    if (x) x.veces = Math.max(1, Math.min(99, (x.veces || 1) + (op.menos ? -1 : 1)));
+  }
+  // Solo Nacho: los viajes y salidas de arranque (desde su Drive) y la lista de Gastronomía (de su doc).
+  else if (t === "sembrar") {
+    if (rol !== "nacho") throw new Error("permiso");
+    const ya = new Set(d.items.map((i) => i.tipo + "|" + i.titulo.toLowerCase()));
+    [...(op.lugares || []).map((x) => ({ ...x, tipo: "lugar" })), ...(op.salidas || []).map((x) => ({ ...x, tipo: "salida" }))].slice(0, 300).forEach((x) => {
+      const it = item(x); if (it.titulo && !ya.has(it.tipo + "|" + it.titulo.toLowerCase())) { d.items.push(it); ya.add(it.tipo + "|" + it.titulo.toLowerCase()); }
+    });
+  }
+  else if (t === "gastro") {
+    if (rol !== "nacho") throw new Error("permiso");
+    const lista = (op.lista || []).slice(0, 400).map((g) => ({ rubro: txt(g.rubro, 40), nombre: txt(g.nombre, 80), puntaje: Number(g.puntaje) >= 0 && Number(g.puntaje) <= 5 ? Number(g.puntaje) : null, lugar: txt(g.lugar, 60), porIr: !!g.porIr, afuera: !!g.afuera })).filter((g) => g.nombre);
+    d.gastro = { cuando: Date.now(), firma: txt(op.firma, 40), lista };
   }
   else if (t === "item-tilde" || t === "item-borrar") {
     const x = d.items.find((i) => i.id === op.id);
@@ -76,4 +100,4 @@ export async function importar(env, doc) {
   return { d: await guardarDoc(env, d), importado: true };
 }
 // Lo que ve Agus: todo el documento (no tiene nada más). Se manda igual a los dos.
-export const paraVer = (d) => ({ super: d.super, menu: d.menu, items: d.items, rev: d.rev, cuando: d.cuando });
+export const paraVer = (d) => ({ super: d.super, menu: d.menu, items: d.items, gastro: d.gastro || null, rev: d.rev, cuando: d.cuando });

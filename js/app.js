@@ -50,7 +50,7 @@ import { renderChecklists, formChecklist, crear as crearChecklist, tildar as til
 import { renderIdeas, renderFicha, renderPropuestas, proyectos as listaProyectos, paraCosmos, destinosIdea, textosIdeas } from "./proyectosui.js";
 import { leerCentral, leerPropuestas, responderPropuesta } from "./central.js";
 import { leerPromos } from "./promos.js";
-import { traer as traerAmor, importar as importarAmor, conectar as conectarAmor } from "./amor.js";
+import { docLocal as docAmorLocal, traer as traerAmor, importar as importarAmor, conectar as conectarAmor, op as opAmor, montarMundo, leerGastro } from "./amor.js";
 import { guardarCuentas, filaCuentaEd } from "./cuentas.js";
 import { elegirLogo } from "./proyectosid.js";
 
@@ -175,6 +175,8 @@ function pintar(refresco = false) {
   montarCosmos(r);
   // Amorcitos: lo compartido con Agus se trae del servidor cada vez que abrís el universo.
   if (r === "/u/agus" && !refresco) abrirAmor();
+  if (r === "/u/agus") montarMundo(docAmorLocal()).catch(() => {});
+  else import("./mundo.js").then((m) => m.montarPortada(null)).catch(() => {});
   // Tu sueldo en dólares: el dólar de cada mes se baja recién cuando abrís la página.
   if (r === "/d/dolares" && !datosDolarMeses()) traerDolarMeses().then((d) => { if (d && ruta() === "/d/dolares") pintar(true); });
   const lector = app.querySelector(".lector-ed");
@@ -202,9 +204,34 @@ function abrirAmor() {
     const locales = { super: leer("super", []), menu: leer("menu", {}), items: (datosListas()?.agus || []).map((x) => ({ tipo: x.tipo, titulo: x.titulo, fecha: x.fecha, nota: x.nota, hecho: x.hecho, url: x.url })) };
     if (vacio && (locales.super.length || locales.items.length || Object.values(locales.menu).some(Boolean))) { await importarAmor(locales); avisar("Amorcitos listo para compartir con Agus"); }
     if (ruta() === "/u/agus") pintar(true);
+    // Los viajes y salidas de arranque (de tu Drive) y la lista del doc Gastronomía: viven en tu Drive, Orbe los pasa a lo compartido.
+    if (G.permisos().drive) sincronizarAmor(docAmorLocal() || d).then((n) => { if (n && ruta() === "/u/agus") pintar(true); }).catch(() => {});
   }).catch(() => {}).finally(() => { trayendoAmor = null; });
 }
-conectarAmor({ cambio: () => { vibrar(); if (ruta() === "/u/agus") pintar(true); }, aviso: (t) => avisar(t) });
+conectarAmor({ cambio: (d, local) => { if (!local) vibrar(); if (ruta() === "/u/agus") pintar(true); }, aviso: (t) => avisar(t) });
+async function sincronizarAmor(d) {
+  const DRIVE = "https://www.googleapis.com/drive/v3/files";
+  let cambio = false;
+  if (!d.items.some((x) => x.tipo === "lugar" || x.tipo === "salida")) {
+    const r = await G.api(DRIVE + "?fields=files(id)&pageSize=1&q=" + encodeURIComponent("name contains 'Orbe · amorcitos · semilla' and trashed = false"));
+    const f = r.files?.[0];
+    if (f) {
+      const j = await (await fetch(DRIVE + "/" + f.id + "?alt=media", { headers: { Authorization: "Bearer " + await G.pedirPase() } })).json();
+      await opAmor({ t: "sembrar", lugares: j.lugares || [], salidas: j.salidas || [] }); cambio = true;
+    }
+  }
+  // Gastronomía: cada 6 horas como mucho; solo se manda si el doc cambió.
+  const doc = d.items.find((x) => x.tipo === "doc" && /gastronom/i.test(x.titulo) && /docs\.google\.com\/document\/d\//.test(x.url));
+  const idDoc = doc && /\/d\/([\w-]{20,})/.exec(doc.url)?.[1];
+  if (idDoc && Date.now() - (leer("gastroCuando") || 0) > 6 * 3600000) {
+    const t = await (await fetch(DRIVE + "/" + idDoc + "/export?mimeType=text/plain", { headers: { Authorization: "Bearer " + await G.pedirPase() } })).text();
+    guardar("gastroCuando", Date.now(), true);
+    let h = 0; for (const c of t) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+    const firma = String(h);
+    if (firma !== d.gastro?.firma) { const lista = leerGastro(t); if (lista.length) { await opAmor({ t: "gastro", firma, lista }); cambio = true; } }
+  }
+  return cambio;
+}
 function montarCosmos(r) {
   const caja = r === "/u/proyectos" ? document.getElementById("cosmos") : null;
   if (!caja) { cosmos?.parar(); return; }

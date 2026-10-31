@@ -1,5 +1,5 @@
 // Amorcitos para Agus: solo esto. No carga Orbe ni ve nada de Nacho fuera de lo que comparten.
-import { usarClave, docLocal, traer, render, conectar } from "/js/amor.js";
+import { usarClave, docLocal, traer, render, conectar, montarMundo } from "/js/amor.js";
 
 usarClave("amor.doc");
 const app = document.getElementById("app");
@@ -9,7 +9,7 @@ tema(); matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", 
 let doc = docLocal();
 const cab = `<header class="amor-cab"><h1><span class="amor-cor" aria-hidden="true">♥</span> Amorcitos</h1><button class="chip" id="salir">Salir</button></header>
   <p class="bajada">Lo de los dos: súper, menú, planes, pelis y fechas.</p>`;
-function pintar() { app.innerHTML = cab + render(doc, new Date(), { puedeTodo: doc?.yo === "nacho" }); }
+function pintar() { app.innerHTML = cab + render(doc, new Date(), { puedeTodo: doc?.yo === "nacho" }); montarMundo(doc).catch(() => {}); }
 function entrar(error) {
   const txt = error === "cuenta" ? "Esa cuenta de Google no tiene acceso a Amorcitos." : error ? "No se pudo entrar. Probá de nuevo." : "";
   app.innerHTML = `<header class="amor-cab"><h1><span class="amor-cor" aria-hidden="true">♥</span> Amorcitos</h1></header>
@@ -22,6 +22,7 @@ let tAviso;
 function aviso(t) { const a = document.getElementById("aviso"); a.textContent = t; a.classList.add("ver"); clearTimeout(tAviso); tAviso = setTimeout(() => a.classList.remove("ver"), 2200); }
 
 conectar({ cambio: (d) => { doc = d; pintar(); }, aviso });
+matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", () => pintar());
 document.addEventListener("click", (e) => {
   if (e.target.id !== "salir") return;
   fetch("/api/amor/salir", { method: "POST", credentials: "same-origin" }).finally(() => { try { localStorage.removeItem("amor.doc"); } catch (x) { /* nada */ } doc = null; entrar(); });

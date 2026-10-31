@@ -48,55 +48,132 @@ const cuando = (n) => n === 0 ? "¡hoy!" : n === 1 ? "mañana" : "en " + n + " d
 const corta = (iso) => { const d = new Date(iso.length > 10 ? iso : iso + "T12:00"); return DIAS[d.getDay()] + " " + d.getDate() + "/" + (d.getMonth() + 1) + (iso.length > 10 ? " · " + iso.slice(11, 16) : ""); };
 
 // ---------- Pantalla ----------
-// puedeTodo: Nacho (también suma fechas, viaje, vuelos y docs). Agus suma y tilda súper, menú, planes y pelis.
+// Orden (Nacho, 31/10): el mundito chiquito arriba (se abre en grande), súper, menú, ¿dónde comemos?,
+// para ver, planes, salidas culturales y docs.
+const CATS = { recital: "Recital", concierto: "Concierto", jazz: "Jazz", teatro: "Teatro", feria: "Feria", cine: "Cine", museo: "Museo", otro: "Salida" };
+const ICO = {
+  recital: '<path d="M12 3a3 3 0 013 3v5a3 3 0 01-6 0V6a3 3 0 013-3zM6 11a6 6 0 0012 0M12 17v4"/>',
+  concierto: '<path d="M9 18V5l11-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/>',
+  jazz: '<path d="M5 19c3 0 4-2 5-5l3-9h3"/><circle cx="7" cy="18" r="3"/>',
+  teatro: '<path d="M4 5h9v6a4.5 4.5 0 01-9 0z"/><path d="M11 9h9v6a4.5 4.5 0 01-9 0"/>',
+  feria: '<path d="M3 9l9-5 9 5M5 9v10h14V9M10 19v-5h4v5"/>',
+  cine: '<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M8 6l2 4M14 6l2 4"/>',
+  museo: '<path d="M3 10l9-6 9 6M5 10v8M9 10v8M15 10v8M19 10v8M3 20h18"/>', otro: '<circle cx="12" cy="12" r="8"/><path d="M12 8v8M8 12h8"/>' };
+const PINGU = '<svg viewBox="0 0 40 48" aria-hidden="true"><ellipse cx="20" cy="28" rx="13" ry="17" fill="#1b1b22"/><ellipse cx="20" cy="31" rx="8.5" ry="12.5" fill="#fff"/><circle cx="20" cy="12" r="9" fill="#1b1b22"/><ellipse cx="20" cy="14" rx="5.5" ry="5" fill="#fff"/><circle cx="17.6" cy="12.5" r="1.3" fill="#111"/><circle cx="22.4" cy="12.5" r="1.3" fill="#111"/><path d="M18.4 15.2l1.6 2 1.6-2z" fill="#F2A33A"/><path d="M9 26c-4 4-4 9-2 10M31 26c4 4 4 9 2 10" stroke="#1b1b22" stroke-width="3" fill="none" stroke-linecap="round"/><ellipse cx="15" cy="45" rx="4" ry="2" fill="#F2A33A"/><ellipse cx="25" cy="45" rx="4" ry="2" fill="#F2A33A"/><circle cx="13.5" cy="16" r="1.4" fill="#F4A3B3"/><circle cx="26.5" cy="16" r="1.4" fill="#F4A3B3"/></svg>';
+// El pingüino se esconde en un lugar distinto cada vez que se abre la página (y no siempre aparece).
+const LUGAR_PINGU = (() => { try { if (sessionStorage.getItem("amor.pingu") === "chau") return null; } catch (e) { /* nada */ } return Math.random() < .55 ? ["super", "menu", "ver", "planes", "salidas"][Math.floor(Math.random() * 5)] : null; })();
+const pingu = (donde) => LUGAR_PINGU === donde ? `<button class="am-pingu" data-am="pingu" aria-label="Un pingüino">${PINGU}<span class="am-globito">¡te amo!</span></button>` : "";
+let estadoGastro = { rubro: "", nuevo: false, salio: null, rk: "" };
+
+function gastroLista(doc) { return (doc.gastro?.lista || []).filter((g) => g.nombre); }
+function dado(doc) {
+  const l = gastroLista(doc).filter((g) => !g.afuera && (estadoGastro.nuevo ? g.porIr : !g.porIr) && (!estadoGastro.rubro || g.rubro === estadoGastro.rubro));
+  if (!l.length) return null;
+  // Los de mejor puntaje salen un poco más seguido.
+  const pesos = l.map((g) => g.porIr ? 1 : Math.max(.3, (g.puntaje || 3) - 2.5));
+  let r = Math.random() * pesos.reduce((a, b) => a + b, 0);
+  for (let i = 0; i < l.length; i++) { r -= pesos[i]; if (r <= 0) return l[i]; }
+  return l[l.length - 1];
+}
+const maps = (g) => "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent([g.nombre, g.lugar, "Buenos Aires"].filter(Boolean).join(" "));
+
 export function render(doc, hoy, { puedeTodo = false } = {}) {
   if (!doc) return `<section class="bloque"><p class="vacio">Cargando Amorcitos…</p></section>`;
   const items = doc.items || [];
+  // ---- Portada: el mundito y lo que se viene ----
   const fechas = items.filter((x) => x.tipo === "fecha" && x.fecha).map((x) => {
     const p = /anual/i.test(x.nota) ? proximaAnual(x.fecha, hoy) : { fecha: desde(x.fecha), dias: diasA(x.fecha, hoy) };
     return { ...x, cuando: p.fecha, dias: p.dias };
   }).filter((x) => x.dias >= 0).sort((a, b) => a.dias - b.dias);
   const viaje = items.filter((x) => x.tipo === "viaje" && x.fecha && diasA(x.fecha, hoy) >= 0).sort((a, b) => a.fecha.localeCompare(b.fecha))[0];
-  const vuelos = items.filter((x) => x.tipo === "vuelo" && x.fecha).sort((a, b) => a.fecha.localeCompare(b.fecha));
-  const borrar = (x) => puedeTodo ? `<button class="am-x" data-am="item-borrar" data-id="${esc(x.id)}" aria-label="Sacar ${esc(x.titulo)}">${X}</button>` : "";
-  const cuenta = (viaje || fechas.length) ? `<section class="bloque"><h2>Cuenta regresiva</h2>
-    ${viaje ? `<div class="regresiva"><span class="cifra">${diasA(viaje.fecha, hoy)}</span><span><b>${diasA(viaje.fecha, hoy) === 1 ? "día" : "días"} para ${esc(viaje.titulo)}</b><br><span class="vacio">${esc(viaje.nota || corta(viaje.fecha))}</span></span>${borrar(viaje)}</div>` : ""}
-    ${fechas.length ? `<ul class="lista" style="margin-top:${viaje ? 14 : 0}px">${fechas.map((x) => `<li><span>${esc(x.titulo)}<br><small class="vacio">${x.cuando.getDate()} de ${MESES[x.cuando.getMonth()]}</small></span><span class="der">${cuando(x.dias)}${borrar(x)}</span></li>`).join("")}</ul>` : ""}
-    ${vuelos.length ? `<details class="mas"><summary>Vuelos (${vuelos.length})</summary><ul class="lista">${vuelos.map((v) => `<li><span>${esc(v.titulo)}<br><small class="vacio">${esc(v.nota)}</small></span><span class="der">${esc(corta(v.fecha))}${borrar(v)}</span></li>`).join("")}</ul></details>` : ""}</section>` : "";
+  const lugares = items.filter((x) => x.tipo === "lugar");
+  const nFui = lugares.filter((x) => x.hecho).length, nPaises = new Set(lugares.filter((x) => x.hecho).map((x) => x.iso)).size;
+  const prox = [...(viaje ? [{ t: viaje.titulo, d: diasA(viaje.fecha, hoy), viaje: true }] : []), ...fechas.slice(0, 2).map((x) => ({ t: x.titulo, d: x.dias }))];
+  const portada = `<section class="bloque am-portada"><div class="am-globo" id="am-globo" role="button" tabindex="0" aria-label="Abrir nuestro mundo" data-am="mundo"></div>
+    <div class="am-port-txt"><span class="am-k">Nuestro mundo</span>
+      <b class="am-port-n">${nFui ? `${nFui} lugares · ${nPaises} ${nPaises === 1 ? "país" : "países"}` : "Todavía sin lugares"}</b>
+      ${prox.length ? `<ul>${prox.map((p) => `<li${p.viaje ? ' class="viaje"' : ""}><span>${esc(p.t)}</span><b>${cuando(p.d)}</b></li>`).join("")}</ul>` : ""}
+      <button class="am-abrir" data-am="mundo">Abrir el mundo ›</button></div></section>`;
 
+  const borrar = (x) => puedeTodo ? `<button class="am-x" data-am="item-borrar" data-id="${esc(x.id)}" aria-label="Sacar ${esc(x.titulo)}">${X}</button>` : "";
   const tilde = (x, extra = "") => `<li><label><input type="checkbox" data-am="item-tilde" data-id="${esc(x.id)}" ${x.hecho ? "checked" : ""}><span class="${x.hecho ? "am-hecho" : ""}">${esc(x.titulo)}${x.nota || extra ? `<br><small class="vacio">${esc([extra, x.nota].filter(Boolean).join(" · "))}</small>` : ""}</span></label>${x.fecha ? `<span class="tag">${esc(corta(x.fecha))}</span>` : ""}<button class="am-x" data-am="item-borrar" data-id="${esc(x.id)}" aria-label="Sacar ${esc(x.titulo)}">${X}</button></li>`;
   const lista = (l, vacio, f) => `<ul class="lista tps">${l.filter((x) => !x.hecho).map(f).join("") || `<li class="vacio">${vacio}</li>`}</ul>`;
   const hechos = (l, nombre, f) => l.some((x) => x.hecho) ? `<details class="mas"><summary>${nombre} (${l.filter((x) => x.hecho).length})</summary><ul class="lista tps">${l.filter((x) => x.hecho).map(f).join("")}</ul></details>` : "";
-  const planes = items.filter((x) => x.tipo === "plan").sort((a, b) => (a.fecha || "9").localeCompare(b.fecha || "9"));
-  const ver = items.filter((x) => x.tipo === "peli" || x.tipo === "serie");
-  const fVer = (x) => tilde(x, x.tipo === "serie" ? "Serie" : "Peli");
-  const bPlanes = `<section class="bloque"><h2>Planes y salidas</h2>${lista(planes, "Ningún plan anotado.", (x) => tilde(x))}${hechos(planes, "Hechos", (x) => tilde(x))}
-    <form class="form am-form" data-am-form="plan"><input name="titulo" placeholder="Un plan (cena, salida…)" aria-label="Sumar un plan" required autocomplete="off"><input name="fecha" type="date" aria-label="Cuándo (opcional)"><button class="btn">Sumar</button></form></section>`;
-  const bVer = `<section class="bloque"><h2>Para ver</h2>${lista(ver, "Nada en la lista todavía.", fVer)}${hechos(ver, "Vistas", fVer)}
-    <form class="form am-form" data-am-form="ver"><input name="titulo" placeholder="Peli o serie" aria-label="Sumar algo para ver" required autocomplete="off"><select name="tipo" aria-label="Qué es"><option value="peli">Peli</option><option value="serie">Serie</option></select><button class="btn">Sumar</button></form></section>`;
-  const docs = items.filter((x) => x.tipo === "doc" && /^https:\/\//.test(x.url));
-  const bDocs = docs.length ? `<section class="bloque"><h2>Docs</h2><div class="chips">${docs.map((d) => `<a class="chip" href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.titulo)}</a>`).join("")}</div></section>` : "";
 
+  // ---- Súper y menú ----
   const sup = doc.super || [];
-  const bSuper = `<section class="bloque"><h2>Lista del súper</h2>
+  const bSuper = `<section class="bloque am-sec"><h2>Lista del súper</h2>${pingu("super")}
     <ul class="lista">${sup.length ? sup.map((it) => `<li><label class="am-sup"><input type="checkbox" data-am="super-tilde" data-id="${esc(it.id)}" ${it.ok ? "checked" : ""}><span class="${it.ok ? "am-hecho" : ""}">${esc(it.t)}</span></label>
       <button class="am-x" data-am="super-borrar" data-id="${esc(it.id)}" aria-label="Sacar ${esc(it.t)}">${X}</button></li>`).join("") : '<li class="vacio">La lista está vacía.</li>'}</ul>
     <form class="form" data-am-form="super"><input name="texto" placeholder="Agregar algo" aria-label="Agregar a la lista" required autocomplete="off"><button class="btn">Sumar</button></form>
     ${sup.some((x) => x.ok) ? '<div class="chips" style="margin-top:10px"><button class="chip" data-am="super-limpiar">Sacar lo tildado</button></div>' : ""}</section>`;
   const menu = doc.menu || {};
-  const bMenu = `<section class="bloque"><h2>Menú de la semana</h2><div class="am-menu">${ORDEN.map((d) => `<label><span>${DIAS[d]}</span>
+  const bMenu = `<section class="bloque am-sec"><h2>Menú de la semana</h2>${pingu("menu")}<div class="am-menu">${ORDEN.map((d) => `<label><span>${DIAS[d]}</span>
     <input data-am-menu="${d}" value="${esc(menu[d] || "")}" placeholder="¿Qué se come?" autocomplete="off"></label>`).join("")}</div></section>`;
+
+  // ---- ¿Dónde comemos? (dado + ranking plegado) ----
+  const gl = gastroLista(doc);
+  const rubros = [...new Set(gl.filter((g) => !g.afuera && !g.porIr).map((g) => g.rubro))];
+  const s = estadoGastro.salio;
+  const rk = rubros.includes(estadoGastro.rk) ? estadoGastro.rk : rubros[0];
+  const ranking = gl.filter((g) => g.rubro === rk && !g.afuera && !g.porIr && g.puntaje != null).sort((a, b) => b.puntaje - a.puntaje);
+  const bComer = gl.length ? `<section class="bloque am-sec am-comer"><div class="am-dado-fila"><button class="am-dado" data-am="dado" aria-label="Tirar el dado"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><circle cx="8.5" cy="8.5" r="1.3" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.3" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.3" fill="currentColor"/></svg></button>
+      <span><b>¿Dónde comemos?</b><small>Tocá el dado, o elegí del ranking.</small></span></div>
+    ${s ? `<div class="am-salio"><span class="am-k">${s.porIr ? "Algo nuevo" : "Salió"} · ${esc(s.rubro)}</span><h3>${esc(s.nombre)}</h3><span class="am-meta">${s.porIr ? "Todavía no fueron: lo anotaron «por ir»" : s.puntaje != null ? `<span class="am-estr">★ ${String(s.puntaje).replace(".", ",")}</span> · el puntaje que le pusieron` : ""}${s.lugar ? " · " + esc(s.lugar) : ""}</span>
+      <div class="chips"><a class="chip" href="${esc(maps(s))}" target="_blank" rel="noopener">Cómo llegar</a><button class="chip" data-am="dado">Otro ↻</button></div></div>` : ""}
+    <div class="am-filt">${[["", "Cualquiera"], ...rubros.map((r) => [r, r])].map(([v, t]) => `<button class="chip ${!estadoGastro.nuevo && estadoGastro.rubro === v ? "on" : ""}" data-am="rubro" data-v="${esc(v)}">${esc(t)}</button>`).join("")}<button class="chip ${estadoGastro.nuevo ? "on" : ""}" data-am="nuevo">Algo nuevo (por ir)</button></div>
+    ${rk ? `<details class="mas am-rk"><summary>Ranking</summary><div class="am-pest">${rubros.map((r) => `<button class="${r === rk ? "on" : ""}" data-am="rk" data-v="${esc(r)}">${esc(r)}</button>`).join("")}</div>
+      <ol class="am-rank">${ranking.map((g, i) => `<li><span class="n">${i + 1}</span><span class="x">${esc(g.nombre)}${g.lugar ? ` <small>${esc(g.lugar)}</small>` : ""}</span><span class="am-estr">★ ${String(g.puntaje).replace(".", ",")}</span></li>`).join("")}</ol>
+      <p class="fuente-dato">Sale del doc Gastronomía. Los de afuera (Madrid, Colonia, Nápoles…) no entran en el dado.</p></details>` : ""}</section>` : "";
+
+  // ---- Para ver y planes ----
+  const ver = items.filter((x) => x.tipo === "peli" || x.tipo === "serie");
+  const fVer = (x) => tilde(x, x.tipo === "serie" ? "Serie" : "Peli");
+  const bVer = `<section class="bloque am-sec"><h2>Para ver</h2>${pingu("ver")}${lista(ver, "Nada en la lista todavía.", fVer)}${hechos(ver, "Vistas", fVer)}
+    <form class="form am-form" data-am-form="ver"><input name="titulo" placeholder="Peli o serie" aria-label="Sumar algo para ver" required autocomplete="off"><select name="tipo" aria-label="Qué es"><option value="peli">Peli</option><option value="serie">Serie</option></select><button class="btn">Sumar</button></form></section>`;
+  const planes = items.filter((x) => x.tipo === "plan").sort((a, b) => (a.fecha || "9").localeCompare(b.fecha || "9"));
+  const bPlanes = `<section class="bloque am-sec"><h2>Planes y salidas</h2>${pingu("planes")}${lista(planes, "Ningún plan anotado.", (x) => tilde(x))}${hechos(planes, "Hechos", (x) => tilde(x))}
+    <form class="form am-form" data-am-form="plan"><input name="titulo" placeholder="Un plan (cena, salida…)" aria-label="Sumar un plan" required autocomplete="off"><input name="fecha" type="date" aria-label="Cuándo (opcional)"><button class="btn">Sumar</button></form></section>`;
+
+  // ---- Salidas culturales: entradas guardadas en un cajón ----
+  const sal = items.filter((x) => x.tipo === "salida");
+  const bSal = `<section class="bloque am-sec"><h2>Salidas culturales</h2>${pingu("salidas")}
+    ${sal.length ? sal.map((x) => `<div class="am-ent"><span class="lado c-${esc(x.cat || "otro")}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">${ICO[x.cat] || ICO.otro}</svg>${CATS[x.cat] || "Salida"}</span>
+      <span class="cuerpo"><b>${esc(x.titulo)}</b>${x.nota ? `<small>${esc(x.nota)}</small>` : ""}</span>
+      <span class="am-vez">${(x.veces || 1) > 1 ? `<b>×${x.veces}</b>` : ""}<button data-am="item-mas" data-id="${esc(x.id)}" aria-label="Fuimos otra vez">+1</button></span></div>`).join("") : '<p class="vacio">Todavía no hay salidas.</p>'}
+    <form class="form am-form" data-am-form="salida"><input name="titulo" placeholder="Obra, recital, muestra…" aria-label="Sumar una salida" required autocomplete="off"><select name="cat" aria-label="Qué fue">${Object.entries(CATS).map(([k, v]) => `<option value="${k}">${v}</option>`).join("")}</select><button class="btn">Sumar</button></form></section>`;
+
+  const docs = items.filter((x) => x.tipo === "doc" && /^https:\/\//.test(x.url));
+  const bDocs = docs.length ? `<section class="bloque am-sec"><h2>Docs</h2><div class="chips">${docs.map((d) => `<a class="chip" href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.titulo)}</a>`).join("")}</div></section>` : "";
 
   const bNacho = puedeTodo ? `<details class="bloque plegable"><summary>Sumar una fecha, el viaje, un vuelo o un doc</summary>
     <form class="form am-form am-otro" data-am-form="otro"><select name="tipo" aria-label="Qué es"><option value="fecha">Fecha (aniversario, cumple)</option><option value="viaje">Viaje</option><option value="vuelo">Vuelo</option><option value="doc">Doc (link)</option></select>
       <input name="titulo" placeholder="Nombre" required autocomplete="off"><input name="fecha" type="date" aria-label="Fecha"><input name="nota" placeholder="Nota (para que se repita cada año, poné «anual»)" autocomplete="off"><input name="url" placeholder="Link del doc (https://…)" autocomplete="off"><button class="btn">Sumar</button></form>
-    <p class="fuente-dato">Agus ve todo esto, pero solo vos sumás o sacás fechas, viaje, vuelos y docs.</p></details>` : "";
-  return cuenta + bSuper + bMenu + bPlanes + bVer + bDocs + bNacho;
+    <p class="fuente-dato">Agus ve todo esto, pero solo vos sumás o sacás fechas, viaje, vuelos y docs. Los lugares del mundito salen de «Orbe · amorcitos · semilla» en tu Drive.</p></details>` : "";
+  return portada + bSuper + bMenu + bComer + bVer + bPlanes + bSal + bDocs + bNacho;
+}
+
+// Lo que va en el mundo grande, además del globo: la cuenta regresiva y los vuelos.
+export function extraMundo(doc, hoy) {
+  const items = doc?.items || [];
+  const viaje = items.filter((x) => x.tipo === "viaje" && x.fecha && diasA(x.fecha, hoy) >= 0).sort((a, b) => a.fecha.localeCompare(b.fecha))[0];
+  const vuelos = items.filter((x) => x.tipo === "vuelo" && x.fecha).sort((a, b) => a.fecha.localeCompare(b.fecha));
+  return (viaje ? `<div class="regresiva"><span class="cifra">${diasA(viaje.fecha, hoy)}</span><span><b>${diasA(viaje.fecha, hoy) === 1 ? "día" : "días"} para ${esc(viaje.titulo)}</b><br><span class="vacio">${esc(viaje.nota || corta(viaje.fecha))}</span></span></div>` : "")
+    + (vuelos.length ? `<details class="mas"><summary>Vuelos (${vuelos.length})</summary><ul class="lista">${vuelos.map((v) => `<li><span>${esc(v.titulo)}<br><small class="vacio">${esc(v.nota)}</small></span><span class="der">${esc(corta(v.fecha))}</span></li>`).join("")}</ul></details>` : "");
+}
+
+// Después de pintar: el mundito de la portada.
+export async function montarMundo(doc) {
+  const caja = document.getElementById("am-globo");
+  const m = await import("./mundo.js");
+  m.montarPortada(caja, doc, () => m.abrir(doc, caja, extraMundo(doc, new Date())));
 }
 
 // ---------- Toques ----------
 // Se engancha una sola vez al documento. «cambio(doc)» repinta; «aviso(texto)» muestra un cartelito.
 export function conectar({ cambio, aviso }) {
+  // Lo que cambia solo en la pantalla (el dado, los filtros): se repinta sin ir al servidor.
+  const local = () => { const d = docLocal(); if (d) cambio(d, true); };
   const hacer = (o, ok) => op(o).then((d) => { cambio(d); if (ok) aviso?.(ok); }).catch((e) => aviso?.(e.message === "sin-sesion" ? "Se cerró la sesión: volvé a entrar" : e.message === "permiso" ? "Eso lo maneja Nacho" : "No se pudo guardar: probá con señal"));
   document.addEventListener("click", (e) => {
     const b = e.target.closest("[data-am]");
@@ -104,6 +181,17 @@ export function conectar({ cambio, aviso }) {
     const t = b.dataset.am;
     if (t === "super-borrar" || t === "item-borrar") hacer({ t, id: b.dataset.id });
     else if (t === "super-limpiar") hacer({ t }, "Listo");
+    else if (t === "item-mas") hacer({ t, id: b.dataset.id }, "¡Otra vez!");
+    else if (t === "mundo") import("./mundo.js").then((m) => { const d = docLocal(); m.abrir(d, document.getElementById("am-globo"), extraMundo(d, new Date())); });
+    else if (t === "dado") { const d = docLocal(); estadoGastro.salio = dado(d); if (!estadoGastro.salio) aviso?.("No hay lugares con ese filtro"); local(); }
+    else if (t === "rubro") { estadoGastro.rubro = b.dataset.v; estadoGastro.nuevo = false; estadoGastro.salio = null; local(); }
+    else if (t === "nuevo") { estadoGastro.nuevo = !estadoGastro.nuevo; estadoGastro.rubro = ""; estadoGastro.salio = null; local(); }
+    else if (t === "rk") { estadoGastro.rk = b.dataset.v; local(); }
+    else if (t === "pingu") {
+      if (b.classList.contains("chau")) return;
+      b.classList.add("habla"); try { sessionStorage.setItem("amor.pingu", "chau"); } catch (x) { /* nada */ }
+      setTimeout(() => b.classList.add("chau"), 1400); setTimeout(() => b.remove(), 3200);
+    }
   });
   document.addEventListener("change", (e) => {
     const el = e.target;
@@ -120,7 +208,36 @@ export function conectar({ cambio, aviso }) {
     if (k === "super") hacer({ t: "super-sumar", texto: d.texto });
     else if (k === "plan") hacer({ t: "item-sumar", item: { tipo: "plan", titulo: d.titulo, fecha: d.fecha } }, "Plan anotado");
     else if (k === "ver") hacer({ t: "item-sumar", item: { tipo: d.tipo, titulo: d.titulo } }, "Anotado");
+    else if (k === "salida") hacer({ t: "item-sumar", item: { tipo: "salida", titulo: d.titulo, cat: d.cat, hecho: true } }, "Anotada");
     else if (k === "otro") hacer({ t: "item-sumar", item: { tipo: d.tipo, titulo: d.titulo, fecha: d.fecha, nota: d.nota, url: d.url } }, "Agregado");
     setTimeout(() => document.querySelector(`[data-am-form="${k}"] input`)?.focus(), 50);
   });
+}
+
+// ---------- Gastronomía: lee el doc de Nacho (texto plano) ----------
+// «Parrilla» → rubro; «La Choza de Gascón (4.8)» → lugar con puntaje; «Mirutaki (por ir)» → para probar;
+// «Hotaru (Madrid) (5)» → de afuera (no entra en el dado). Solo lo usa Orbe de Nacho, que tiene el doc.
+const RUBROS = ["parrilla", "sushi", "ramen", "pizza", "pasta", "bodegon/tapas", "bodegon", "tapas", "comidas regionales", "fine dining", "bar", "comida rapida", "cafe", "pasteleria", "heladeria"];
+const BARRIOS = /caballito|puerto madero|plaza serrano|palermo|belgrano|recoleta|almagro|villa crespo|san telmo|colegiales|nu[ñn]ez|boedo|flores|chacarita|parque chacabuco|microcentro|centro|once|balvanera|devoto|saavedra|barracas|la boca|retiro|vicente l[oó]pez|olivos|martinez|san isidro|turqu[ií]a|vietnam|rusia|per[uú]|china|jap[oó]n|corea|m[eé]xico|india|armenia|italia|espa[ñn]a/i;
+export function leerGastro(texto) {
+  const norm = (t) => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+  const lineas = String(texto || "").replace(/\r/g, "").split("\n").map((l) => l.replace(/[*_]/g, "").replace(/\u00a0/g, " ").trim());
+  const out = []; let rubro = "";
+  lineas.forEach((l, k) => {
+    if (!l || /^gastronom/i.test(l)) return;
+    const vacioAntes = !lineas[k - 1], vacioDespues = !lineas[k + 1];
+    if (RUBROS.includes(norm(l)) || (!/\(/.test(l) && l.length < 28 && vacioAntes && vacioDespues && !/\d/.test(l))) { rubro = l.replace(/\s+/g, " "); return; }
+    if (!rubro) return;
+    const par = [...l.matchAll(/\(([^)]*)\)/g)].map((m) => m[1].trim());
+    const nombre = l.replace(/\([^)]*\)/g, "").replace(/\s+/g, " ").trim();
+    if (!nombre) return;
+    let puntaje = null, porIr = false, lugar = "";
+    par.forEach((p) => {
+      if (/^\d+([.,]\d+)?$/.test(p)) puntaje = Number(p.replace(",", "."));
+      else { const partes = p.split(",").map((x) => x.trim()).filter(Boolean); if (partes.some((x) => /por ir/i.test(x))) porIr = true; const resto = partes.filter((x) => !/por ir/i.test(x)).join(", "); if (resto) lugar = resto; }
+    });
+    const afuera = !!lugar && !BARRIOS.test(lugar);
+    out.push({ rubro: rubro.replace(/^Bodeg[oó]n\/Tapas$/i, "Bodegón"), nombre, puntaje: puntaje != null && puntaje <= 5 ? puntaje : null, lugar, porIr, afuera });
+  });
+  return out;
 }

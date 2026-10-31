@@ -1,6 +1,21 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.47.0",
+    fecha: "31/10/2026",
+    titulo: "Agus llega a Orbe.",
+    cambios: [
+      "Agus entra a Amorcitos con su Google desde su propio link (/amorcitos) y ve solo eso: ni Inicio, ni los otros universos, ni nada tuyo. Google solo le pasa su mail.",
+      "Lo de los dos (súper, menú, planes, pelis, salidas) vive en un lugar compartido aparte de tu planilla, y se ve al toque en los dos celus.",
+      "El mundito: arriba de Amorcitos, chiquito y girando; al tocarlo se abre en grande. Los países donde fueron tienen su bandera, las ciudades un pin, y Rusia y Japón un candadito hasta que vayan. Se gira con uno y dos dedos, se pellizca para acercar, y con un botón se aplana en planisferio. Tocás un país y te dice a qué ciudades fueron.",
+      "¿Dónde comemos?: tirás el dado y sale un lugar de tu doc Gastronomía (filtrás por tipo, o «Algo nuevo» para los «por ir»), con «Cómo llegar». Abajo, el ranking por tipo de comida.",
+      "Salidas culturales como entradas guardadas: recitales, conciertos, jazz, teatro y ferias, con «+1» cuando repiten.",
+      "Orden nuevo: mundito, súper, menú, ¿dónde comemos?, para ver, planes, salidas culturales y docs.",
+      "Un pingüinito escondido en algún lado de Amorcitos. No siempre está.",
+      "Planilla de Finanzas: «Total egresos» en verde oscuro.",
+    ],
+  },
+  {
     version: "0.46.2",
     fecha: "31/10/2026",
     titulo: "Claro u oscuro.",

@@ -1,0 +1,2 @@
+paises-110m.json: contornos de los países (Natural Earth, dominio público), tomados de world-atlas 2.0.2
+(Mike Bostock, licencia ISC) y simplificados para Orbe. Solo geografía: los lugares de cada uno viven en lo compartido, no acá.
