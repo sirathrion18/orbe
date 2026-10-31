@@ -237,7 +237,7 @@ export function conectar({ cambio, aviso }) {
     if (a && /INPUT|TEXTAREA|SELECT/.test(a.tagName) && a.closest(".am-sec, .am-edita, form")) return;
     const antes = firma(docLocal());
     traer().then((d) => { if (firma(d) !== antes) cambio(d); }).catch(() => {});
-  }, 12000);
+  }, 20000);
   // El cajón de salidas recuerda si quedó abierto cuando se repinta.
   document.addEventListener("toggle", (e) => { if (e.target.matches?.("[data-am-cajon]")) salidasAbierta = e.target.open; }, true);
   pinguino();

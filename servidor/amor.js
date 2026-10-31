@@ -29,66 +29,36 @@ export async function quien(request, env) {
 export const esAgus = (env, mail) => !!env.AGUS_MAIL && String(env.AGUS_MAIL).trim().toLowerCase() === String(mail || "").trim().toLowerCase();
 export const sesionAmor = (env, email) => cifrar(env, { amor: true, email, desde: Date.now() });
 
-// Cómo se guarda: cada cosa en su propia clave (cada ítem del súper, cada día del menú, cada plan…).
-// Antes era un solo documento, y si los dos tocaban casi a la vez, uno podía pisar lo del otro
-// (el KV de Cloudflare tarda hasta un minuto en mostrar lo último en todos lados). Ahora cada cambio
-// escribe solo lo suyo: nada se pisa, como mucho tarda unos segundos en verse del otro lado.
+// Vive en una sola clave del KV («amor:doc»). El 31/10 se probó guardar cada cosa en su clave («amor2:…»),
+// pero en el plan gratis de Cloudflare listar claves tiene un cupo diario chico; se volvió al documento único.
+// Si «amor:doc» no está (porque ese intento lo movió), se rearma una sola vez desde esas claves o el respaldo.
 const P = "amor2:";
 const vacio = () => ({ super: [], menu: {}, items: [], rev: 0, cuando: 0 });
-const claves = (d) => {
-  const m = new Map();
-  (d.super || []).forEach((x) => m.set(P + "s:" + x.id, x));
-  Object.entries(d.menu || {}).forEach(([k, v]) => { if (v) m.set(P + "m:" + k, { v }); });
-  (d.items || []).forEach((x) => m.set(P + "i:" + x.id, x));
-  if (d.gastro) m.set(P + "g", d.gastro);
-  return m;
-};
-async function escribir(env, k, v) {
-  const j = JSON.stringify(v);
-  // Lo chico viaja en la «metadata» (se lee todo de una sola vez); lo grande, como valor aparte.
-  if (j.length < 900) await env.SATELITE.put(k, "1", { metadata: v });
-  else await env.SATELITE.put(k, j, { metadata: { grande: 1 } });
-}
 export async function leerDoc(env) {
-  const kv = env.SATELITE, todo = [];
-  let cursor;
-  do { const r = await kv.list({ prefix: P, cursor }); todo.push(...r.keys); cursor = r.list_complete ? null : r.cursor; } while (cursor);
-  if (!todo.length) {
-    // Primera vez con el sistema nuevo: se pasa lo que había en el documento viejo (que queda de respaldo).
-    const viejo = await kv.get(CLAVE, "json");
-    const d = viejo || vacio();
-    for (const [k, v] of claves(d)) await escribir(env, k, v);
-    await kv.put(P + "x", "1", { metadata: { migrado: Date.now() } });
-    if (viejo) { await kv.put("amor:doc-respaldo", JSON.stringify(viejo)); await kv.delete(CLAVE); }
-    return { ...vacio(), ...d };
-  }
-  const d = vacio();
-  await Promise.all(todo.map(async (k) => {
+  const kv = env.SATELITE;
+  const d = await kv.get(CLAVE, "json");
+  if (d) return d;
+  const r = await kv.list({ prefix: P }).catch(() => ({ keys: [] }));
+  const resp = await kv.get("amor:doc-respaldo", "json");
+  if (!r.keys.length) return resp || vacio();
+  const n = { ...vacio(), gastro: resp?.gastro || null };
+  await Promise.all(r.keys.map(async (k) => {
     let v = k.metadata;
     if (!v) return;
     if (v.grande) v = await kv.get(k.name, "json");
     if (!v) return;
-    const n = k.name.slice(P.length);
-    if (n.startsWith("s:")) d.super.push(v);
-    else if (n.startsWith("m:")) d.menu[n.slice(2)] = v.v;
-    else if (n.startsWith("i:")) d.items.push(v);
-    else if (n === "g") d.gastro = v;
+    const c = k.name.slice(P.length);
+    if (c.startsWith("s:")) n.super.push(v);
+    else if (c.startsWith("m:")) n.menu[c.slice(2)] = v.v;
+    else if (c.startsWith("i:")) n.items.push(v);
+    else if (c === "g") n.gastro = v;
   }));
-  d.super.sort((a, b) => String(a.id).localeCompare(String(b.id)));
-  d.items.sort((a, b) => String(a.id).localeCompare(String(b.id)));
-  d.rev = todo.length; d.cuando = Date.now();
-  return d;
+  n.super.sort((a, b) => String(a.id).localeCompare(String(b.id)));
+  n.rev = (resp?.rev || 0) + 1; n.cuando = Date.now();
+  await kv.put(CLAVE, JSON.stringify(n));
+  return n;
 }
-// Escribe solo lo que cambió entre «antes» y «d», y borra lo que ya no está.
-async function guardarDoc(env, d, antes) {
-  const a = claves(antes || vacio()), n = claves(d);
-  const tareas = [];
-  for (const [k, v] of n) if (JSON.stringify(a.get(k)) !== JSON.stringify(v)) tareas.push(escribir(env, k, v));
-  for (const k of a.keys()) if (!n.has(k)) tareas.push(env.SATELITE.delete(k));
-  await Promise.all(tareas);
-  d.rev = (d.rev || 0) + 1; d.cuando = Date.now();
-  return d;
-}
+async function guardarDoc(env, d) { d.rev = (d.rev || 0) + 1; d.cuando = Date.now(); await env.SATELITE.put(CLAVE, JSON.stringify(d)); return d; }
 
 const txt = (v, n) => String(v ?? "").replace(/[\u0000-\u001f]/g, " ").trim().slice(0, n);
 const id = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -107,7 +77,7 @@ function item(x) {
 
 // Cada cambio es una operación chiquita que se aplica sobre lo último guardado: si los dos tocan a la vez, no se pisan.
 export async function aplicar(env, rol, op) {
-  const d = await leerDoc(env), antes = JSON.parse(JSON.stringify(d));
+  const d = await leerDoc(env);
   const t = op?.t;
   if (t === "super-sumar") { const s = txt(op.texto, 80); if (!s) throw new Error("vacio"); d.super.push({ id: id(), t: s, ok: false }); if (d.super.length > 150) d.super.splice(0, d.super.length - 150); }
   else if (t === "super-tilde") { const x = d.super.find((i) => i.id === op.id); if (x) x.ok = !!op.ok; }
@@ -156,17 +126,17 @@ export async function aplicar(env, rol, op) {
     if (t === "item-tilde") x.hecho = !!op.hecho; else d.items = d.items.filter((i) => i.id !== op.id);
   }
   else throw new Error("op");
-  return guardarDoc(env, d, antes);
+  return guardarDoc(env, d);
 }
 
 // La primera vez: Nacho trae lo que ya tenía (su súper, su menú y la hoja AGUS). Solo si todavía no hay nada.
 export async function importar(env, doc) {
-  const d = await leerDoc(env), antes = JSON.parse(JSON.stringify(d));
+  const d = await leerDoc(env);
   if (d.items.length || d.super.length || Object.values(d.menu).some(Boolean)) return { d, importado: false };
   d.super = (doc.super || []).slice(0, 150).map((x) => ({ id: id(), t: txt(x.t, 80), ok: !!x.ok })).filter((x) => x.t);
   d.menu = Object.fromEntries(Object.entries(doc.menu || {}).filter(([k]) => /^[0-6]$/.test(k)).map(([k, v]) => [k, txt(v, 80)]));
   d.items = (doc.items || []).slice(0, 400).map(item).filter((x) => x.titulo);
-  return { d: await guardarDoc(env, d, antes), importado: true };
+  return { d: await guardarDoc(env, d), importado: true };
 }
 // Lo que ve Agus: todo el documento (no tiene nada más). Se manda igual a los dos.
 export const paraVer = (d) => ({ super: d.super, menu: d.menu, items: d.items, gastro: d.gastro || null, rev: d.rev, cuando: d.cuando });

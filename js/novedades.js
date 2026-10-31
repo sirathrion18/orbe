@@ -1,6 +1,15 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.48.2",
+    fecha: "31/10/2026",
+    titulo: "Amorcitos vuelve a cargar.",
+    cambios: [
+      "Arreglado: Amorcitos se quedaba en «Cargando…». Lo de los dos vuelve a guardarse como antes, en un solo lugar, sin perder lo que anotaron en estos minutos.",
+      "Se mantiene: el menú se guarda solo mientras escribís, y lo del otro aparece solo (cada 20 segundos).",
+    ],
+  },
+  {
     version: "0.48.1",
     fecha: "31/10/2026",
     titulo: "Lo de los dos, sincronizado.",

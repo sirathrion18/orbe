@@ -1,5 +1,12 @@
 # Novedades de Orbe
 
+## v0.48.2 · 31/10/2026
+
+Amorcitos vuelve a cargar.
+
+- Arreglado: Amorcitos se quedaba en «Cargando…». Lo de los dos vuelve a guardarse como antes, en un solo lugar, sin perder lo que anotaron en estos minutos.
+- Se mantiene: el menú se guarda solo mientras escribís, y lo del otro aparece solo (cada 20 segundos).
+
 ## v0.48.1 · 31/10/2026
 
 Lo de los dos, sincronizado.
