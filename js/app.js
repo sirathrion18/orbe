@@ -49,6 +49,8 @@ import { renderChecklists, formChecklist, crear as crearChecklist, tildar as til
 
 import { renderIdeas, renderFicha, renderPropuestas, proyectos as listaProyectos, paraCosmos, destinosIdea, textosIdeas } from "./proyectosui.js";
 import { leerCentral, leerPropuestas, responderPropuesta } from "./central.js";
+import { leerPromos } from "./promos.js";
+import { guardarCuentas, filaCuentaEd } from "./cuentas.js";
 import { elegirLogo } from "./proyectosid.js";
 
 const app = document.getElementById("app");
@@ -507,6 +509,11 @@ document.addEventListener("click", (e) => {
   else if (a === "mr-pct") { fijarColchonPct(Number(el.dataset.v)); vibrar(); pintar(true); }
   else if (a === "mr-usar") { const r = mesReal(periodo(new Date())); abrirHoja(hojaColchon(r ? r.colchon : 0, Number(el.dataset.m) || 0), "Usar el colchón"); }
   else if (a === "fin-dia") { const delGrafico = !!el.closest(".grafico"); sesion("finDia", el.dataset.d); pintar(true); if (delGrafico) setTimeout(() => document.querySelector(".fz.gastos")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60); }
+  else if (a === "promos-dia") { sesion("promosDia", Number(el.dataset.d)); pintar(true); }
+  else if (a === "ctas-editar") { sesion("ctasEditando", true); pintar(true); }
+  else if (a === "ctas-cancelar") { sesion("ctasEditando", null); pintar(true); }
+  else if (a === "cta-ed-sacar") el.closest("li").remove();
+  else if (a === "cta-ed-sumar") { const ul = el.closest("form").querySelector(".cta-ed-lista"); ul.insertAdjacentHTML("beforeend", filaCuentaEd()); ul.lastElementChild.querySelector("input").focus(); }
   else if (a === "pl-anio") { sesion("plAnio", el.dataset.a); sesion("plMes", null); pintar(true); }
   else if (a === "pl-mes") { sesion("plAnio", el.dataset.a); sesion("plMes", Number(el.dataset.m)); pintar(true); }
   else if (a === "agus-si") { marcarAgus(periodo(new Date()).clave, Number(el.dataset.monto) || 0); vibrar(); avisar("Anotado: Agus te pasó su mitad"); pintar(true); }
@@ -791,6 +798,10 @@ document.addEventListener("submit", async (e) => {
     const c = crearChecklist(d.titulo, d.items, d.u || "");
     if (!c) { avisar("Sumá al menos un ítem"); return; }
     cerrarHoja(); avisar(`«${c.titulo}» está en Inicio`); pintar(true);
+  }
+  else if (tipo === "ctas-editar") {
+    const l = [...f.querySelectorAll(".cta-ed")].map((li) => Object.fromEntries([...li.querySelectorAll("input")].map((i) => [i.dataset.k, i.value])));
+    guardarCuentas(l); sesion("ctasEditando", null); avisar("Cuentas guardadas"); pintar(true);
   }
   else if (tipo === "chk-editar") {
     const items = [...f.querySelectorAll(".chk-ed-item")].map((li) => ({ t: li.querySelector("input").value, ok: li.dataset.ok === "1" }));
@@ -1086,6 +1097,7 @@ async function refrescarTodo(forzar = false) {
   }
   // La central de proyectos (fichas y Bandeja de Drive) y las propuestas de Claude. Nunca frena el resto.
   if (G.permisos().drive) {
+    leerPromos(forzar).then((n) => { if (n && ruta() === "/u/finanzas") pintar(true); }).catch(() => {});
     try { const c1 = await leerCentral(forzar); const c2 = await leerPropuestas(forzar); estadoParte("central"); if ((c1 || c2) && /^\/(u\/proyectos|ideas|propuestas|p\/)/.test(ruta())) pintar(true); }
     catch (e) { estadoParte("central", e.message); }
   }

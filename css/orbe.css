@@ -1636,3 +1636,29 @@ a.dt-fuente:hover { color: var(--text); }
 .pl-ops button { font: 600 13px var(--sans); padding: 9px 13px; border-radius: 999px; border: 1px solid #ccc; background: #fff; color: #111; cursor: pointer; }
 .pl-ops .si { background: #111; color: #fff; border-color: #111; }
 .pl-ya { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 12px; font-weight: 600; color: #2E7D32; }
+
+/* ---------- v0.46.1 · Cuentas editables y promos de la semana ---------- */
+.cta-cab { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.cta-cab h2 { margin: 0; }
+.cta { border: 1px solid var(--line); border-radius: 14px; padding: 11px 12px; margin-top: 8px; }
+.cta > b { font-size: 15px; }
+.cta-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 6px; }
+.cta-row code { font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--text); overflow-wrap: anywhere; min-width: 0; }
+.cta-copy { flex: none; font: 600 12px var(--sans); border: 0; background: var(--tile); color: var(--text); border-radius: 8px; padding: 7px 10px; cursor: pointer; }
+.cta-ed-lista { list-style: none; margin: 8px 0 10px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.cta-ed { position: relative; border: 1px solid var(--line); border-radius: 14px; padding: 10px 44px 10px 10px; display: flex; flex-direction: column; gap: 6px; }
+.cta-ed .chk-sacar { position: absolute; top: 6px; right: 6px; }
+.cta-ed input { height: 40px; font: 400 15px var(--sans); padding: 0 10px; }
+.pr-cab { display: flex; justify-content: space-between; align-items: baseline; }
+.pr-al, .pr-k { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.pr-dias { display: flex; gap: 5px; margin: 8px 0 6px; }
+.pr-dias button { flex: 1; border: 0; padding: 8px 0; border-radius: 10px; font: 600 13px var(--sans); background: var(--tile); color: var(--text); cursor: pointer; }
+.pr-dias button.on { background: #C8102E; color: #fff; }
+.promos-web .pr { display: grid; grid-template-columns: 54px 1fr; gap: 3px 12px; padding: 11px 0; border-bottom: 1px solid var(--line); }
+.promos-web .pc { grid-row: span 2; align-self: center; text-align: center; font: 400 24px/1 var(--serif); color: #C8102E; }
+.promos-web .pr b { font-size: 15px; }
+.promos-web .pr small { color: var(--muted); font-size: 12.5px; }
+.promos-web .pr small a { color: inherit; }
+.pr-tag { display: inline-block; font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 6px; margin-right: 5px; }
+.pr-tag.ok { background: #e9f6ee; color: #1f7a3f; } .pr-tag.av { background: #fff4e0; color: #9a5b00; }
+.pr-super { margin-top: 14px; }

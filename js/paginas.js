@@ -1,5 +1,5 @@
 // Páginas internas: universos, ideas, agenda, respiro, mis datos, ajustes, novedades.
-import { UNIVERSOS, PROMOS, PROMOS_SIEMPRE, VERSION } from "./config.js";
+import { UNIVERSOS, VERSION } from "./config.js";
 import { NOVEDADES } from "./novedades.js";
 import { ICONOS, MARCA } from "./iconos.js";
 import { wPregunta, logoSemanal, esc, colorTipo, colorUniverso, datosPartido, resultadoTxt, torneoCorto, estadioCorto, regresiva } from "./inicio.js";
@@ -28,6 +28,8 @@ import { heroHoy, avisoRacha, graficoDias, tarjetaAgus, heroMes, analisisGastos,
 import { renderMes } from "./agendames.js";
 import { bloqueHoy } from "./bnahoy.js";
 import { renderPlanilla } from "./planilla.js";
+import { bloquePromos } from "./promos.js";
+import { bloqueCuentas } from "./cuentas.js";
 import { equiposSeguidos } from "./extras.js";
 import { cuerpoProyectos } from "./proyectosui.js";
 
@@ -101,12 +103,6 @@ function bloqueEconomia(ctx, $) {
       <p class="fuente-dato">El último bloque cargado de la hoja DIVISIÓN.</p></section>` : ""}`;
 }
 
-function bloqueAlias() {
-  const a = datosEconomia()?.alias;
-  if (!a || !a.cuentas.length) return "";
-  return `<section class="bloque"><h2>Tus alias <span class="tag">tocá para copiar</span></h2><div class="alias">${a.cuentas.map((c) =>
-    `<button class="al" data-accion="copiar" data-texto="${esc(c.alias || c.cbu)}"><span>${esc(c.banco)}</span><b>${esc(c.alias || c.cbu)}</b></button>`).join("")}</div></section>`;
-}
 
 // ---------- Universos ----------
 const PAGINAS = {
@@ -398,16 +394,14 @@ const PAGINAS = {
         <button class="hecho" style="margin:0" data-accion="hecho" data-clave="${esc(d.clave)}" aria-label="Marcar ${esc(d.titulo)} como hecho">${ICONOS.check}</button></li>`).join("") || '<li class="vacio">Nada pendiente.</li>'}</ul>
         ${leer("hechos", []).length ? '<button class="link" style="margin-top:12px;font-size:13px" data-accion="deshacer-hechos">Volver a mostrar los marcados como hechos</button>' : ""}</section>`;
     const plegable = (titulo, html) => html ? `<details class="bloque plegable"><summary>${titulo}</summary>${html.replace(/^<section class="bloque[^"]*">/, "").replace(/<\/section>\s*$/, "")}</details>` : "";
-    const promos = `<section class="bloque"><ul class="lista">${((datosEconomia()?.alias?.promos?.[dia]?.length ? datosEconomia().alias.promos[dia] : null) || (PROMOS[dia] || []).concat(PROMOS_SIEMPRE)).map((x) => `<li><span>${esc(x)}</span></li>`).join("")}</ul>
-        <p class="vacio" style="margin-top:10px;font-size:12px">Los topes cambian seguido: verificalos antes de pagar.</p></section>`;
     if (tabF === "planilla") return pestF + `<div class="planilla">${renderPlanilla(ctx, $, oculto)}</div>`;
     if (tabF === "analisis") return pestF + analisisGastos(ctx, $, oculto) + `<h2 class="fz-titulo">Tu historia con la plata</h2>` + bloqueAnalisis($);
     if (tabF === "mes") { const mr = bloqueMesReal(ctx, $, oculto, linkEconomia()); return `${pestF}${heroMes(ctx, $)}${bloqueGastosMes(ctx, $)}${mr || bloquePeriodo(ctx, $)}${vencHtml}${revisar}${mr ? "" : bloqueEconomia(ctx, $)}${plegable("Todos los movimientos del mes", movs.replace(/<h2>[\s\S]*?<\/h2>/, ""))}`; }
-    if (tabF === "cuentas") return `${pestF}${bloqueSaldo(ctx, $, oculto)}${deudas}${bloqueSuscripciones(ctx.fecha)}${bloqueAlias()}
-      ${plegable("Promos de hoy, " + DIAS[dia], promos)}${plegable("Dólar hoy", dolar)}${plegable("Topes del mes", topes)}
+    if (tabF === "cuentas") return `${pestF}${bloqueSaldo(ctx, $, oculto)}${deudas}${bloqueSuscripciones(ctx.fecha)}${bloqueCuentas()}
+      ${plegable("Dólar hoy", dolar)}${plegable("Topes del mes", topes)}
       ${linkHoja() ? `<section class="bloque"><h2>Planilla</h2><p>Todo vive en tu planilla <b>Orbe · datos</b>: podés corregir a mano lo que quieras.</p><div class="chips" style="margin-top:12px"><a class="chip" href="${esc(linkHoja())}" target="_blank" rel="noopener">Abrir la planilla</a></div></section>` : ""}`;
     // Hoy: lo mismo que Inicio, el gasto día por día y Agus.
-    return `${pestF}${heroHoy(ctx, $, oculto)}${avisoRacha(ctx, $)}${aviso}${wPregunta() ? `<section class="preg-fin">${wPregunta()}</section>` : ""}${bloqueGastosHoy(ctx, $)}${graficoDias(ctx, $, oculto)}${tarjetaAgus(ctx, $)}${recordarSaldo(ctx)}${cabeza.includes("Activar en Ajustes") ? cabeza : ""}`;
+    return `${pestF}${heroHoy(ctx, $, oculto)}${avisoRacha(ctx, $)}${aviso}${wPregunta() ? `<section class="preg-fin">${wPregunta()}</section>` : ""}${bloqueGastosHoy(ctx, $)}${graficoDias(ctx, $, oculto)}${tarjetaAgus(ctx, $)}${recordarSaldo(ctx)}${bloquePromos(ctx.fecha)}${cabeza.includes("Activar en Ajustes") ? cabeza : ""}`;
   },
 
   proyectos(datos) { return cuerpoProyectos(datos); }

@@ -1,5 +1,14 @@
 # Novedades de Orbe
 
+## v0.46.1 · 31/10/2026
+
+Cuentas y promos al día.
+
+- Finanzas › Cuentas: cada cuenta con «Copiar alias» y «Copiar CBU/CVU» (el número se ve de a cuatro, se copia sin espacios). Con «Editar» cambiás, sumás o sacás cuentas; queda en Orbe y tu planilla no se toca.
+- Finanzas › Hoy › Promos: las promos viejas de la planilla se fueron. Ahora son promos buscadas en la web para tus bancos y billeteras (BNA+, Mercado Pago, Personal Pay, Cuenta DNI, Ciudad, Naranja X y Ualá), por día, con su fuente y hasta cuándo valen.
+- «Para tu súper (Coto), la semana»: todas las de Coto juntas, día por día.
+- Se renuevan solas: los lunes a la mañana Claude las busca y las deja en tu Drive.
+
 ## v0.46.0 · 30/10/2026
 
 Tu planilla, clara.
