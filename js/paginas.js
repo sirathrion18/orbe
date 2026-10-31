@@ -27,6 +27,7 @@ import { bloqueSuscripciones } from "./suscripciones.js";
 import { heroHoy, avisoRacha, graficoDias, tarjetaAgus, heroMes, analisisGastos, bloqueMesReal, bloqueGastosHoy, bloqueGastosMes, bloqueSaldo, recordarSaldo } from "./finanzasui.js";
 import { renderMes } from "./agendames.js";
 import { bloqueHoy } from "./bnahoy.js";
+import { renderPlanilla } from "./planilla.js";
 import { equiposSeguidos } from "./extras.js";
 import { cuerpoProyectos } from "./proyectosui.js";
 
@@ -391,7 +392,7 @@ const PAGINAS = {
         <div><span class="k">Blue</span><b>${dl.blue ? "$\u00a0" + Math.round(dl.blue.venta).toLocaleString("es-AR") : "—"}</b></div></div></section>` : "";
     let tabF = sesionLeer("finTab") || "hoy";
     if (tabF === "periodo") tabF = "hoy";
-    const pestF = `<div class="pestanas" role="tablist">${[["hoy", "Hoy"], ["mes", "Mes"], ["analisis", "Análisis"], ["cuentas", "Cuentas"]].map(([id, t]) =>
+    const pestF = `<div class="pestanas" role="tablist">${[["hoy", "Hoy"], ["mes", "Mes"], ["planilla", "Planilla"], ["analisis", "Análisis"], ["cuentas", "Cuentas"]].map(([id, t]) =>
       `<button class="pestana ${tabF === id ? "on" : ""}" role="tab" aria-selected="${tabF === id}" data-accion="fin-tab" data-tab="${id}">${t}</button>`).join("")}</div>`;
     const vencHtml = `<section class="bloque"><h2>Pagos y vencimientos ${datos.agenda ? "" : '<span class="ejemplo">Ejemplo</span>'}</h2><ul class="lista">${venc.map((d) => `<li style="align-items:flex-start"><span style="display:flex;flex-direction:column;gap:4px;min-width:0"><span>${esc(d.titulo)}${d.vernet ? ' <span class="tag">Vernet</span>' : ""}${d.nota ? ` <span class="tag">${esc(d.nota)}</span>` : ""}</span>${d.monto ? `<b>${esc(d.monto)}</b>` : ""}<span class="der ${d.dias <= 7 && !d.vernet ? "rojo" : ""}" style="font-size:17px">${cuandoTexto(d.dias)}</span></span>
         <button class="hecho" style="margin:0" data-accion="hecho" data-clave="${esc(d.clave)}" aria-label="Marcar ${esc(d.titulo)} como hecho">${ICONOS.check}</button></li>`).join("") || '<li class="vacio">Nada pendiente.</li>'}</ul>
@@ -399,6 +400,7 @@ const PAGINAS = {
     const plegable = (titulo, html) => html ? `<details class="bloque plegable"><summary>${titulo}</summary>${html.replace(/^<section class="bloque[^"]*">/, "").replace(/<\/section>\s*$/, "")}</details>` : "";
     const promos = `<section class="bloque"><ul class="lista">${((datosEconomia()?.alias?.promos?.[dia]?.length ? datosEconomia().alias.promos[dia] : null) || (PROMOS[dia] || []).concat(PROMOS_SIEMPRE)).map((x) => `<li><span>${esc(x)}</span></li>`).join("")}</ul>
         <p class="vacio" style="margin-top:10px;font-size:12px">Los topes cambian seguido: verificalos antes de pagar.</p></section>`;
+    if (tabF === "planilla") return pestF + `<div class="planilla">${renderPlanilla(ctx, $, oculto)}</div>`;
     if (tabF === "analisis") return pestF + analisisGastos(ctx, $, oculto) + `<h2 class="fz-titulo">Tu historia con la plata</h2>` + bloqueAnalisis($);
     if (tabF === "mes") { const mr = bloqueMesReal(ctx, $, oculto, linkEconomia()); return `${pestF}${heroMes(ctx, $)}${bloqueGastosMes(ctx, $)}${mr || bloquePeriodo(ctx, $)}${vencHtml}${revisar}${mr ? "" : bloqueEconomia(ctx, $)}${plegable("Todos los movimientos del mes", movs.replace(/<h2>[\s\S]*?<\/h2>/, ""))}`; }
     if (tabF === "cuentas") return `${pestF}${bloqueSaldo(ctx, $, oculto)}${deudas}${bloqueSuscripciones(ctx.fecha)}${bloqueAlias()}

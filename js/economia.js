@@ -114,7 +114,9 @@ export async function leerEconomia() {
   const hojaAnio = titulos.find((t) => t.trim() === anio) || titulos.filter((t) => /^\d{4}$/.test(t.trim())).sort().pop();
   const hojaDiv = titulos.find((t) => normal(t).startsWith("DIVISION"));
   const hojaAlias = titulos.find((t) => normal(t).includes("ALIAS"));
-  const rangos = [hojaAnio, hojaDiv, hojaAlias].filter(Boolean).map((t) => "'" + t.replace(/'/g, "''") + "'!A1:Z60");
+  // Las otras hojas de años (2024, 2025…), para ver tu historia en Finanzas › Planilla.
+  const otrosAnios = titulos.filter((t) => /^\d{4}$/.test(t.trim()) && t !== hojaAnio).sort();
+  const rangos = [hojaAnio, hojaDiv, hojaAlias, ...otrosAnios].filter(Boolean).map((t) => "'" + t.replace(/'/g, "''") + "'!A1:Z60");
   const q = rangos.map((r) => "ranges=" + encodeURIComponent(r)).join("&");
   const j = await api(BASE + id + "/values:batchGet?valueRenderOption=UNFORMATTED_VALUE&" + q);
   const v = (j.valueRanges || []).map((x) => x.values || []);
@@ -125,6 +127,9 @@ export async function leerEconomia() {
     division: hojaDiv ? leerDivision(v[k++]) : null,
     alias: hojaAlias ? leerAlias(rellenar(v[k++], merges[hojaAlias])) : null
   };
+  datos.anios = {};
+  if (hojaAnio) datos.anios[hojaAnio.trim()] = datos.meses;
+  otrosAnios.forEach((t) => { datos.anios[t.trim()] = leerAnio(v[k++] || []); });
   guardar("economiaDatos", datos, true);
   return datos;
 }

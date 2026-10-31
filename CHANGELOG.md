@@ -1,5 +1,16 @@
 # Novedades de Orbe
 
+## v0.46.0 · 30/10/2026
+
+Tu planilla, clara.
+
+- Finanzas › Planilla: tu ECONOMÍA en Orbe, con los mismos renglones y las mismas cuentas (total, saldo, semanal = saldo ÷ 4, diario = saldo ÷ 24), pero más clara: cada grupo con su color y su total destacado.
+- Al lado de cada número de tu planilla, el real: el neto del recibo, el talón (PP + Gym), tu mitad de la DIVISIÓN y lo que Orbe ve en tus mails. Lo que todavía es estimado va en gris.
+- Años y meses: 2024, 2025 y 2026, como las hojas de tu Excel. Abajo, el año de un vistazo con el saldo de cada mes.
+- División con Agus: lo compartido, su mitad, y la pregunta «¿Agus te pasó su mitad?» con Sí / Todavía no / Una parte.
+- Finanzas va siempre con fondo blanco, para que los números se lean mejor.
+- Hasta diciembre manda tu planilla: Orbe la lee y no la toca.
+
 ## v0.45.1 · 30/10/2026
 
 Checklists editables.

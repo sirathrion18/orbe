@@ -76,7 +76,8 @@ function proximoCambioDeLuz() {
   return [hoy.sale, hoy.pone, manana.sale, manana.pone].map((d) => d.getTime()).find((t) => t > ahora.getTime());
 }
 function aplicarTema() {
-  const tema = temaActual();
+  // Finanzas, siempre en blanco: los números se leen mejor.
+  const tema = ruta().startsWith("/u/finanzas") ? "claro" : temaActual();
   document.documentElement.dataset.theme = tema;
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.content = tema === "oscuro" ? "#0B0B0C" : "#FFFFFF";
@@ -506,6 +507,10 @@ document.addEventListener("click", (e) => {
   else if (a === "mr-pct") { fijarColchonPct(Number(el.dataset.v)); vibrar(); pintar(true); }
   else if (a === "mr-usar") { const r = mesReal(periodo(new Date())); abrirHoja(hojaColchon(r ? r.colchon : 0, Number(el.dataset.m) || 0), "Usar el colchón"); }
   else if (a === "fin-dia") { const delGrafico = !!el.closest(".grafico"); sesion("finDia", el.dataset.d); pintar(true); if (delGrafico) setTimeout(() => document.querySelector(".fz.gastos")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60); }
+  else if (a === "pl-anio") { sesion("plAnio", el.dataset.a); sesion("plMes", null); pintar(true); }
+  else if (a === "pl-mes") { sesion("plAnio", el.dataset.a); sesion("plMes", Number(el.dataset.m)); pintar(true); }
+  else if (a === "agus-si") { marcarAgus(periodo(new Date()).clave, Number(el.dataset.monto) || 0); vibrar(); avisar("Anotado: Agus te pasó su mitad"); pintar(true); }
+  else if (a === "agus-no") avisar("Dale, te lo vuelvo a preguntar");
   else if (a === "agus-paso") { abrirHoja(hojaAgus2(periodo(new Date()).clave, Number(el.dataset.monto) || 0), "Agus te pasó"); setTimeout(() => document.querySelector('.hoja [name="monto"]')?.select(), 250); }
   else if (a === "river-tabla") { sesion("riverTabla", el.dataset.v); pintar(true); }
   else if (a === "eq-sacar") {
