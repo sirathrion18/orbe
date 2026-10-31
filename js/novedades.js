@@ -1,6 +1,16 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.48.1",
+    fecha: "31/10/2026",
+    titulo: "Lo de los dos, sincronizado.",
+    cambios: [
+      "Arreglado: lo que uno anotaba en Amorcitos a veces no le llegaba al otro. Ahora cada cosa (cada ítem del súper, cada día del menú, cada plan) se guarda por separado, así nada pisa lo del otro.",
+      "El menú se guarda solo mientras escribís, sin tener que salir del renglón.",
+      "Lo que anota el otro aparece solo, en unos segundos, sin recargar.",
+    ],
+  },
+  {
     version: "0.48.0",
     fecha: "31/10/2026",
     titulo: "La vida es mejor con vos.",

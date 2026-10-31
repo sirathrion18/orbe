@@ -1,5 +1,13 @@
 # Novedades de Orbe
 
+## v0.48.1 · 31/10/2026
+
+Lo de los dos, sincronizado.
+
+- Arreglado: lo que uno anotaba en Amorcitos a veces no le llegaba al otro. Ahora cada cosa (cada ítem del súper, cada día del menú, cada plan) se guarda por separado, así nada pisa lo del otro.
+- El menú se guarda solo mientras escribís, sin tener que salir del renglón.
+- Lo que anota el otro aparece solo, en unos segundos, sin recargar.
+
 ## v0.48.0 · 31/10/2026
 
 La vida es mejor con vos.

@@ -217,6 +217,27 @@ export function conectar({ cambio, aviso }) {
     else if (t === "nuevo") { estadoGastro.nuevo = !estadoGastro.nuevo; estadoGastro.rubro = ""; estadoGastro.salio = null; local(); }
     else if (t === "rk") { estadoGastro.rk = b.dataset.v; local(); }
   });
+  // El menú se guarda solo mientras escribís (no hace falta salir del renglón), sin repintar debajo de tus dedos.
+  const tMenu = {};
+  function guardarMenu(el) {
+    const dia = el.dataset.amMenu; clearTimeout(tMenu[dia]);
+    const texto = el.value.trim();
+    if (texto === ((docLocal()?.menu || {})[dia] || "")) return;
+    op({ t: "menu", dia: Number(dia), texto }).then((d) => {
+      if (document.activeElement?.dataset?.amMenu == null) cambio(d);
+      aviso?.("Menú guardado");
+    }).catch((e) => aviso?.(e.message === "sin-sesion" ? "Se cerró la sesión: volvé a entrar" : "No se pudo guardar el menú: probá con señal"));
+  }
+  document.addEventListener("input", (e) => { const el = e.target; if (el.dataset?.amMenu == null) return; clearTimeout(tMenu[el.dataset.amMenu]); tMenu[el.dataset.amMenu] = setTimeout(() => guardarMenu(el), 900); });
+  // Lo que cambia el otro aparece solo: cada 12 segundos se fija si hay algo nuevo (si no estás escribiendo).
+  const firma = (d) => JSON.stringify([d?.super, d?.menu, d?.items, d?.gastro?.firma]);
+  setInterval(() => {
+    const a = document.activeElement;
+    if (document.hidden || !document.querySelector(".am-portada") || document.querySelector(".mu-capa") || editando) return;
+    if (a && /INPUT|TEXTAREA|SELECT/.test(a.tagName) && a.closest(".am-sec, .am-edita, form")) return;
+    const antes = firma(docLocal());
+    traer().then((d) => { if (firma(d) !== antes) cambio(d); }).catch(() => {});
+  }, 12000);
   // El cajón de salidas recuerda si quedó abierto cuando se repinta.
   document.addEventListener("toggle", (e) => { if (e.target.matches?.("[data-am-cajon]")) salidasAbierta = e.target.open; }, true);
   pinguino();
@@ -224,7 +245,7 @@ export function conectar({ cambio, aviso }) {
     const el = e.target;
     if (el.dataset?.am === "super-tilde") hacer({ t: "super-tilde", id: el.dataset.id, ok: el.checked });
     else if (el.dataset?.am === "item-tilde") hacer({ t: "item-tilde", id: el.dataset.id, hecho: el.checked });
-    else if (el.dataset?.amMenu != null) hacer({ t: "menu", dia: Number(el.dataset.amMenu), texto: el.value }, "Menú guardado");
+    else if (el.dataset?.amMenu != null) guardarMenu(el);
   });
   document.addEventListener("submit", (e) => {
     const f = e.target.closest("[data-am-form]");
