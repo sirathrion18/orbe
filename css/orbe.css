@@ -1613,7 +1613,7 @@ a.dt-fuente:hover { color: var(--text); }
 .pl-tt span { display: block; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
 .pl-tt b { display: block; font-size: 20px; font-variant-numeric: tabular-nums; margin-top: 2px; }
 .pl-tt small { font-size: 11.5px; opacity: .8; }
-.pl-tt.total { background: #0B3D63; } .pl-tt.saldo { background: #2E7D32; } .pl-tt.saldo.neg { background: #C8102E; } .pl-tt.semanal { background: #BF9000; } .pl-tt.diario { background: #B45F06; }
+.pl-tt.total { background: #1F5C3A; } .pl-tt.saldo { background: #2E7D32; } .pl-tt.saldo.neg { background: #C8102E; } .pl-tt.semanal { background: #BF9000; } .pl-tt.diario { background: #B45F06; }
 .pl-vist { margin: 18px 0; }
 .pl-bars { display: flex; justify-content: space-between; margin-top: 8px; }
 .pl-bars .b { display: flex; flex-direction: column; align-items: center; width: 24px; }
@@ -1689,3 +1689,25 @@ a.dt-fuente:hover { color: var(--text); }
 .pl-ops button { background: var(--bg); color: var(--text); border-color: var(--line); }
 .pl-ops .si { background: var(--text); color: var(--bg); border-color: var(--text); }
 .pl-bars .vacio small { opacity: .45; }
+
+/* ---------- v0.47.0 · Amorcitos compartido (Orbe y la página de Agus) ---------- */
+.am-x { flex: none; width: 32px; height: 32px; border: 0; border-radius: 16px; background: none; color: var(--muted); opacity: .55; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; vertical-align: middle; }
+.am-x svg { width: 13px; height: 13px; }
+.am-hecho { text-decoration: line-through; color: var(--muted); }
+.am-sup { display: flex; gap: 10px; align-items: center; flex: 1; }
+.am-sup input { width: 20px; height: 20px; }
+.am-menu { display: grid; gap: 8px; }
+.am-menu label { display: flex; gap: 10px; align-items: center; }
+.am-menu span { width: 40px; font-size: 13px; color: var(--muted); }
+.am-menu input { flex: 1; height: 42px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--text); font-size: 15px; }
+.am-form { flex-wrap: wrap; margin-top: 12px; }
+.am-form input[name="titulo"] { flex: 1 1 100%; }
+.am-form input[type="date"], .am-form select { flex: 1; }
+.am-otro input { flex: 1 1 100%; }
+.amor-app { padding-bottom: 60px; }
+.amor-cab { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.amor-cab h1 { margin: 10px 0 4px; font: 400 40px/1 var(--serif); }
+.amor-cor { color: #E46A7E; }
+.amor-error { color: #C8102E; font-weight: 600; }
+.aviso-toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 10px); opacity: 0; transition: .25s; background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-size: 14px; pointer-events: none; z-index: 50; }
+.aviso-toast.ver { opacity: 1; transform: translate(-50%, 0); }

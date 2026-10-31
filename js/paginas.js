@@ -27,6 +27,7 @@ import { bloqueSuscripciones } from "./suscripciones.js";
 import { heroHoy, avisoRacha, graficoDias, tarjetaAgus, heroMes, analisisGastos, bloqueMesReal, bloqueGastosHoy, bloqueGastosMes, bloqueSaldo, recordarSaldo } from "./finanzasui.js";
 import { renderMes } from "./agendames.js";
 import { bloqueHoy } from "./bnahoy.js";
+import { render as renderAmor, docLocal as docAmor } from "./amor.js";
 import { renderPlanilla } from "./planilla.js";
 import { bloquePromos } from "./promos.js";
 import { bloqueCuentas } from "./cuentas.js";
@@ -107,63 +108,13 @@ function bloqueEconomia(ctx, $) {
 // ---------- Universos ----------
 const PAGINAS = {
   agus(datos, ctx) {
-    const lista = leer("super", []);
-    const menu = leer("menu", {});
-    const orden = [1, 2, 3, 4, 5, 6, 0];
-    const l = datosListas();
-    const items = l?.agus || [];
-    const hoy0 = new Date(ctx.fecha.getFullYear(), ctx.fecha.getMonth(), ctx.fecha.getDate());
-    const diasA = (iso) => Math.round((new Date(iso.slice(0, 10) + "T00:00") - hoy0) / 86400000);
-    const fechaCorta = (iso) => { const d = new Date(iso.length > 10 ? iso : iso + "T12:00"); return DIAS_CORTOS[d.getDay()] + " " + d.getDate() + "/" + (d.getMonth() + 1) + (iso.length > 10 ? " · " + iso.slice(11, 16) : ""); };
-
-    // Cuentas regresivas: el viaje y las fechas que se repiten cada año.
-    const fechas = items.filter((x) => x.tipo === "fecha" && x.fecha).map((x) => {
-      const anual = /anual/i.test(x.nota);
-      const p = anual ? proximaAnual(x.fecha, ctx.fecha) : { fecha: new Date(x.fecha.slice(0, 10) + "T12:00"), dias: diasA(x.fecha) };
-      return { ...x, cuando: p.fecha, dias: p.dias };
-    }).filter((x) => x.dias >= 0).sort((a, b) => a.dias - b.dias);
-    const viaje = items.filter((x) => x.tipo === "viaje" && x.fecha && diasA(x.fecha) >= 0).sort((a, b) => a.fecha.localeCompare(b.fecha))[0];
-    const vuelos = items.filter((x) => x.tipo === "vuelo" && x.fecha).sort((a, b) => a.fecha.localeCompare(b.fecha));
-    const cuenta = (viaje || fechas.length) ? `<section class="bloque"><h2>Cuenta regresiva</h2>
-      ${viaje ? `<div class="regresiva"><span class="cifra">${diasA(viaje.fecha)}</span><span><b>${diasA(viaje.fecha) === 1 ? "día" : "días"} para ${esc(viaje.titulo)}</b><br><span class="vacio">${esc(viaje.nota || fechaCorta(viaje.fecha))}</span></span></div>` : ""}
-      ${fechas.length ? `<ul class="lista" style="margin-top:${viaje ? 14 : 0}px">${fechas.map((x) => `<li><span>${esc(x.titulo)}<br><small class="vacio">${x.cuando.getDate()} de ${MESES_LARGOS[x.cuando.getMonth()]}</small></span><span class="der">${cuandoTexto(x.dias)}</span></li>`).join("")}</ul>` : ""}
-      ${vuelos.length ? `<details class="mas"><summary>Vuelos (${vuelos.length})</summary><ul class="lista">${vuelos.map((v) => `<li><span>${esc(v.titulo)}<br><small class="vacio">${esc(v.nota)}</small></span><span class="der">${esc(fechaCorta(v.fecha))}</span></li>`).join("")}</ul></details>` : ""}</section>` : "";
-
-    // Planes y salidas.
-    const planes = items.filter((x) => x.tipo === "plan").sort((a, b) => (a.hecho - b.hecho) || (a.fecha || "9").localeCompare(b.fecha || "9"));
-    const tilde = (x) => `<li><label><input type="checkbox" data-accion="agus-tilde" data-fila="${x.fila}" ${x.hecho ? "checked" : ""}><span style="${x.hecho ? "text-decoration:line-through;color:var(--muted)" : ""}">${esc(x.titulo)}${x.nota ? `<br><small class="vacio">${esc(x.nota)}</small>` : ""}</span></label>${x.fecha ? `<span class="tag">${esc(fechaCorta(x.fecha))}</span>` : ""}</li>`;
-    const bPlanes = `<section class="bloque"><h2>Planes y salidas</h2>
-      <ul class="lista tps">${planes.filter((x) => !x.hecho).map(tilde).join("") || '<li class="vacio">Ningún plan anotado.</li>'}</ul>
-      ${planes.some((x) => x.hecho) ? `<details class="mas"><summary>Hechos (${planes.filter((x) => x.hecho).length})</summary><ul class="lista tps">${planes.filter((x) => x.hecho).map(tilde).join("")}</ul></details>` : ""}
-      <div class="chips" style="margin-top:12px"><button class="chip" data-accion="agus-nuevo" data-tipo="plan">+ Plan</button></div></section>`;
-
-    // Pelis y series por ver.
-    const ver = items.filter((x) => x.tipo === "peli" || x.tipo === "serie");
-    const filaVer = (x) => tilde({ ...x, nota: (x.tipo === "serie" ? "Serie" : "Peli") + (x.nota ? " · " + x.nota : "") });
-    const bVer = `<section class="bloque"><h2>Para ver</h2>
-      <ul class="lista tps">${ver.filter((x) => !x.hecho).map(filaVer).join("") || '<li class="vacio">Nada en la lista todavía.</li>'}</ul>
-      ${ver.some((x) => x.hecho) ? `<details class="mas"><summary>Vistas (${ver.filter((x) => x.hecho).length})</summary><ul class="lista tps">${ver.filter((x) => x.hecho).map(filaVer).join("")}</ul></details>` : ""}
-      <div class="chips" style="margin-top:12px"><button class="chip" data-accion="agus-nuevo" data-tipo="peli">+ Peli o serie</button></div></section>`;
-
-    const docs = items.filter((x) => x.tipo === "doc" && /^https:\/\//.test(x.url));
-    const bDocs = docs.length ? `<section class="bloque"><h2>Docs</h2><div class="chips">${docs.map((d) => `<a class="chip" href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.titulo)}</a>`).join("")}</div></section>` : "";
-
-    const sinHoja = !l ? `<section class="bloque"><h2>Planes y fechas</h2><ul class="lista">${(datos.fechas || []).map((f) => `<li><span>${esc(f.titulo)}</span><span class="der">${esc(f.fecha.split("-").reverse().join("/"))}</span></li>`).join("") || '<li class="vacio">Sin planes cargados.</li>'}</ul>
-      <p class="fuente-dato">Fechas, viaje, planes y pelis se arman en tu planilla cuando actives la sincronización en Ajustes.</p></section>` : "";
-
-    return `${cuenta}${l ? bPlanes + bVer + bDocs : sinHoja}
-    <section class="bloque"><h2>Lista del súper</h2>
-      <ul class="lista">${lista.length ? lista.map((it, i) => `<li><label style="display:flex;gap:10px;align-items:center;flex:1">
-        <input type="checkbox" data-accion="super-tilde" data-i="${i}" ${it.ok ? "checked" : ""} style="width:20px;height:20px">
-        <span style="${it.ok ? "text-decoration:line-through;color:var(--muted)" : ""}">${esc(it.t)}</span></label>
-        <button class="ojo" data-accion="super-borrar" data-i="${i}" aria-label="Sacar ${esc(it.t)}">${ICONOS.cruz}</button></li>`).join("") : '<li class="vacio">La lista está vacía.</li>'}</ul>
-      <form class="form" data-form="super"><input name="t" placeholder="Agregar algo" aria-label="Agregar a la lista" required><button class="btn">Sumar</button></form></section>
-    <section class="bloque"><h2>Menú de la semana</h2>
-      <div style="display:grid;gap:8px">${orden.map((d) => `<label style="display:flex;gap:10px;align-items:center">
-        <span style="width:40px;font-size:13px;color:var(--muted)">${DIAS_CORTOS[d]}</span>
-        <input class="campo-menu" data-dia="${d}" value="${esc(menu[d] || "")}" placeholder="¿Qué se come?" style="flex:1;height:42px;padding:0 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);font-size:15px"></label>`).join("")}</div>
-      ${sincroActiva() ? "" : local}</section>
-    ${pronto("Cuenta de Agus", "Más adelante Agus entra con su Google y ve solo esto: súper, menú, planes, pelis y fechas.")}`;
+    // Amorcitos se comparte con Agus: vive en el servidor (no en tu planilla) y ella lo ve desde /amorcitos.
+    const d = docAmor();
+    const link = location.origin + "/amorcitos/";
+    return renderAmor(d, ctx.fecha, { puedeTodo: true }) + `<section class="bloque"><h2>Agus</h2>
+      <p>Agus entra desde <b>${esc(link.replace(/^https:\/\//, ""))}</b> con su Google y ve solo esto: súper, menú, planes, pelis, la cuenta regresiva y los docs. Nada más de Orbe.</p>
+      <div class="chips" style="margin-top:12px"><button class="chip" data-accion="copiar" data-texto="${esc(link)}">Copiar el link</button></div>
+      <p class="fuente-dato">Lo que ella suma o tilda lo ves acá al toque. Los docs tenés que compartírselos en Drive.</p></section>`;
   },
 
   bna(datos, ctx) {

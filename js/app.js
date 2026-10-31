@@ -50,6 +50,7 @@ import { renderChecklists, formChecklist, crear as crearChecklist, tildar as til
 import { renderIdeas, renderFicha, renderPropuestas, proyectos as listaProyectos, paraCosmos, destinosIdea, textosIdeas } from "./proyectosui.js";
 import { leerCentral, leerPropuestas, responderPropuesta } from "./central.js";
 import { leerPromos } from "./promos.js";
+import { traer as traerAmor, importar as importarAmor, conectar as conectarAmor } from "./amor.js";
 import { guardarCuentas, filaCuentaEd } from "./cuentas.js";
 import { elegirLogo } from "./proyectosid.js";
 
@@ -172,6 +173,8 @@ function pintar(refresco = false) {
   riverEnNegrita(app);
   if (esInicio) { despuesInicio(app, !refresco); conectarBuscador(); }
   montarCosmos(r);
+  // Amorcitos: lo compartido con Agus se trae del servidor cada vez que abrís el universo.
+  if (r === "/u/agus" && !refresco) abrirAmor();
   // Tu sueldo en dólares: el dólar de cada mes se baja recién cuando abrís la página.
   if (r === "/d/dolares" && !datosDolarMeses()) traerDolarMeses().then((d) => { if (d && ruta() === "/d/dolares") pintar(true); });
   const lector = app.querySelector(".lector-ed");
@@ -190,6 +193,18 @@ function pintar(refresco = false) {
 // y deja de dibujar apenas salís.
 let cosmos = null;
 let abriendoEd = null;
+// Amorcitos compartido: la primera vez se trae lo que ya tenías (súper, menú y la hoja AGUS).
+let trayendoAmor = null;
+function abrirAmor() {
+  if (trayendoAmor) return;
+  trayendoAmor = traerAmor().then(async (d) => {
+    const vacio = !d.items.length && !d.super.length && !Object.values(d.menu || {}).some(Boolean);
+    const locales = { super: leer("super", []), menu: leer("menu", {}), items: (datosListas()?.agus || []).map((x) => ({ tipo: x.tipo, titulo: x.titulo, fecha: x.fecha, nota: x.nota, hecho: x.hecho, url: x.url })) };
+    if (vacio && (locales.super.length || locales.items.length || Object.values(locales.menu).some(Boolean))) { await importarAmor(locales); avisar("Amorcitos listo para compartir con Agus"); }
+    if (ruta() === "/u/agus") pintar(true);
+  }).catch(() => {}).finally(() => { trayendoAmor = null; });
+}
+conectarAmor({ cambio: () => { vibrar(); if (ruta() === "/u/agus") pintar(true); }, aviso: (t) => avisar(t) });
 function montarCosmos(r) {
   const caja = r === "/u/proyectos" ? document.getElementById("cosmos") : null;
   if (!caja) { cosmos?.parar(); return; }

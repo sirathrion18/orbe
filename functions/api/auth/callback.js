@@ -1,5 +1,6 @@
 // Google vuelve acá con un código; lo cambio por la renovación y la guardo cifrada en la cookie.
 import { CLIENT_ID, configurado, cifrar, cookieSesion, leerEstado, borrarEstado, mailPermitido, decodificarIdToken } from "../../../servidor/sesion.js";
+import { esAgus, sesionAmor, cookieAmor } from "../../../servidor/amor.js";
 
 const volver = (origen, motivo) => new Response(null, {
   status: 302, headers: { Location: origen + "/#/ajustes?google=" + motivo, "Set-Cookie": borrarEstado(), "Cache-Control": "no-store" }
@@ -22,6 +23,16 @@ export async function onRequestGet({ request, env }) {
     })
   });
   const t = await r.json();
+  // Entrada a Amorcitos (/amorcitos): solo el mail, sin llave de Google guardada. Solo Nacho o Agus.
+  if (estado.startsWith("amor.")) {
+    const vuelta = (q) => { const h = new Headers({ Location: url.origin + "/amorcitos/" + q, "Cache-Control": "no-store" }); h.append("Set-Cookie", borrarEstado()); return h; };
+    if (!r.ok || !t.id_token) return new Response(null, { status: 302, headers: vuelta("?error=google") });
+    const yo = decodificarIdToken(t.id_token);
+    if (!yo.email_verified || !((await mailPermitido(yo.email)) || esAgus(env, yo.email))) return new Response(null, { status: 302, headers: vuelta("?error=cuenta") });
+    const h = vuelta("");
+    h.append("Set-Cookie", cookieAmor(await sesionAmor(env, yo.email)));
+    return new Response(null, { status: 302, headers: h });
+  }
   if (!r.ok || !t.refresh_token) return volver(url.origin, "google");
   const yo = decodificarIdToken(t.id_token);
   if (!yo.email_verified || !(await mailPermitido(yo.email))) return volver(url.origin, "cuenta");

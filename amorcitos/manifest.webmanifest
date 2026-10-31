@@ -1,0 +1,17 @@
+{
+  "id": "/amorcitos/",
+  "name": "Amorcitos",
+  "short_name": "Amorcitos",
+  "description": "Lo de los dos: súper, menú, planes, pelis y fechas.",
+  "lang": "es-AR",
+  "start_url": "/amorcitos/",
+  "scope": "/amorcitos/",
+  "display": "standalone",
+  "background_color": "#1B1416",
+  "theme_color": "#1B1416",
+  "icons": [
+    { "src": "amor-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "amor-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "amor-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

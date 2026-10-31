@@ -26,6 +26,7 @@ self.addEventListener("fetch", (e) => {
   const fuentes = url.hostname.endsWith("fonts.googleapis.com") || url.hostname.endsWith("fonts.gstatic.com");
   if (!mismoOrigen && !fuentes) return; // el clima lo maneja la app
   if (mismoOrigen && url.pathname.startsWith("/api/")) return; // la sesión nunca se guarda en caché
+  if (mismoOrigen && url.pathname.startsWith("/amorcitos")) return; // la página de Agus va aparte
   e.respondWith(
     fetch(e.request).then((r) => {
       if (r.ok || r.type === "opaque") { const copia = r.clone(); caches.open(VERSION).then((c) => c.put(e.request, copia)); }
