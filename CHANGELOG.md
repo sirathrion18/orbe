@@ -1,5 +1,12 @@
 # Novedades de Orbe
 
+## v0.48.3 · 31/10/2026
+
+Nada se pisa.
+
+- Lo que anota uno ya no puede borrar lo del otro. Hace falta conectar la base de datos de Cloudflare (D1): son tres pasos en el panel. Hasta que esté, sigue andando como antes.
+- Si recién guardaste algo, la pantalla no lo «desanota» mientras el servidor se pone al día.
+
 ## v0.48.2 · 31/10/2026
 
 Amorcitos vuelve a cargar.

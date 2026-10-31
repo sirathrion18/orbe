@@ -34,7 +34,7 @@ export const sesionAmor = (env, email) => cifrar(env, { amor: true, email, desde
 // Si «amor:doc» no está (porque ese intento lo movió), se rearma una sola vez desde esas claves o el respaldo.
 const P = "amor2:";
 const vacio = () => ({ super: [], menu: {}, items: [], rev: 0, cuando: 0 });
-export async function leerDoc(env) {
+async function leerDocKV(env) {
   const kv = env.SATELITE;
   const d = await kv.get(CLAVE, "json");
   if (d) return d;
@@ -58,7 +58,29 @@ export async function leerDoc(env) {
   await kv.put(CLAVE, JSON.stringify(n));
   return n;
 }
-async function guardarDoc(env, d) { d.rev = (d.rev || 0) + 1; d.cuando = Date.now(); await env.SATELITE.put(CLAVE, JSON.stringify(d)); return d; }
+// Base de datos D1 (si está conectada como AMOR_DB): siempre devuelve lo último, y si los dos guardan a la vez,
+// el segundo se vuelve a aplicar sobre lo del primero en vez de pisarlo. Sin D1, sigue en el KV como antes.
+async function tabla(db) { await db.prepare("CREATE TABLE IF NOT EXISTS amor (k TEXT PRIMARY KEY, v TEXT NOT NULL, rev INTEGER NOT NULL)").run(); }
+export async function leerDoc(env) {
+  const db = env.AMOR_DB;
+  if (!db) return leerDocKV(env);
+  await tabla(db);
+  let f = await db.prepare("SELECT v, rev FROM amor WHERE k = 'doc'").first();
+  if (!f) {
+    const d = await leerDocKV(env);
+    await db.prepare("INSERT OR IGNORE INTO amor (k, v, rev) VALUES ('doc', ?, ?)").bind(JSON.stringify(d), d.rev || 0).run();
+    f = await db.prepare("SELECT v, rev FROM amor WHERE k = 'doc'").first();
+  }
+  const d = JSON.parse(f.v); d.rev = f.rev; return d;
+}
+async function guardarDoc(env, d) {
+  const base = d.rev || 0; d.rev = base + 1; d.cuando = Date.now();
+  const db = env.AMOR_DB;
+  if (!db) { await env.SATELITE.put(CLAVE, JSON.stringify(d)); return d; }
+  const r = await db.prepare("UPDATE amor SET v = ?, rev = ? WHERE k = 'doc' AND rev = ?").bind(JSON.stringify(d), d.rev, base).run();
+  if (!r.meta?.changes) throw new Error("choque");
+  return d;
+}
 
 const txt = (v, n) => String(v ?? "").replace(/[\u0000-\u001f]/g, " ").trim().slice(0, n);
 const id = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -77,6 +99,12 @@ function item(x) {
 
 // Cada cambio es una operación chiquita que se aplica sobre lo último guardado: si los dos tocan a la vez, no se pisan.
 export async function aplicar(env, rol, op) {
+  for (let i = 0; ; i++) {
+    try { return await aplicarUna(env, rol, op); }
+    catch (e) { if (e.message !== "choque" || i >= 7) throw e; await new Promise((r) => setTimeout(r, 20 + Math.random() * 80)); }
+  }
+}
+async function aplicarUna(env, rol, op) {
   const d = await leerDoc(env);
   const t = op?.t;
   if (t === "super-sumar") { const s = txt(op.texto, 80); if (!s) throw new Error("vacio"); d.super.push({ id: id(), t: s, ok: false }); if (d.super.length > 150) d.super.splice(0, d.super.length - 150); }

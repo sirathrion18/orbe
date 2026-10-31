@@ -19,12 +19,17 @@ export async function traer() {
   const r = await fetch("/api/amor/datos", { credentials: "same-origin", cache: "no-store" });
   if (r.status === 401) throw new Error("sin-sesion");
   if (!r.ok) throw new Error("red");
-  const d = await r.json(); guardarLocal(d); return d;
+  const d = await r.json();
+  // Si recién guardaste algo y lo que llega es más viejo (el servidor todavía no se enteró), no se pisa lo tuyo.
+  if (ultimaOp && Date.now() - ultimaOp.t < 90000 && (d.cuando || 0) < ultimaOp.cuando) return docLocal() || d;
+  guardarLocal(d); return d;
 }
+let ultimaOp = null;
 export async function op(o) {
   const r = await fetch("/api/amor/op", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify(o) });
   const d = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(d.error || "red");
+  ultimaOp = { cuando: d.cuando || 0, t: Date.now() };
   guardarLocal(d); return d;
 }
 export async function importar(doc) {
