@@ -1,0 +1,64 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pedri · Ficha</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&family=Archivo+Narrow:wght@500;600&display=swap">
+<style>
+/* Estudio oscuro de una sola escena: el personaje al centro, la ficha y los controles debajo. */
+:root {
+  --bg: #15171b; --panel: #1d2026; --line: #2c3038; --fg: #ece8e1; --muted: #a29d95;
+  --green: #5aa32f; --red: #e24b4a;
+  --f-body: "Archivo", system-ui, sans-serif; --f-label: "Archivo Narrow", "Arial Narrow", sans-serif;
+  color-scheme: dark;
+}
+html, body { background: var(--bg); color: var(--fg); }
+body { font-family: var(--f-body); font-size: 15px; line-height: 1.5; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px 40px; }
+.wrap { max-width: 980px; margin: 0 auto; display: grid; gap: 16px; }
+header h1 { margin: 0; font-size: 34px; font-weight: 600; letter-spacing: -0.01em; text-wrap: balance; }
+header p { margin: 2px 0 0; color: var(--muted); }
+.lab { font-family: var(--f-label); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.stage { position: relative; height: min(70vh, 600px); min-height: 420px; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: #1b1e24; }
+.stage canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.hud { position: absolute; left: 14px; top: 12px; pointer-events: none; display: grid; gap: 2px; max-width: 60%; }
+.hud .fase { font-size: 24px; font-weight: 600; line-height: 1.15; }
+.hud .clave { color: var(--green); font-size: 14px; }
+.reps { position: absolute; right: 14px; top: 12px; text-align: right; pointer-events: none; }
+.reps b { display: block; font-size: 24px; font-variant-numeric: tabular-nums; }
+.xp { color: var(--green); font-weight: 600; opacity: 0; }
+.leyenda { position: absolute; left: 14px; bottom: 10px; font-size: 12px; color: var(--muted); pointer-events: none; }
+.controles { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.grupo { display: grid; gap: 6px; }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg button { font: inherit; font-size: 14px; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 7px 14px; cursor: pointer; }
+.seg button[aria-pressed="true"] { border-color: var(--green); color: #fff; background: #24361c; }
+.seg button:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+.ficha { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); border-top: 1px solid var(--line); padding-top: 16px; }
+.ficha dl { margin: 6px 0 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; }
+.ficha dt { color: var(--muted); }
+.ficha dd { margin: 0; min-width: 0; }
+.pal { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+.pal span { display: grid; justify-items: center; gap: 4px; font-size: 12px; color: var(--muted); }
+.pal i { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line); }
+@media (prefers-reduced-motion: reduce) { .xp { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header><div class="lab">Orbe · Bienestar · ficha de personaje</div><h1>Pedri</h1><p>Tu compañero de entrenamiento. Arrastrá para girarlo. Modelo: Ara 3D Gen (MIT) sobre MakeHuman (CC0).</p></header>
+  <div class="stage" id="stage">
+    <div class="hud"><span class="lab" id="h-n">Posando</span><span class="fase" id="h-f">Listo para entrenar</span><span class="clave" id="h-c"></span></div>
+    <div class="reps" id="reps" hidden><span class="lab">Repeticiones</span><b id="h-r">0 / 12</b><span class="xp" id="xp">+10 XP</span></div>
+    <div class="leyenda" id="leyenda" hidden>Línea roja: recorrido de la cadera · verde: tope de la rodilla</div>
+  </div>
+  <div class="controles">
+    <div class="grupo"><span class="lab">Movimiento</span><div class="seg" data-grupo="modo"><button data-v="posar" aria-pressed="true">Posar</button><button data-v="saludo">Saludar</button><button data-v="sen">Sentadilla</button><button data-v="est">Estocada atrás</button><button data-v="fes">Festejo</button></div></div>
+    <div class="grupo"><span class="lab">Vista</span><div class="seg" data-grupo="vista"><button data-v="tres" aria-pressed="true">3/4</button><button data-v="frente">Frente</button><button data-v="perfil">Perfil</button><button data-v="espalda">Espalda</button><button data-v="cara">Primer plano</button></div></div>
+    <div class="grupo"><span class="lab">Ropa</span><div class="seg" data-grupo="ropa"><button data-v="calle" aria-pressed="true">Calle</button><button data-v="traje">Traje de logro</button></div></div>
+    <div class="grupo"><span class="lab">Cara</span><div class="seg" data-grupo="cara"><button data-v="neutra" aria-pressed="true">Neutra</button><button data-v="sonriente">Sonriente</button><button data-v="sorprendido">Sorprendido</button><button data-v="enojado">Enojado</button><button data-v="serio">Serio</button><button data-v="triste">Triste</button><button data-v="guino">Guiño</button></div></div>
+    <div class="grupo"><span class="lab">Velocidad</span><div class="seg" data-grupo="vel"><button data-v="1" aria-pressed="true">Normal</button><button data-v="0.4">Cámara lenta</button></div></div>
+  </div>
+  <section class="ficha">
+    <div><span class="lab">Datos</span><dl><dt>Altura</dt><dd>1,76 m</dd><dt>Contextura</dt><dd>Media</dd><dt>Pelo</dt><dd>Corto despeinado, negro</dd><dt>Sello</dt><dd>Pulsera negra con el punto rojo de Orbe</dd><dt>Ropa</dt><dd>Campera verde abierta, camisa, jean, zapatillas</dd></dl></div>
+    <div><span class="lab">Paleta</span><div class="pal"><span><i style="background:#d9a88a"></i>Piel</span><span><i style="background:#2b2b2b"></i>Pelo</span><span><i style="background:#4f5a46"></i>Campera</span><span><i style="background:#5a2a34"></i>Camisa</span><span><i style="background:#4f79a8"></i>Jean</span><span><i style="background:#e24b4a"></i>Punto de Orbe</span></div></div>
+  </section>
+</div>
+
+<script type="module" src="pedri.js?v=44"></script>

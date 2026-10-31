@@ -53,6 +53,7 @@ import { leerPromos } from "./promos.js";
 import { docLocal as docAmorLocal, traer as traerAmor, importar as importarAmor, conectar as conectarAmor, op as opAmor, montarMundo, leerGastro } from "./amor.js";
 import { guardarCuentas, filaCuentaEd } from "./cuentas.js";
 import { elegirLogo } from "./proyectosid.js";
+import { renderGym, renderLogros, tocar as gymTocar, terminar as gymTerminar, descartar as gymDescartar, registrarMeditacion, pausarSemana } from "./bienestar.js";
 
 const app = document.getElementById("app");
 const estado = { datos: null, clima: null, ctx: null };
@@ -145,6 +146,8 @@ function pintar(refresco = false) {
   else if (r === "/ajustes/guinos") html = renderAjustesGuinos();
   else if (r === "/pedir-diario") html = renderPedirDiario();
   else if (r === "/avisos") html = renderAvisos(estado.datos, estado.ctx);
+  else if (r === "/bienestar/gym") html = renderGym(estado.ctx.fecha);
+  else if (r === "/bienestar/logros") html = renderLogros(estado.ctx.fecha);
   else if (r === "/checklists") { usarColores((u) => colorUniverso(estado.datos, u, tema)); html = renderChecklists(); }
   else if (r === "/ideas") html = renderIdeas(estado.datos);
   else if (r.startsWith("/p/")) html = renderFicha(decodeURIComponent(r.slice(3)), estado.datos);
@@ -179,6 +182,7 @@ function pintar(refresco = false) {
   else import("./mundo.js").then((m) => m.montarPortada(null)).catch(() => {});
   // Tu sueldo en dólares: el dólar de cada mes se baja recién cuando abrís la página.
   if (r === "/d/dolares" && !datosDolarMeses()) traerDolarMeses().then((d) => { if (d && ruta() === "/d/dolares") pintar(true); });
+  montarPedri(app);
   const lector = app.querySelector(".lector-ed");
   if (lector) {
     // srcdoc en vez de una dirección: la edición viene de lo guardado, así abre sin señal. Sin scripts, con los links afuera.
@@ -240,6 +244,17 @@ function montarCosmos(r) {
     if (!document.body.contains(caja)) return;
     if (!m.montar(caja, paraCosmos(listaProyectos(estado.datos)), { ideas: textosIdeas() })) caja.classList.add("sin-3d");
   }).catch(() => caja.classList.add("sin-3d"));
+// Pedri en 3D: se carga solo en Bienestar y se desmonta al salir.
+let pedri = null;
+function montarPedri(raiz) {
+  const el = raiz.querySelector("#pedri-escena");
+  // Si la página se vuelve a dibujar con la misma ropa, se mueve la escena que ya estaba en vez de recargarla.
+  if (pedri && el && pedri.ropa === el.dataset.ropa) { pedri.mover(el); el.classList.add("listo"); if (sesion("pedriFestejo")) { pedri.festejar(); sesion("pedriFestejo", null); } return; }
+  if (pedri) { pedri.destruir(); pedri = null; }
+  if (!el) return;
+  import("./pedri3d.js").then(({ montar }) => montar(el, { ropa: el.dataset.ropa, festejo: !!sesion("pedriFestejo") }))
+    .then((p) => { if (!document.body.contains(el)) { p.destruir(); return; } pedri = p; el.classList.add("listo"); sesion("pedriFestejo", null); })
+    .catch(() => { el.querySelector(".ps-txt").textContent = "Pedri no pudo cargar en este dispositivo."; });
 }
 
 // «River», siempre en negrita, en todo Orbe.
@@ -469,7 +484,7 @@ function meditar(min) {
   if (!min) return;
   timerMedita = setInterval(() => {
     resta--; pintarReloj();
-    if (resta <= 0) { clearInterval(timerMedita); avisar("Listo. Buen rato."); try { navigator.vibrate && navigator.vibrate([80, 60, 80]); } catch (e) { /* nada */ } }
+    if (resta <= 0) { clearInterval(timerMedita); registrarMeditacion(min); avisar("Listo. Buen rato. +15 XP"); try { navigator.vibrate && navigator.vibrate([80, 60, 80]); } catch (e) { /* nada */ } }
   }, 1000);
 }
 
@@ -607,6 +622,19 @@ document.addEventListener("click", (e) => {
   else if (a === "demo") { sesion("demo", el.dataset.modo || null); avisar(el.dataset.modo ? "Probando: " + el.textContent : "Volviste al modo real"); pintar(); }
   else if (a === "super-borrar") { const l = leer("super", []); l.splice(Number(el.dataset.i), 1); guardar("super", l); pintar(); }
   else if (a === "medita") meditar(Number(el.dataset.min));
+  else if (a === "gym-hecho") { gymTocar(el.dataset.id, "hecho"); vibrar(); pintar(true); }
+  else if (a === "gym-comodo") { gymTocar(el.dataset.id, "comodo"); vibrar(); pintar(true); }
+  else if (a === "gym-molestia") { gymTocar(null, "molestia"); pintar(true); }
+  else if (a === "gym-descartar") { if (el.dataset.seguro !== "1") { el.dataset.seguro = "1"; el.textContent = "Tocá de nuevo para descartar"; return; } gymDescartar(); avisar("Entrenamiento descartado"); pintar(true); }
+  else if (a === "gym-terminar") {
+    const r = gymTerminar(new Date());
+    if (r.error) { avisar(r.error); return; }
+    if (r.subio) sesion("pedriFestejo", true);
+    avisar(`+${r.xp} XP · ${r.hechos} ejercicio${r.hechos === 1 ? "" : "s"}` + (r.subio ? ` · ¡nivel ${r.subio}!` : ""));
+    location.hash = "#/u/bienestar";
+  }
+  else if (a === "logros-visto") { guardar("logrosVisto", Number(el.dataset.n)); pintar(true); }
+  else if (a === "bien-pausa") { pausarSemana(new Date()); vibrar(); pintar(true); }
   else if (a === "medita-parar") { clearInterval(timerMedita); meditar(0); const r = document.getElementById("medita-reloj"); if (r) r.textContent = "05:00"; }
   else if (a === "google-conectar") conectarGoogle(false);
   else if (a === "google-actualizar" || a === "actualizar-todo") actualizarTodo(true);
@@ -799,6 +827,7 @@ document.addEventListener("change", (e) => {
 let timerNota = null;
 document.addEventListener("input", (e) => {
   const t = e.target;
+  if (t.dataset?.accion === "gym-peso") { gymTocar(t.dataset.id, "peso", t.value === "" ? null : Number(t.value)); return; }
   if (!t.classList?.contains("lb-nota")) return;
   clearTimeout(timerNota);
   timerNota = setTimeout(() => guardarNota(t.dataset.f, t.value), 900);
