@@ -1,6 +1,15 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.46.2",
+    fecha: "31/10/2026",
+    titulo: "Claro u oscuro.",
+    cambios: [
+      "Finanzas vuelve a seguir el modo que tengas elegido, claro u oscuro.",
+      "Planilla: los colores de cada grupo ahora son fijos, con una versión para cada modo, así se ven también en la compu.",
+    ],
+  },
+  {
     version: "0.46.1",
     fecha: "31/10/2026",
     titulo: "Cuentas y promos al día.",

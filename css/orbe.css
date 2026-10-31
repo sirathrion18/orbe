@@ -1688,4 +1688,4 @@ a.dt-fuente:hover { color: var(--text); }
 .pl-div li.t { border-top-color: var(--line); }
 .pl-ops button { background: var(--bg); color: var(--text); border-color: var(--line); }
 .pl-ops .si { background: var(--text); color: var(--bg); border-color: var(--text); }
-:root[data-theme="oscuro"] .pl-tt.saldo { background: #2E7D32; }
+.pl-bars .vacio small { opacity: .45; }

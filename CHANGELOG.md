@@ -1,5 +1,12 @@
 # Novedades de Orbe
 
+## v0.46.2 · 31/10/2026
+
+Claro u oscuro.
+
+- Finanzas vuelve a seguir el modo que tengas elegido, claro u oscuro.
+- Planilla: los colores de cada grupo ahora son fijos, con una versión para cada modo, así se ven también en la compu.
+
 ## v0.46.1 · 31/10/2026
 
 Cuentas y promos al día.
