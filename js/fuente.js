@@ -35,7 +35,7 @@ const MEDIA_HORA = 30 * 60 * 1000;
 
 export async function cargarClima(ciudad) {
   const guardado = leer("clima");
-  if (guardado && Date.now() - guardado.cuando < MEDIA_HORA) return guardado;
+  if (guardado && guardado.lat === ciudad.lat && guardado.lon === ciudad.lon && Date.now() - guardado.cuando < MEDIA_HORA) return guardado;
   const url = "https://api.open-meteo.com/v1/forecast?latitude=" + ciudad.lat + "&longitude=" + ciudad.lon +
     "&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,weather_code" +
     "&timezone=America%2FArgentina%2FBuenos_Aires&forecast_days=2";
@@ -44,7 +44,7 @@ export async function cargarClima(ciudad) {
     if (!r.ok) throw new Error("clima");
     const j = await r.json();
     const clima = {
-      cuando: Date.now(), origen: "real",
+      cuando: Date.now(), origen: "real", lat: ciudad.lat, lon: ciudad.lon, nombre: ciudad.nombre,
       temp: Math.round(j.current.temperature_2m), codigo: j.current.weather_code,
       max: Math.round(j.daily.temperature_2m_max[0]), min: Math.round(j.daily.temperature_2m_min[0]),
       manana: { max: Math.round(j.daily.temperature_2m_max[1]), min: Math.round(j.daily.temperature_2m_min[1]), codigo: j.daily.weather_code[1] }

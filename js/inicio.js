@@ -352,10 +352,10 @@ export function dibujoClima(codigo, deNoche) {
 function wClima(clima, ctx) {
   const noche = clima && clima.manana && ctx && ctx.modo === "noche";
   const c = noche ? { ...clima.manana, temp: clima.manana.max } : clima;
-  if (!c) return `<div class="w clima marco"><span class="k">CABA</span><div class="fila-clima"><span class="grande">—</span></div><span class="sub">Sin datos del clima</span></div>`;
+  if (!c) return `<a class="w clima marco" href="#/clima" style="text-decoration:none"><span class="k">Clima</span><div class="fila-clima"><span class="grande">—</span></div><span class="sub">Tocá para ver el pronóstico</span></a>`;
   const d = describirClima(c.codigo);
   const h = ctx ? Math.floor(ctx.min / 60) : 12;
-  return `<a class="w clima marco" href="https://www.smn.gob.ar/" target="_blank" rel="noopener" aria-label="Clima: abrir el pronóstico del Servicio Meteorológico" style="text-decoration:none"><span class="k">${noche ? "Mañana" : "CABA"}</span>
+  return `<a class="w clima marco" href="#/clima" aria-label="Clima: abrir el pronóstico por horas y la semana" style="text-decoration:none"><span class="k">${noche ? "Mañana" : esc(clima.nombre && clima.nombre !== "Tu ubicación" ? clima.nombre : "CABA")}</span>
     <div class="fila-clima"><span class="grande">${c.temp}°</span><span class="minmax"><span>↑${c.max}°</span><span>↓${c.min}°</span></span></div>
     <span class="sub">${d.estado}</span>${dibujoClima(c.codigo, !noche && (h >= 20 || h < 6))}</a>`;
 }

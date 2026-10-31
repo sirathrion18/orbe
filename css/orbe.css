@@ -1846,3 +1846,80 @@ body.mu-abierto { overflow: hidden; }
 .am-menu label .am-emo { font-size: 17px; width: 22px; margin: 0 -4px; }
 .am-menu label input { flex: 1; min-width: 0; width: auto; }
 .am-menu { grid-template-columns: minmax(0, 1fr); } .am-menu label { min-width: 0; }
+
+/* ---------- Clima (v0.49) ---------- */
+.cl-cab { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; }
+.cl-cab h1 { margin-bottom: 0; }
+.cl-tit { margin-bottom: 6px !important; }
+.cl-lugar { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--tile); border-radius: 999px; padding: 7px 12px; font-size: 14px; font-weight: 600; max-width: 100%; }
+.cl-lugar span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cl-lugar svg { width: 15px; height: 15px; flex: none; color: var(--accent); }
+.cl-lugar small { font-weight: 500; color: var(--muted); font-size: 11.5px; }
+.cl-elegir { margin-top: 14px; } .cl-elegir p { margin: 4px 0 10px; }
+.cl-hero { position: relative; overflow: hidden; display: grid; grid-template-columns: 1fr auto; gap: 6px 14px; align-items: center; padding: 18px; border-radius: 22px; background: var(--tile); margin-top: 16px; isolation: isolate; }
+.cl-hero > :not(.cl-cielo) { position: relative; z-index: 1; }
+.cl-hero .t { font-family: var(--serif); font-size: 84px; line-height: .85; }
+.cl-hero .est { font-size: 16px; font-weight: 600; } .cl-hero .s { font-size: 13.5px; color: var(--muted); grid-column: 1 / -1; }
+.cl-hero > svg { width: 96px; height: 96px; grid-row: span 2; color: var(--text); }
+.cl-datos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
+.cl-datos div { background: var(--tile); border-radius: 14px; padding: 10px 6px; text-align: center; }
+.cl-datos b { display: block; font-size: 15px; } .cl-datos small { font-size: 11px; color: var(--muted); }
+.cl-paraguas { display: flex; gap: 12px; align-items: center; margin-top: 10px; padding: 12px 14px; border-radius: 16px; border: 1px solid var(--line); }
+.cl-paraguas span { font-size: 24px; } .cl-paraguas p { margin: 0; font-size: 14.5px; line-height: 1.35; }
+.cl-paraguas.si { border-color: transparent; background: var(--urg-bg); }
+.cl-h2 { margin: 24px 0 8px; font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.cl-h2 small { text-transform: none; letter-spacing: 0; font-weight: 500; margin-left: 6px; }
+.cl-azul { color: #3B82C4; } :root[data-theme="oscuro"] .cl-azul { color: #6CB0EE; }
+.cl-scroll { overflow-x: auto; scrollbar-width: none; margin: 0 -20px; padding: 0 20px; } .cl-scroll::-webkit-scrollbar { display: none; }
+.cl-curva { position: relative; }
+.cl-curva svg.cl-linea { position: absolute; inset: 0; }
+.cl-h { position: absolute; top: 0; width: 52px; text-align: center; font-size: 12px; }
+.cl-h .hh { color: var(--muted); } .cl-h.ahora .hh { color: var(--accent); font-weight: 700; }
+.cl-h svg { width: 26px; height: 26px; display: block; margin: 4px auto 0; }
+.cl-h .tt { position: absolute; left: 0; right: 0; font-weight: 600; font-size: 13.5px; }
+.cl-h .pp { position: absolute; left: 0; right: 0; bottom: 0; font-size: 11px; font-weight: 600; }
+.cl-sem { list-style: none; margin: 0; padding: 0; }
+.cl-sem li { border-bottom: 1px solid var(--line); }
+.cl-dia { width: 100%; display: grid; grid-template-columns: 62px 30px 38px 32px 1fr 34px; align-items: center; gap: 8px; padding: 11px 0; border: 0; background: none; text-align: left; font-size: 15px; }
+.cl-dia svg { width: 28px; height: 28px; }
+.cl-dia .d { font-weight: 600; } .cl-dia .mn { color: var(--muted); text-align: right; } .cl-dia .pp { font-size: 12px; font-weight: 600; text-align: center; } .cl-dia b { text-align: right; }
+.cl-bar { height: 6px; border-radius: 3px; background: var(--track); position: relative; }
+.cl-bar i { position: absolute; top: 0; bottom: 0; border-radius: 3px; background: linear-gradient(90deg, #7DB3D9, #F08A3C, #E0563A); }
+.cl-sem li.ab { background: var(--tile); border-radius: 14px; margin: 0 -10px; padding: 0 10px 10px; border-bottom: 0; }
+.cl-det p { margin: 0 0 6px; font-size: 13.5px; color: var(--muted); line-height: 1.4; }
+.cl-det .cl-scroll { margin: 0 -10px; padding: 0 10px; }
+.cl-alerta { margin-top: 14px; padding: 12px 14px; border-radius: 16px; border-left: 5px solid #E0A400; background: var(--tile); }
+.cl-alerta.n-naranja { border-color: #EE7B30; } .cl-alerta.n-roja { border-color: #C8102E; }
+.cl-alerta b { display: block; font-size: 15px; } .cl-alerta span { font-size: 13px; color: var(--muted); }
+.cl-alerta details { margin-top: 6px; font-size: 13.5px; } .cl-alerta p { margin: 6px 0 0; line-height: 1.45; }
+.cl-radar { border-radius: 18px; overflow: hidden; background: var(--tile); min-height: 60px; }
+.cl-radar > .vacio { padding: 18px; margin: 0; }
+.cl-mapa { position: relative; overflow: hidden; }
+.cl-mapa img { position: absolute; max-width: none; user-select: none; pointer-events: none; }
+.cl-capa { position: absolute; inset: 0; opacity: 0; transition: opacity .25s; }
+.cl-capa img { opacity: .75; image-rendering: auto; }
+.cl-yo { position: absolute; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px #fff, 0 0 0 9px rgba(200,16,46,.2); z-index: 3; }
+.cl-hora { position: absolute; left: 10px; bottom: 10px; z-index: 3; font-size: 12px; font-weight: 700; padding: 4px 9px; border-radius: 999px; background: var(--bg); color: var(--text); box-shadow: 0 2px 8px rgba(0,0,0,.15); }
+.cl-hoja { position: fixed; inset: 0; z-index: 80; background: rgba(0,0,0,.35); display: flex; align-items: flex-end; justify-content: center; }
+.cl-hoja-in { width: 100%; max-width: 460px; background: var(--sheet); border-radius: 22px 22px 0 0; padding: 20px 20px calc(24px + env(safe-area-inset-bottom)); }
+.cl-hoja-in > b { display: block; font-size: 17px; margin-bottom: 10px; }
+.cl-res { display: grid; gap: 6px; margin: 10px 0; max-height: 40vh; overflow: auto; }
+.cl-op { text-align: left; border: 1px solid var(--line); background: var(--tile); border-radius: 12px; padding: 10px 12px; }
+.cl-op b { display: block; } .cl-op small { color: var(--muted); }
+.link { border: 0; background: none; padding: 0; color: inherit; text-decoration: underline; font: inherit; }
+/* El cielo animado del recuadro de arriba */
+.cl-cielo { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.cl-cielo.sol b { position: absolute; right: -40px; top: -40px; width: 200px; height: 200px; border-radius: 50%; background: radial-gradient(circle, rgba(240,138,60,.28), rgba(240,138,60,0) 65%); animation: cl-late 6s ease-in-out infinite; }
+.cl-cielo.nubes b, .cl-cielo.niebla b { position: absolute; width: 220px; height: 70px; border-radius: 50%; background: currentColor; opacity: .07; filter: blur(10px); animation: cl-nube 26s linear infinite; }
+.cl-cielo.nubes b:nth-child(2), .cl-cielo.niebla b:nth-child(2) { top: 55%; width: 280px; animation-duration: 38s; animation-delay: -14s; }
+.cl-cielo.niebla b { height: 40px; opacity: .1; }
+.cl-cielo.lluvia i, .cl-cielo.tormenta i { position: absolute; top: -20px; width: 1.5px; height: 16px; border-radius: 1px; background: #3B82C4; opacity: .35; animation: cl-gota 1s linear infinite; }
+:root[data-theme="oscuro"] .cl-cielo.lluvia i, :root[data-theme="oscuro"] .cl-cielo.tormenta i { background: #6CB0EE; }
+.cl-cielo .rayo { position: absolute; inset: 0; background: #fff; opacity: 0; animation: cl-rayo 9s infinite; }
+.cl-cielo.noche i { position: absolute; width: 2px; height: 2px; border-radius: 50%; background: currentColor; opacity: .25; animation: cl-titila 3.4s ease-in-out infinite; }
+@keyframes cl-late { 50% { transform: scale(1.12); opacity: .75; } }
+@keyframes cl-nube { from { transform: translateX(-260px); } to { transform: translateX(520px); } }
+@keyframes cl-gota { to { transform: translateY(260px) translateX(-14px); } }
+@keyframes cl-rayo { 0%, 91%, 100% { opacity: 0; } 92% { opacity: .35; } 93% { opacity: 0; } 94% { opacity: .2; } }
+@keyframes cl-titila { 50% { opacity: .8; } }
+@media (prefers-reduced-motion: reduce) { .cl-cielo * { animation: none !important; } }

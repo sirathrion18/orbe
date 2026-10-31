@@ -1,5 +1,17 @@
 # Novedades de Orbe
 
+## v0.49.0 · 31/10/2026
+
+El clima, en casa.
+
+- Clima propio: tocás la tarjeta del clima en Inicio y se abre su página, ya no el SMN.
+- Tu lugar exacto: elegís tu barrio (por ejemplo, Parque Chacabuco) o «Usar mi ubicación». Queda guardado en tu planilla, y la tarjeta de Inicio también lo usa.
+- Ahora: temperatura, sensación, humedad, viento, UV y amanecer o atardecer, con el cielo animado según el clima (sol, nubes, lluvia, tormenta, estrellas).
+- ¿Llevo paraguas?: mira tus horarios del día (BNA, facu, gym, fútbol) y la lluvia a la hora de ir y de volver.
+- Por horas, con la curva de temperatura y la chance de lluvia; y la semana con mínimas y máximas. Tocás un día y se abre hora por hora.
+- Radar de las últimas 2 horas, animado (RainViewer, con los radares del SMN).
+- Alertas oficiales del SMN para tu zona, arriba de todo, solo cuando hay.
+
 ## v0.48.4 · 31/10/2026
 
 Zanahoria, 🥕.

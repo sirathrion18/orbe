@@ -1,5 +1,6 @@
 // Orbe — arranque, navegación, tema, buscador y acciones.
 import { cargarDatos, cargarClima, mezclar } from "./fuente.js";
+import { renderClima, conectarClima, alEntrar as entrarClima, montarRadar, lugar as lugarClima } from "./clima.js";
 import * as G from "./google.js";
 import { construirContexto } from "./contexto.js";
 import { renderInicio, despuesInicio, esc, colorUniverso, regresiva, renderAvisos } from "./inicio.js";
@@ -151,6 +152,7 @@ function pintar(refresco = false) {
   else if (r === "/propuestas") html = renderPropuestas(estado.datos);
   else if (r === "/agenda") { html = renderAgenda(estado.datos, estado.ctx, tema); if (sesion("agendaTab") === "mes") setTimeout(traerMes, 0); }
   else if (r === "/respiro") html = renderRespiro();
+  else if (r === "/clima") html = renderClima(estado.datos);
   else if (r === "/rastreador") html = renderRastreador(`<a class="volver" href="#/">${ICONOS.volver} Inicio</a>`);
   else if (r === "/river") { html = renderRiver(estado.ctx); if (sesion("riverTab") === "otros" && !leer("equipos")) traerEquipos().then(() => pintar(true)).catch(() => {}); }
   else if (r === "/datos") html = renderDatos();
@@ -174,6 +176,7 @@ function pintar(refresco = false) {
   if (esInicio) { despuesInicio(app, !refresco); conectarBuscador(); }
   montarCosmos(r);
   // Amorcitos: lo compartido con Agus se trae del servidor cada vez que abrís el universo.
+  if (r === "/clima") { if (!refresco) entrarClima(estado.datos, () => { if (ruta() === "/clima") pintar(true); }); else montarRadar(); }
   if (r === "/u/agus" && !refresco) abrirAmor();
   if (r === "/u/agus") montarMundo(docAmorLocal()).catch(() => {});
   else import("./mundo.js").then((m) => m.montarPortada(null)).catch(() => {});
@@ -208,6 +211,7 @@ function abrirAmor() {
     if (G.permisos().drive) sincronizarAmor(docAmorLocal() || d).then((n) => { if (n && ruta() === "/u/agus") pintar(true); }).catch(() => {});
   }).catch(() => {}).finally(() => { trayendoAmor = null; });
 }
+conectarClima({ repintar: () => { if (ruta() === "/clima") pintar(true); }, aviso: (t) => avisar(t) });
 conectarAmor({ cambio: (d, local) => { if (!local) vibrar(); if (ruta() === "/u/agus") pintar(true); }, aviso: (t) => avisar(t) });
 async function sincronizarAmor(d) {
   const DRIVE = "https://www.googleapis.com/drive/v3/files";
@@ -1299,7 +1303,7 @@ function migrar() {
   try {
     const { datos } = await cargarDatos();
     estado.datos = datos;
-    const pedido = cargarClima(datos.ciudad);
+    const pedido = cargarClima(lugarClima(datos));
     estado.clima = await Promise.race([pedido, new Promise((r) => setTimeout(() => r(null), 1500))]);
     pintar();
     if (!estado.clima) { estado.clima = await pedido; if (estado.clima) pintar(true); }
