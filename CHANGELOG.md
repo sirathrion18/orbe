@@ -1,5 +1,11 @@
 # Novedades de Orbe
 
+## v0.48.4 · 31/10/2026
+
+Zanahoria, 🥕.
+
+- Emojis solos en Amorcitos: anotás «zanahorias» en el súper y aparece 🥕; ponés «Ñoquis» en el menú y aparece 🍝. Entiende plurales y tildes; si no conoce algo, va sin emoji.
+
 ## v0.48.3 · 31/10/2026
 
 Nada se pisa.

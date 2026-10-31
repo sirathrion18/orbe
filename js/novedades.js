@@ -1,6 +1,14 @@
 // Historial de versiones que se muestra dentro de Orbe (el mismo de CHANGELOG.md).
 export const NOVEDADES = [
   {
+    version: "0.48.4",
+    fecha: "31/10/2026",
+    titulo: "Zanahoria, 🥕.",
+    cambios: [
+      "Emojis solos en Amorcitos: anotás «zanahorias» en el súper y aparece 🥕; ponés «Ñoquis» en el menú y aparece 🍝. Entiende plurales y tildes; si no conoce algo, va sin emoji.",
+    ],
+  },
+  {
     version: "0.48.3",
     fecha: "31/10/2026",
     titulo: "Nada se pisa.",

@@ -1838,3 +1838,11 @@ body.mu-abierto { overflow: hidden; }
 .mu-pais.ir { border-style: dashed; }
 .mu-pais b { display: block; font-size: 14.5px; } .mu-pais small { display: block; font-size: 12.5px; color: var(--muted); }
 .mu-info[hidden] { display: none; }
+
+/* Emojis solos en el súper y el menú */
+.am-emo { flex: none; width: 24px; text-align: center; font-size: 18px; line-height: 1; margin-right: 2px; }
+.am-sup .am-emo { margin-left: 2px; }
+.am-hecho ~ .am-emo, .am-sup input:checked ~ .am-emo { opacity: .45; filter: grayscale(.6); }
+.am-menu label .am-emo { font-size: 17px; width: 22px; margin: 0 -4px; }
+.am-menu label input { flex: 1; min-width: 0; width: auto; }
+.am-menu { grid-template-columns: minmax(0, 1fr); } .am-menu label { min-width: 0; }

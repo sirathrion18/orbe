@@ -52,6 +52,40 @@ function proximaAnual(iso, hoy) {
 const cuando = (n) => n === 0 ? "¡hoy!" : n === 1 ? "mañana" : "en " + n + " días";
 const corta = (iso) => { const d = new Date(iso.length > 10 ? iso : iso + "T12:00"); return DIAS[d.getDay()] + " " + d.getDate() + "/" + (d.getMonth() + 1) + (iso.length > 10 ? " · " + iso.slice(11, 16) : ""); };
 
+// ---------- Emojis solos: «zanahoria» → 🥕. Se calcula al mostrar; no se guarda nada. ----------
+const EMO = [
+  ["papas fritas", "🍟"], ["dulce de leche", "🍯"], ["papel higienico", "🧻"], ["rollo de cocina", "🧻"], ["pasta dental", "🪥"], ["cepillo de dientes", "🪥"],
+  ["bolsas de residuo", "🗑️"], ["bolsa de residuo", "🗑️"], ["comida de perro", "🐶"], ["comida del perro", "🐶"], ["comida de gato", "🐱"], ["comida del gato", "🐱"],
+  ["pan rallado", "🍞"], ["queso rallado", "🧀"], ["leche condensada", "🥛"], ["crema de leche", "🥛"], ["agua con gas", "💧"], ["papa", "🥔"],
+  ["zanahoria", "🥕"], ["tomate", "🍅"], ["cebolla", "🧅"], ["ajo", "🧄"], ["lechuga", "🥬"], ["espinaca", "🥬"], ["acelga", "🥬"], ["rucula", "🥬"], ["repollo", "🥬"], ["apio", "🥬"],
+  ["palta", "🥑"], ["banana", "🍌"], ["manzana", "🍎"], ["pera", "🍐"], ["naranja", "🍊"], ["mandarina", "🍊"], ["limon", "🍋"], ["frutilla", "🍓"], ["uva", "🍇"],
+  ["sandia", "🍉"], ["melon", "🍈"], ["durazno", "🍑"], ["cereza", "🍒"], ["anana", "🍍"], ["kiwi", "🥝"], ["coco", "🥥"], ["mango", "🥭"], ["arandano", "🫐"],
+  ["choclo", "🌽"], ["morron", "🫑"], ["pimiento", "🫑"], ["pepino", "🥒"], ["zucchini", "🥒"], ["berenjena", "🍆"], ["brocoli", "🥦"], ["coliflor", "🥦"], ["champinon", "🍄"], ["hongo", "🍄"],
+  ["batata", "🍠"], ["zapallo", "🎃"], ["calabaza", "🎃"], ["garbanzo", "🫘"], ["lenteja", "🫘"], ["poroto", "🫘"], ["arveja", "🫛"], ["mani", "🥜"], ["nuez", "🌰"], ["nueces", "🌰"], ["almendra", "🌰"],
+  ["leche", "🥛"], ["yogur", "🥛"], ["yerba", "🧉"], ["mate", "🧉"], ["cafe", "☕"], ["te", "🍵"], ["pan", "🍞"], ["tostada", "🍞"], ["factura", "🥐"], ["medialuna", "🥐"], ["bizcocho", "🥐"],
+  ["queso", "🧀"], ["muzzarella", "🧀"], ["huevo", "🥚"], ["manteca", "🧈"], ["carne", "🥩"], ["asado", "🥩"], ["bife", "🥩"], ["vacio", "🥩"], ["picada", "🥩"], ["nalga", "🥩"], ["milanesa", "🥩"],
+  ["pollo", "🍗"], ["pata", "🍗"], ["pechuga", "🍗"], ["chorizo", "🌭"], ["salchicha", "🌭"], ["pancho", "🌭"], ["morcilla", "🌭"], ["jamon", "🍖"], ["salame", "🍖"], ["bondiola", "🍖"], ["cerdo", "🍖"],
+  ["pescado", "🐟"], ["atun", "🐟"], ["merluza", "🐟"], ["salmon", "🍣"], ["sushi", "🍣"], ["langostino", "🍤"], ["camaron", "🍤"],
+  ["fideo", "🍝"], ["tallarin", "🍝"], ["pasta", "🍝"], ["ravioles", "🍝"], ["noqui", "🍝"], ["sorrentino", "🍝"], ["lasagna", "🍝"], ["arroz", "🍚"], ["risotto", "🍚"], ["ramen", "🍜"], ["sopa", "🥣"], ["guiso", "🥘"], ["locro", "🥘"], ["polenta", "🥘"],
+  ["pizza", "🍕"], ["prepizza", "🍕"], ["empanada", "🥟"], ["tarta", "🥧"], ["hamburguesa", "🍔"], ["tacos", "🌮"], ["taco", "🌮"], ["burrito", "🌯"], ["wrap", "🌯"], ["ensalada", "🥗"], ["sandwich", "🥪"], ["tortilla", "🍳"], ["omelette", "🍳"],
+  ["chocolate", "🍫"], ["galletita", "🍪"], ["alfajor", "🍪"], ["miel", "🍯"], ["mermelada", "🍯"], ["helado", "🍦"], ["torta", "🎂"], ["budin", "🍰"], ["caramelo", "🍬"], ["chicle", "🍬"], ["azucar", "🍬"], ["pochoclo", "🍿"], ["cereal", "🥣"], ["avena", "🥣"], ["granola", "🥣"],
+  ["vino", "🍷"], ["cerveza", "🍺"], ["birra", "🍺"], ["fernet", "🥃"], ["whisky", "🥃"], ["gin", "🍸"], ["champagne", "🍾"], ["sidra", "🍾"], ["agua", "💧"], ["soda", "💧"], ["gaseosa", "🥤"], ["coca", "🥤"], ["sprite", "🥤"], ["jugo", "🧃"], ["hielo", "🧊"],
+  ["sal", "🧂"], ["pimienta", "🧂"], ["oregano", "🌿"], ["albahaca", "🌿"], ["perejil", "🌿"], ["aceite", "🫒"], ["aceituna", "🫒"], ["harina", "🌾"], ["levadura", "🌾"], ["ketchup", "🍅"], ["mayonesa", "🥫"], ["mostaza", "🥫"], ["lata", "🥫"], ["pure", "🥔"],
+  ["jabon", "🧼"], ["detergente", "🧴"], ["shampoo", "🧴"], ["acondicionador", "🧴"], ["lavandina", "🧴"], ["suavizante", "🧴"], ["desodorante", "🧴"], ["crema", "🧴"], ["esponja", "🧽"], ["servilleta", "🧻"], ["panuelo", "🧻"], ["algodon", "☁️"],
+  ["pañal", "👶"], ["panal", "👶"], ["pila", "🔋"], ["lampara", "💡"], ["foco", "💡"], ["vela", "🕯️"], ["flores", "💐"], ["flor", "🌸"], ["regalo", "🎁"], ["remedio", "💊"], ["ibuprofeno", "💊"], ["perro", "🐶"], ["gato", "🐱"], ["piedritas", "🐱"],
+];
+const sinTilde = (t) => String(t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ñ/g, "n");
+export function emoji(texto) {
+  const t = " " + sinTilde(texto).replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim() + " ";
+  for (const [k, e] of EMO) {
+    const b = sinTilde(k);
+    // la palabra sola o en plural (zanahoria, zanahorias; limon, limones)
+    if (t.includes(" " + b + " ") || t.includes(" " + b + "s ") || t.includes(" " + b + "es ")) return e;
+  }
+  return "";
+}
+const conEmoji = (texto) => { const e = emoji(texto); return e ? `<span class="am-emo" aria-hidden="true">${e}</span>` : ""; };
+
 // ---------- Pantalla ----------
 // Orden (Nacho, 31/10): el mundito chiquito arriba (se abre en grande), súper, menú, ¿dónde comemos?,
 // para ver, planes, salidas culturales y docs.
@@ -128,12 +162,12 @@ export function render(doc, hoy, { puedeTodo = false } = {}) {
   // ---- Súper y menú ----
   const sup = doc.super || [];
   const bSuper = `<section class="bloque am-sec"><h2>Lista del súper</h2>
-    <ul class="lista">${sup.length ? sup.map((it) => `<li><label class="am-sup"><input type="checkbox" data-am="super-tilde" data-id="${esc(it.id)}" ${it.ok ? "checked" : ""}><span class="${it.ok ? "am-hecho" : ""}">${esc(it.t)}</span></label>
+    <ul class="lista">${sup.length ? sup.map((it) => `<li><label class="am-sup"><input type="checkbox" data-am="super-tilde" data-id="${esc(it.id)}" ${it.ok ? "checked" : ""}>${conEmoji(it.t)}<span class="${it.ok ? "am-hecho" : ""}">${esc(it.t)}</span></label>
       <button class="am-x" data-am="super-borrar" data-id="${esc(it.id)}" aria-label="Sacar ${esc(it.t)}">${X}</button></li>`).join("") : '<li class="vacio">La lista está vacía.</li>'}</ul>
     <form class="form" data-am-form="super"><input name="texto" placeholder="Agregar algo" aria-label="Agregar a la lista" required autocomplete="off"><button class="btn">Sumar</button></form>
     ${sup.some((x) => x.ok) ? '<div class="chips" style="margin-top:10px"><button class="chip" data-am="super-limpiar">Sacar lo tildado</button></div>' : ""}</section>`;
   const menu = doc.menu || {};
-  const bMenu = `<section class="bloque am-sec"><h2>Menú de la semana</h2><div class="am-menu">${ORDEN.map((d) => `<label><span>${DIAS[d]}</span>
+  const bMenu = `<section class="bloque am-sec"><h2>Menú de la semana</h2><div class="am-menu">${ORDEN.map((d) => `<label><span>${DIAS[d]}</span>${conEmoji(menu[d]) || '<span class="am-emo vacio-emo"></span>'}
     <input data-am-menu="${d}" value="${esc(menu[d] || "")}" placeholder="¿Qué se come?" autocomplete="off"></label>`).join("")}</div></section>`;
 
   // ---- ¿Dónde comemos? (dado + ranking plegado) ----
